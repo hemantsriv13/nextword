@@ -97,7 +97,8 @@ class GenerationTests(unittest.TestCase):
 
     def test_upload_round_trip(self):
         info = self.store.add("My notes", "abab abba\nbaab")
-        self.assertEqual(info["id"], "upload-my-notes")
+        self.assertTrue(info["id"].startswith("upload-c"))
+        self.assertEqual(info["name"], "My notes")
         self.assertEqual(self.store.text(info["id"]), "abab abba\nbaab")
         with self.assertRaises(LabError):
             self.store.add("x", "   ")
@@ -106,6 +107,54 @@ class GenerationTests(unittest.TestCase):
         self.store.delete(info["id"])
         with self.assertRaises(LabError):
             self.store.text(info["id"])
+        self.assertEqual(list(Path(self.tmp.name).iterdir()), [])  # text and its metadata both removed
+
+    def test_names_that_slugify_alike_never_overwrite(self):
+        first = self.store.add("My Notes", "first text, kept")
+        second = self.store.add("my-notes", "second text")
+        third = self.store.add("My Notes", "third text, same name as the first")
+        ids = {first["id"], second["id"], third["id"]}
+        self.assertEqual(len(ids), 3)
+        self.assertEqual(self.store.text(first["id"]), "first text, kept")
+        self.assertEqual(self.store.text(second["id"]), "second text")
+        self.assertEqual(self.store.text(third["id"]), "third text, same name as the first")
+        self.assertEqual(first["fingerprint"], service._fingerprint("first text, kept"))
+        self.assertEqual(len(self.store.list()), 4)  # the sample plus three uploads
+
+    def test_repeated_identical_uploads_stay_separate(self):
+        a = self.store.add("Same", "identical text")
+        b = self.store.add("Same", "identical text")
+        self.assertNotEqual(a["id"], b["id"])
+        self.assertEqual(a["fingerprint"], b["fingerprint"])
+        self.store.delete(a["id"])
+        self.assertEqual(self.store.text(b["id"]), "identical text")
+
+    def test_upload_never_replaces_an_existing_file(self):
+        original = self.store.add("Keep me", "original")
+        path = Path(self.tmp.name) / (original["id"].removeprefix("upload-") + ".txt")
+        before = path.read_bytes()
+        for _ in range(20):
+            self.store.add("Keep me", "something else")
+        self.assertEqual(path.read_bytes(), before)
+
+    def test_files_from_before_ids_still_work(self):
+        legacy = Path(self.tmp.name) / "my-old-notes.txt"
+        legacy.write_text("old upload text", encoding="utf-8")
+        info = self.store.describe("upload-my-old-notes")
+        self.assertEqual(info["name"], "my old notes")
+        self.assertEqual(self.store.text("upload-my-old-notes"), "old upload text")
+        self.store.add("my-old-notes", "a new upload with the same name")
+        self.assertEqual(legacy.read_text(encoding="utf-8"), "old upload text")
+
+    def test_counts_cache_follows_content(self):
+        legacy = Path(self.tmp.name) / "edited.txt"
+        legacy.write_text("aaaa", encoding="utf-8")
+        counts, _, _ = self.store.counts("upload-edited")
+        self.assertEqual(counts["a"]["a"], 3)
+        legacy.write_text("abab", encoding="utf-8")  # changed outside the Lab
+        counts, hit, _ = self.store.counts("upload-edited")
+        self.assertFalse(hit)
+        self.assertNotIn("a", counts["a"])
 
     def test_adaptation_shifts_counts_without_leaking(self):
         result = service.adapt(SAMPLE, "ee ee ee ee ee ee ee ee ee ee", "e")

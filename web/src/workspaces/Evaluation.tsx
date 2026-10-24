@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useCallback, useMemo, useRef, useState } from "react"
 import { DownloadIcon, PlayIcon, RefreshDoubleIcon, TrashIcon } from "@/components/icons"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -12,11 +12,13 @@ import { EmptyNote, ErrorNote, Explain, ExplainSection, LoadingRows, Note, Panel
 import { Source } from "@/components/lab/source"
 import { api, type Evaluation as EvalResult } from "@/lib/api"
 import { useCorpora } from "@/lib/corpora"
-import { fmt, useAsync } from "@/lib/hooks"
+import { changedSettings, describeConfig, rerunVerdict, sameConfig, splitProblem, testShare, useSnapshotRun, type EvalConfig, type Snapshot } from "@/lib/evaluation"
+import { fmt } from "@/lib/hooks"
 import { actions, download, useLab, type SavedExperiment } from "@/lib/store"
 import { cn } from "@/lib/utils"
 
-type Config = SavedExperiment["config"]
+type Config = EvalConfig
+type Measured = Snapshot<Config, EvalResult>
 
 function summarise(r: EvalResult): SavedExperiment["result"] {
   return { targets: r.targets, meanNll: r.meanNll, meanNllCovered: r.meanNllCovered, perplexity: r.perplexity, unseenContext: r.unseenContext, unseenPair: r.unseenPair, covered: r.covered, modelVersion: r.modelVersion, corpusFingerprint: r.corpusFingerprint }
@@ -24,18 +26,23 @@ function summarise(r: EvalResult): SavedExperiment["result"] {
 
 export default function Evaluation() {
   const [config, setConfig] = useState<Config>({ corpus: "sample", train: 0.8, val: 0.1, on: "val", k: 0 })
-  const evalRun = useAsync(api.evaluate)
+  const request = useCallback((c: Config) => api.evaluate({ corpus: c.corpus, train: c.train, val: c.val, on: c.on, k: c.k }), [])
+  const bench = useSnapshotRun(request)
   const { corpora } = useCorpora()
-  const r = evalRun.data
+  const nameOf = (id: string) => corpora?.find((c) => c.id === id)?.name
+  const measured = bench.run
+  const stale = !!measured && !sameConfig(measured.config, config)
   const set = <K extends keyof Config>(key: K, v: Config[K]) => setConfig((c) => ({ ...c, [key]: v }))
-  const test = Math.max(0, 1 - config.train - config.val)
-  const validSplit = config.train + config.val < 0.999 && test >= 0.01
+  const problem = splitProblem(config)
 
-  async function run(c = config) {
-    const res = await evalRun.run({ corpus: c.corpus, train: c.train, val: c.val, on: c.on, k: c.k })
-    if (res) actions.logRun({ route: "evaluation", title: `Held-out loss on ${c.on}`, summary: `k ${c.k}: ${res.meanNll === null ? "infinite" : res.meanNll.toFixed(3)} nats`, source: "model" }, ["loss", "split", ...(c.k > 0 ? ["smoothing"] : [])])
-    return res
+  async function run(c: Config = config) {
+    const done = await bench.start(c)
+    if (done) actions.logRun({ route: "evaluation", title: `Held-out loss on ${done.config.on}`, summary: `k ${done.config.k}: ${done.result.meanNll === null ? "infinite" : done.result.meanNll.toFixed(3)} nats`, source: "model" }, ["loss", "split", ...(done.config.k > 0 ? ["smoothing"] : [])])
+    return done?.result
   }
+
+  const r = measured?.result
+  const runK = measured?.config.k
 
   return (
     <Workspace
@@ -44,7 +51,7 @@ export default function Evaluation() {
       explain={<EvalExplain />}
     >
       <Panel id="config" title="Experiment settings" source={<Source kind="model" detail="nextword/lab/service.py evaluate()" />}
-        aside={<Button onClick={() => run()} disabled={!validSplit || evalRun.loading}><PlayIcon className="size-4" /> {evalRun.loading ? "Measuring…" : "Measure"}</Button>}>
+        aside={<Button onClick={() => run()} disabled={!!problem || !!bench.pending}><PlayIcon className="size-4" /> {bench.pending ? "Measuring…" : config.on === "test" ? "Run the final test check" : "Measure on validation"}</Button>}>
         <div className="grid grid-cols-1 gap-x-8 gap-y-5 md:grid-cols-2 xl:grid-cols-3">
           <div className="flex flex-col gap-2">
             <span id="ev-corpus" className="text-sm font-medium">Training text</span>
@@ -54,22 +61,23 @@ export default function Evaluation() {
             </Select>
           </div>
           <SliderField id="ev-train" label="Training share" value={config.train} min={0.5} max={0.9} step={0.05} onChange={(v) => set("train", v)} format={(v) => fmt.pct(v, 0)} />
-          <SliderField id="ev-val" label="Validation share" value={config.val} min={0.05} max={0.3} step={0.05} onChange={(v) => set("val", v)} format={(v) => fmt.pct(v, 0)} hint={validSplit ? `Test gets the remaining ${fmt.pct(test, 0)}.` : "Leave some text for the test split."} />
+          <SliderField id="ev-val" label="Validation share" value={config.val} min={0.05} max={0.3} step={0.05} onChange={(v) => set("val", v)} format={(v) => fmt.pct(v, 0)} hint={problem ?? `Test gets the remaining ${fmt.pct(testShare(config), 0)}.`} />
           <div className="flex flex-col gap-2">
             <span className="text-sm font-medium">Measure on</span>
-            <Segmented label="Measure on" value={config.on} onChange={(v) => set("on", v)} options={[{ value: "val", label: "Validation" }, { value: "test", label: "Test" }]} />
-            {config.on === "test" && <p className="text-[13px] text-warning">Use the test split once, after you&apos;ve chosen settings on validation.</p>}
+            <Segmented label="Measure on" value={config.on} onChange={(v) => set("on", v)} options={[{ value: "val", label: "Validation" }, { value: "test", label: "Test (final check)" }]} />
+            {config.on === "test" && <p className="text-[13px] text-warning">Test is for one final check, after you&apos;ve chosen settings on validation. Changing settings because of a test score makes the test part of tuning.</p>}
           </div>
           <SliderField id="ev-k" label={<><Term id="smoothing">Smoothing</Term> k</>} value={config.k} min={0} max={3} step={0.05} onChange={(v) => set("k", v)} format={(v) => (v === 0 ? "0 (engine as built)" : v.toFixed(2))} hint="k = 0 is your engine exactly. k > 0 is a Lab-side add-k variant used only for evaluation." />
         </div>
         <p className="mt-4 text-[13px] text-muted-foreground">The text is cut into three contiguous parts before any pairs are made, so no pair crosses a split. Only the training part is counted.</p>
+        {bench.pending && <p role="status" className="mt-2 text-sm">Measuring {describeConfig(bench.pending, nameOf(bench.pending.corpus))}. Changing the controls now won&apos;t relabel this result.</p>}
       </Panel>
 
-      {evalRun.error ? <ErrorNote error={evalRun.error} onRetry={() => run()} /> : evalRun.loading && !r ? <LoadingRows rows={5} /> : r ? <Results r={r} config={config} /> : (
+      {bench.error ? <ErrorNote error={bench.error} onRetry={() => run()} /> : bench.pending && !measured ? <LoadingRows rows={5} /> : measured ? <Results run={measured} stale={stale} changed={stale ? changedSettings(measured.config, config) : []} corpusName={nameOf(measured.config.corpus)} /> : (
         <EmptyNote>Press Measure. The bench reports how surprised your engine is by each character of held-out text.</EmptyNote>
       )}
 
-      <Ablation config={config} />
+      <Ablation config={config} corpusName={nameOf} />
       <SavedRuns onRerun={async (c) => { setConfig(c); return run(c) }} />
 
       <GuidedCycle
@@ -78,8 +86,8 @@ export default function Evaluation() {
         route="evaluation"
         question="With k = 0 (your engine as built), will the validation loss be a finite number?"
         choices={[{ id: "finite", label: "Yes, a finite number" }, { id: "infinite", label: "No, it will be infinite" }]}
-        correct={r && r.k === 0 ? (r.meanNll === null ? "infinite" : "finite") : undefined}
-        observation={r && r.k === 0 ? <>{r.unseenContext + r.unseenPair} of {r.targets} validation targets got probability 0 ({r.unseenContext} unseen contexts, {r.unseenPair} unseen pairs). One zero makes −log p infinite, so the mean is {r.meanNll === null ? "infinite" : r.meanNll.toFixed(3)}.</> : undefined}
+        correct={r && runK === 0 && measured?.config.on === "val" ? (r.meanNll === null ? "infinite" : "finite") : undefined}
+        observation={r && runK === 0 && measured?.config.on === "val" ? <>For the run with {describeConfig(measured.config, nameOf(measured.config.corpus))}: {r.unseenContext + r.unseenPair} of {r.targets} validation targets got probability 0 ({r.unseenContext} unseen contexts, {r.unseenPair} unseen pairs). One zero makes −log p infinite, so the mean is {r.meanNll === null ? "infinite" : r.meanNll.toFixed(3)}.</> : undefined}
         explainPrompt="Why does a single unseen pair make the whole average infinite? What does smoothing trade away to fix it?"
         change="Set k to 1 and measure again. Then run the k sweep below and find the k with the lowest validation loss."
         hints={["−log(0) is infinite.", "An average that includes an infinite term is infinite."]}
@@ -88,7 +96,10 @@ export default function Evaluation() {
   )
 }
 
-function Results({ r, config }: { r: EvalResult; config: Config }) {
+function Results({ run, stale, changed, corpusName }: { run: Measured; stale: boolean; changed: string[]; corpusName?: string }) {
+  const r = run.result
+  const config = run.config // the settings that produced r, never the live controls
+  const label = describeConfig(config, corpusName)
   const [sort, setSort] = useState<"worst" | "order">("worst")
   const [notes, setNotes] = useState("")
   const [name, setName] = useState("")
@@ -99,7 +110,11 @@ function Results({ r, config }: { r: EvalResult; config: Config }) {
   }, [r, sort])
   return (
     <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-      <Panel id="summary" title={`Held-out loss on ${r.on === "val" ? "validation" : "test"}`} source={<Source kind="model" detail={r.modelVersion} />}>
+      <Panel id="summary" title={`Held-out loss on ${config.on === "val" ? "validation" : "test"}`} source={<Source kind="model" detail={r.modelVersion} />}>
+        <p className="mb-4 text-sm" data-testid="result-settings">For: {label}</p>
+        {stale && (
+          <div className="mb-4"><Note tone="warning">Settings changed since this run ({changed.join(", ")}). These numbers still belong to the settings above. Measure again to see the new ones.</Note></div>
+        )}
         <dl className="flex flex-col gap-4">
           <div>
             <dt className="text-sm text-muted-foreground">Mean <Term id="cross-entropy">negative log-likelihood</Term> per character</dt>
@@ -118,7 +133,7 @@ function Results({ r, config }: { r: EvalResult; config: Config }) {
           {r.meanNll !== null && <p className="text-sm">{r.meanNll < r.uniformBaselineNll ? `Better than guessing uniformly among ${r.vocabularyWithUnknown} characters by ${(r.uniformBaselineNll - r.meanNll).toFixed(3)} nats.` : "Not better than a uniform guess: the counts don't transfer to this text."}</p>}
         </dl>
         <div className="mt-5 flex flex-col gap-2 border-t border-border pt-4">
-          <label htmlFor="ev-name" className="text-sm font-medium">Save this run</label>
+          <label htmlFor="ev-name" className="text-sm font-medium">Save this run <span className="font-normal text-muted-foreground">({label})</span></label>
           <input id="ev-name" value={name} onChange={(e) => setName(e.target.value)} placeholder={`k ${config.k}, ${config.on}`} className="h-9 rounded-md border border-input bg-card px-3 text-sm" />
           <label htmlFor="ev-notes" className="text-sm font-medium">Error-analysis notes</label>
           <Textarea id="ev-notes" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="What do the worst examples have in common?" />
@@ -152,42 +167,65 @@ function Results({ r, config }: { r: EvalResult; config: Config }) {
 
 const SWEEP = [0, 0.01, 0.05, 0.1, 0.25, 0.5, 1, 2]
 
-function Ablation({ config }: { config: Config }) {
-  const [points, setPoints] = useState<{ k: number; nll: number | null }[] | null>(null)
-  const [state, setState] = useState<{ loading: boolean; error?: Error }>({ loading: false })
-  const fixed = `${config.corpus}, ${fmt.pct(config.train, 0)}/${fmt.pct(config.val, 0)} split, ${config.on}`
-  async function sweep() {
-    setState({ loading: true })
+interface Sweep {
+  config: Omit<Config, "k" | "on"> & { on: "val" } // the settings the sweep actually used
+  points: { k: number; nll: number | null }[]
+  done: boolean
+  error?: Error
+}
+
+function Ablation({ config, corpusName }: { config: Config; corpusName: (id: string) => string | undefined }) {
+  const [sweep, setSweep] = useState<Sweep | null>(null)
+  const latest = useRef(0)
+  const problem = splitProblem(config)
+  async function start() {
+    if (problem) return
+    // Parameter sweeps always select on validation; the test split stays untouched for a final check.
+    const frozen = Object.freeze({ corpus: config.corpus, train: config.train, val: config.val, on: "val" as const })
+    const id = ++latest.current
+    const out: Sweep["points"] = []
+    setSweep({ config: frozen, points: [], done: false })
     try {
-      const out = []
       for (const k of SWEEP) {
-        const r = await api.evaluate({ corpus: config.corpus, train: config.train, val: config.val, on: config.on, k })
+        const r = await api.evaluate({ ...frozen, k })
+        if (id !== latest.current) return
         out.push({ k, nll: r.meanNll })
-        setPoints([...out])
+        setSweep({ config: frozen, points: [...out], done: false })
       }
-      setState({ loading: false })
-      actions.logRun({ route: "evaluation", title: "Smoothing ablation", summary: fixed, source: "model" }, ["ablation", "smoothing"])
+      setSweep({ config: frozen, points: out, done: true })
+      actions.logRun({ route: "evaluation", title: "Smoothing ablation on validation", summary: fixed(frozen), source: "model" }, ["ablation", "smoothing"])
     } catch (e) {
-      setState({ loading: false, error: e as Error })
+      if (id === latest.current) setSweep({ config: frozen, points: out, done: false, error: e as Error })
     }
   }
-  const finite = points?.filter((p) => p.nll !== null) ?? []
+  const running = !!sweep && !sweep.done && !sweep.error
+  const finite = sweep?.points.filter((p) => p.nll !== null) ?? []
   const best = finite.length ? finite.reduce((m, p) => (p.nll! < m.nll! ? p : m)) : null
+  function fixed(c: Sweep["config"]) {
+    return `${corpusName(c.corpus) ?? c.corpus}, ${fmt.pct(c.train, 0)} / ${fmt.pct(c.val, 0)} / ${fmt.pct(testShare(c), 0)} split, scored on validation`
+  }
+  const moved = !!sweep && (sweep.config.corpus !== config.corpus || sweep.config.train !== config.train || sweep.config.val !== config.val)
   return (
-    <Panel id="ablation" title="Controlled ablation: only k changes" source={<Source kind="model" detail={`${SWEEP.length} runs of your engine`} />}
-      aside={<Button variant="outline" onClick={sweep} disabled={state.loading}><RefreshDoubleIcon className="size-4" /> {state.loading ? `Running ${points?.length ?? 0} of ${SWEEP.length}…` : "Run the k sweep"}</Button>}>
-      <p className="text-sm">Held fixed: {fixed}, same engine version. Varied: smoothing k over {SWEEP.join(", ")}.</p>
-      {state.error && <div className="mt-3"><ErrorNote error={state.error} onRetry={sweep} /></div>}
-      {points && (
-        <div className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-          <LineChart ariaLabel="Held-out loss for each smoothing strength" series={[{ name: "held-out loss", tone: "data", points: finite.map((p) => ({ x: p.k, y: p.nll! })) }]} xLabel="smoothing k" yLabel="nats" height={200} xFormat={(x) => String(+x.toFixed(2))} />
-          <table className="text-sm">
-            <thead><tr className="text-[12px] text-muted-foreground"><th className="text-right font-normal">k</th><th className="text-right font-normal">loss (nats)</th></tr></thead>
-            <tbody>{points.map((p) => <tr key={p.k} className={cn("border-t border-rule", best?.k === p.k && "font-semibold")}><td className="num py-0.5 text-right">{p.k}</td><td className="num text-right">{fmt.nll(p.nll)}</td></tr>)}</tbody>
-          </table>
-        </div>
+    <Panel id="ablation" title="Controlled ablation: only k changes" source={<Source kind="model" detail={`${SWEEP.length} runs of your engine, on validation`} />}
+      aside={<Button variant="outline" onClick={start} disabled={running || !!problem}><RefreshDoubleIcon className="size-4" /> {running ? `Running ${sweep!.points.length} of ${SWEEP.length}…` : "Run the k sweep on validation"}</Button>}>
+      <p className="text-sm">Varies smoothing k over {SWEEP.join(", ")} and keeps everything else fixed. It always scores on the validation part, whatever “Measure on” is set to, because choosing k with test results would make the test part of tuning.</p>
+      {problem && <p role="alert" className="mt-2 text-sm text-negative">{problem}</p>}
+      {config.on === "test" && !problem && <p className="mt-2 text-sm text-warning">“Measure on” is set to Test. The sweep still uses validation; run the test check above once, after choosing k.</p>}
+      {sweep?.error && <div className="mt-3"><ErrorNote error={sweep.error} onRetry={start} /></div>}
+      {sweep && sweep.points.length > 0 && (
+        <>
+          <p className="mt-4 text-sm" data-testid="sweep-settings">Held fixed in this sweep: {fixed(sweep.config)}, same engine version.</p>
+          {moved && <div className="mt-2"><Note tone="warning">The controls have changed since this sweep. Its numbers still belong to the settings above.</Note></div>}
+          <div className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+            <LineChart ariaLabel="Validation loss for each smoothing strength" series={[{ name: "validation loss", tone: "data", points: finite.map((p) => ({ x: p.k, y: p.nll! })) }]} xLabel="smoothing k" yLabel="nats" height={200} xFormat={(x) => String(+x.toFixed(2))} />
+            <table className="text-sm">
+              <thead><tr className="text-[12px] text-muted-foreground"><th className="text-right font-normal">k</th><th className="text-right font-normal">validation loss (nats)</th></tr></thead>
+              <tbody>{sweep.points.map((p) => <tr key={p.k} className={cn("border-t border-rule", best?.k === p.k && "font-semibold")}><td className="num py-0.5 text-right">{p.k}</td><td className="num text-right">{fmt.nll(p.nll)}</td></tr>)}</tbody>
+            </table>
+          </div>
+        </>
       )}
-      {best && !state.loading && <p className="mt-3 text-sm">Lowest at k = {best.k} ({best.nll!.toFixed(3)} nats). Choosing k this way uses the validation text, which is why a final check belongs on the test split.</p>}
+      {best && sweep?.done && <p className="mt-3 text-sm" data-testid="sweep-conclusion">Lowest validation loss at k = {best.k} ({best.nll!.toFixed(3)} nats). Choosing k this way uses the validation text, so that score is optimistic; measure the chosen k once on the test split for an independent check. Tuning again after looking at the test score would use up that independence.</p>}
     </Panel>
   )
 }
@@ -196,7 +234,7 @@ function SavedRuns({ onRerun }: { onRerun: (c: Config) => Promise<EvalResult | u
   const experiments = useLab((s) => s.experiments)
   const [baseline, setBaseline] = useState<string | null>(null)
   const [candidate, setCandidate] = useState<string | null>(null)
-  const [repro, setRepro] = useState<Record<string, string>>({})
+  const [repro, setRepro] = useState<Record<string, { kind: string; message: string }>>({})
   const a = experiments.find((e) => e.id === baseline)
   const b = experiments.find((e) => e.id === candidate)
 
@@ -233,7 +271,7 @@ function SavedRuns({ onRerun }: { onRerun: (c: Config) => Promise<EvalResult | u
                 {experiments.map((e) => (
                   <tr key={e.id} className="border-t border-rule">
                     <td className="py-2 pr-2"><span className="font-medium">{e.name}</span>{e.notes && <span className="block max-w-xs truncate text-[13px] text-muted-foreground">{e.notes}</span>}</td>
-                    <td className="py-2 pr-2 text-[13px] text-muted-foreground">{e.config.corpus}, {fmt.pct(e.config.train, 0)}/{fmt.pct(e.config.val, 0)}, {e.config.on}, k {e.config.k}</td>
+                    <td className="py-2 pr-2 text-[13px] text-muted-foreground">{describeConfig(e.config)}<span className="tok block">text {e.result.corpusFingerprint}</span></td>
                     <td className="num py-2 text-right">{fmt.nll(e.result.meanNll)}</td>
                     <td className="num py-2 text-right">{e.result.perplexity === null ? "–" : e.result.perplexity.toFixed(2)}</td>
                     <td className="py-2 text-center"><input type="radio" name="baseline" aria-label={`Use ${e.name} as baseline`} checked={baseline === e.id} onChange={() => setBaseline(e.id)} className="accent-[var(--foreground)]" /></td>
@@ -241,10 +279,10 @@ function SavedRuns({ onRerun }: { onRerun: (c: Config) => Promise<EvalResult | u
                     <td className="py-2 text-right whitespace-nowrap">
                       <Button variant="ghost" size="sm" onClick={async () => {
                         const res = await onRerun(e.config)
-                        if (res) setRepro({ ...repro, [e.id]: res.meanNll === e.result.meanNll && res.modelVersion === e.result.modelVersion ? "Same result" : res.modelVersion !== e.result.modelVersion ? "Engine code changed since" : "Different result" })
+                        setRepro((prev) => ({ ...prev, [e.id]: res ? rerunVerdict(e.result, res) : { kind: "error", message: "Couldn't rerun; see the error above. The training text may have been deleted." } }))
                       }}>Rerun</Button>
                       <Button variant="ghost" size="icon" aria-label={`Delete ${e.name}`} onClick={() => actions.deleteExperiment(e.id)}><TrashIcon className="size-4" /></Button>
-                      {repro[e.id] && <span className="block text-[12px] text-muted-foreground">{repro[e.id]}</span>}
+                      {repro[e.id] && <span role="status" className={cn("block max-w-[16rem] whitespace-normal text-left text-[12px]", repro[e.id].kind === "reproduced" ? "text-positive" : "text-warning")}>{repro[e.id].message}</span>}
                     </td>
                   </tr>
                 ))}

@@ -5,11 +5,13 @@ Timings are measured with time.perf_counter and reported in milliseconds.
 """
 
 import hashlib
+import json
 import math
 import random
-import re
+import secrets
 import time
 from collections import Counter
+from datetime import datetime, timezone
 from pathlib import Path
 
 from nextword import bigram
@@ -73,9 +75,12 @@ class CorpusStore:
     def describe(self, corpus_id: str) -> dict:
         path, origin = self._paths()[corpus_id]
         text = path.read_text(encoding="utf-8")
+        meta = self._meta(path) if origin == "upload" else {}
         return {
             "id": corpus_id,
-            "name": "Sample passage" if origin == "sample" else path.stem.replace("-", " "),
+            # Uploads made before IDs existed have no metadata file; their name comes from the file name.
+            "name": "Sample passage" if origin == "sample" else meta.get("name") or path.stem.replace("-", " "),
+            "created": meta.get("created"),
             "origin": origin,
             "file": (str(path.relative_to(ROOT)) if path.is_relative_to(ROOT) else str(path)).replace("\\", "/"),
             "chars": len(text),
@@ -86,19 +91,43 @@ class CorpusStore:
     def list(self) -> list[dict]:
         return [self.describe(corpus_id) for corpus_id in self._paths()]
 
+    @staticmethod
+    def _meta(path: Path) -> dict:
+        meta_path = path.with_suffix(".json")
+        try:
+            data = json.loads(meta_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return {}
+        return data if isinstance(data, dict) else {}
+
     def add(self, name: str, text: str) -> dict:
+        """Save a new training text. Every upload gets its own ID, so nothing is ever overwritten.
+
+        The ID is random and unrelated to the display name: two uploads called "My Notes" and
+        "my-notes" (or the same name twice) are two separate corpora. Existing files are never touched.
+        """
         if not isinstance(text, str) or not text.strip():
             raise LabError("the text is empty; paste or upload some plain text", 422, "empty_text")
         if len(text) > MAX_CORPUS_CHARS:
             raise LabError(f"the text has {len(text):,} characters; the limit is {MAX_CORPUS_CHARS:,}", 413, "too_large")
         if len(text) < 2:
             raise LabError("a bigram model needs at least two characters", 422, "too_short")
-        slug = re.sub(r"[^a-z0-9]+", "-", (name or "").lower()).strip("-")[:40] or "my-text"
+        display = " ".join((name or "").split())[:80] or "My text"
         self.upload_dir.mkdir(parents=True, exist_ok=True)
-        # newline="" keeps the text byte-for-byte, as .gitattributes does for data/.
-        (self.upload_dir / f"{slug}.txt").write_text(text, encoding="utf-8", newline="")
-        self._tables.pop("upload-" + slug, None)
-        return self.describe("upload-" + slug)
+        while True:
+            stem = "c" + secrets.token_hex(5)
+            path = self.upload_dir / f"{stem}.txt"
+            try:
+                # "x" fails if the file exists, so a write can never replace an earlier upload.
+                # newline="" keeps the text byte-for-byte, as .gitattributes does for data/.
+                with open(path, "x", encoding="utf-8", newline="") as f:
+                    f.write(text)
+                break
+            except FileExistsError:
+                continue
+        meta = {"name": display, "created": datetime.now(timezone.utc).isoformat(timespec="seconds"), "fingerprint": _fingerprint(text)}
+        path.with_suffix(".json").write_text(json.dumps(meta, ensure_ascii=False), encoding="utf-8")
+        return self.describe("upload-" + stem)
 
     def delete(self, corpus_id: str) -> None:
         entry = self._paths().get(corpus_id)
@@ -107,6 +136,7 @@ class CorpusStore:
         if entry[1] != "upload":
             raise LabError("the bundled sample cannot be deleted", 403, "protected")
         entry[0].unlink()
+        entry[0].with_suffix(".json").unlink(missing_ok=True)
         self._tables.pop(corpus_id, None)
 
     def counts(self, corpus_id: str) -> tuple[dict, bool, float]:

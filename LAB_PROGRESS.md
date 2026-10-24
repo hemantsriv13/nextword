@@ -30,3 +30,18 @@ Working notes for building the Lab, so the work can resume if a session ends. Ne
 - No Python neural or transformer engine (Stages 2 and 3); the Neural page has an adapter contract.
 - Comprehension check flags the workspaces as dense (130–170 words). Accepted for a working tool the
   user asked to be deep; copy was trimmed where it didn't carry meaning.
+
+## In progress (2026-10-25): fixes from the review of 75a0941 (branch fix/review-75a0941, not pushed)
+1. [x] Issue 2, corpus uploads: unique random IDs (`c<hex>`), exclusive-create writes, name in a
+   `.json` beside each file, legacy files keep working. 5 new Python tests (26 passing).
+2. [~] Issues 1 and 4, Evaluation: `web/src/lib/evaluation.ts` (`useSnapshotRun`, `sameConfig`,
+   `describeConfig`, `splitProblem`, `rerunVerdict`). Results, saves, sweep and reruns are bound to the
+   settings that produced them; stale notes; sweep always on validation; rerun checks the corpus
+   fingerprint. Component tests in `Evaluation.test.tsx`: 6 of 7 pass. **Next:** the training-text
+   test can't operate the Base UI select with fireEvent; try `@testing-library/user-event`.
+3. [ ] Issue 3, Playground context highlight (selected-step context vs next-prediction context;
+   stale traces; tests with a mocked trace).
+4. [ ] Issue 5, code points: Playground `slice` → tokens from the trace; `neural.ts buildDataset`
+   windows by code point; Data studio counts/preview; emoji and combining-mark tests (Python + TS).
+5. [ ] Then: full Python and frontend suites, `npm run build`, browser checks, docs, final report
+   (what changed per issue, test results, limitations, a browser checklist for the user).
