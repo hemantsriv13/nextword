@@ -16,7 +16,7 @@ Evidence levels: **discussed** → **implemented** → **tested** → **explaine
 3. **Here:** `count_bigrams()` and `complete()` in `nextword/bigram.py`.
 4. **Observed:** E0. Letter pairs look English-like, but words do not form.
 5. **Misconception:** "it remembers the prompt." It only ever sees the last character.
-6. **Evidence:** implemented.
+6. **Evidence:** explained independently. "The rain", "A different start, rain" and "n" give identical output with seed 1 (2026-10-25).
 
 ### Conditional probability / normalization
 1. **Plain:** "given this character, how likely is each next one?" Normalization turns counts into shares that add up to 1.
@@ -32,7 +32,8 @@ Evidence levels: **discussed** → **implemented** → **tested** → **explaine
 3. **Here:** `rng.choices(...)` in `complete()`; `--seed` in `nextword/__main__.py`.
 4. **Observed:** E0. Seed 1 gave the same output on two runs; seed 2 differed.
 5. **Misconception:** "sampling picks the most likely character." That is greedy decoding (Stage 4).
-6. **Evidence:** tested.
+   Also: "same seed = same output." Only with the same data, code and settings; the seed fixes the random numbers, not the table.
+6. **Evidence:** explained independently (seed part).
 
 ### Unseen context
 1. **Plain:** the model has never seen anything follow this character, so it has nothing to go on.

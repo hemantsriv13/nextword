@@ -1,6 +1,6 @@
 # Roadmap
 
-**Current position: Stage 1, increment 1.1 done; waiting on understanding check.**
+**Current position: Stage 1, increment 1.1 done and understood; next is 1.2.**
 
 ## Stage 1: Count-based autocomplete
 | # | Increment | Done when | Status |
