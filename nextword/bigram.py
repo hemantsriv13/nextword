@@ -9,11 +9,23 @@ probabilities (divide by the row total), and draw one character at random using 
 """
 
 import random
+from bisect import bisect_right
 from collections import Counter, defaultdict
+from itertools import accumulate
+from typing import Iterator, NamedTuple
 
 
 class UnseenContextError(Exception):
     """The model has no counts for this character, so it cannot predict what comes next."""
+
+
+class Step(NamedTuple):
+    """One generation step: what the model looked at, what it believed, and what it drew."""
+
+    context: str
+    probabilities: dict[str, float]
+    draw: float  # the uniform random number in [0, 1) that picked the token
+    token: str
 
 
 def tokenize(text: str) -> list[str]:
@@ -38,8 +50,21 @@ def next_token_probabilities(counts: dict[str, Counter], context: str) -> dict[s
     return {token: n / total for token, n in row.items()}
 
 
-def complete(counts: dict[str, Counter], prompt: str, length: int, rng: random.Random) -> str:
-    """Generate up to `length` characters after `prompt`, one sampled character at a time.
+def sample_next(probs: dict[str, float], rng: random.Random) -> tuple[str, float]:
+    """Draw one token. Returns (token, draw) so the choice can be traced.
+
+    The probabilities are laid end to end on [0, 1); the draw lands in one token's interval.
+    This is exactly what rng.choices(tokens, weights) does, so results match it seed for seed.
+    """
+    tokens = list(probs)
+    cumulative = list(accumulate(probs.values()))
+    draw = rng.random()
+    index = bisect_right(cumulative, draw * cumulative[-1], 0, len(tokens) - 1)
+    return tokens[index], draw
+
+
+def generate_steps(counts: dict[str, Counter], prompt: str, length: int, rng: random.Random) -> Iterator[Step]:
+    """Yield up to `length` generation steps after `prompt`, one sampled character at a time.
 
     Stops early if it reaches a character that never had a successor in the training text.
     """
@@ -48,13 +73,17 @@ def complete(counts: dict[str, Counter], prompt: str, length: int, rng: random.R
     # Fail on the prompt itself before generating anything, so unseen input is reported, not hidden.
     next_token_probabilities(counts, prompt[-1])
 
-    generated = []
     context = prompt[-1]
     for _ in range(length):
         try:
             probs = next_token_probabilities(counts, context)
         except UnseenContextError:
-            break
-        context = rng.choices(list(probs), weights=list(probs.values()))[0]
-        generated.append(context)
-    return "".join(generated)
+            return
+        token, draw = sample_next(probs, rng)
+        yield Step(context, probs, draw, token)
+        context = token
+
+
+def complete(counts: dict[str, Counter], prompt: str, length: int, rng: random.Random) -> str:
+    """Generate up to `length` characters after `prompt` (see generate_steps)."""
+    return "".join(step.token for step in generate_steps(counts, prompt, length, rng))

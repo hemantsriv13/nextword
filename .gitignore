@@ -1,3 +1,9 @@
 .venv/
 __pycache__/
 *.pyc
+
+# Lab: uploaded training texts, design-skill working files, web build
+data/lab/
+.taste-skill/
+web/node_modules/
+web/dist/

@@ -42,3 +42,10 @@ Evidence levels: **discussed** → **implemented** → **tested** → **explaine
 4. **Observed:** `"Hello!"` is refused because `'!'` is absent from sample.txt.
 5. **Misconception:** "the model should just guess." Silent guessing hides data gaps. Smoothing (later) is an explicit choice.
 6. **Evidence:** tested.
+
+---
+
+**In the Lab:** the full glossary (75 terms) is in the Lab's Glossary page, each with its experiment
+and code reference. The Lab records your evidence with five levels: explored, practiced with
+assistance, implemented, tested, explained independently. "Explained with assistance" here
+corresponds to "practiced with assistance" there. This file stays the record for engine terms.
