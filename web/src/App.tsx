@@ -2,6 +2,8 @@ import { lazy, Suspense, type ComponentType } from "react"
 import { MotionConfig } from "motion/react"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { GlossaryProvider } from "@/components/lab/glossary"
+import { HelpProvider } from "@/components/lab/help"
+import { ToolkitTourProvider } from "@/components/lab/toolkit-tour"
 import { LoadingRows } from "@/components/lab/layout"
 import { Shell } from "@/components/lab/shell"
 import { WorkspaceBoundary } from "@/components/lab/boundary"
@@ -20,6 +22,7 @@ const PAGES: Record<Route, ComponentType> = {
   evaluation: lazy(() => import("@/workspaces/Evaluation")),
   adapt: lazy(() => import("@/workspaces/Adapt")),
   serving: lazy(() => import("@/workspaces/Serving")),
+  toolkit: lazy(() => import("@/workspaces/Toolkit")),
   glossary: lazy(() => import("@/workspaces/Glossary")),
   notebook: lazy(() => import("@/workspaces/Notebook")),
 }
@@ -31,6 +34,8 @@ export function App() {
     <MotionConfig reducedMotion="user">
     <TooltipProvider delay={300}>
       <GlossaryProvider>
+      <HelpProvider>
+      <ToolkitTourProvider>
         <Shell>
           <WorkspaceBoundary name={route}>
           <Suspense fallback={<div className="p-6"><LoadingRows rows={6} label="Loading workspace" /></div>}>
@@ -38,6 +43,8 @@ export function App() {
           </Suspense>
           </WorkspaceBoundary>
         </Shell>
+      </ToolkitTourProvider>
+      </HelpProvider>
       </GlossaryProvider>
     </TooltipProvider>
     </MotionConfig>

@@ -104,13 +104,15 @@ describe("the shared walkthrough", () => {
   it("the level switch works with arrow keys", async () => {
     render(<Harness />)
     await click(/^read and watch$/i)
-    const walk = within(card()).getByRole("radio", { name: /walk me through it/i })
+    const walk = within(card()).getByRole("radio", { name: /in plain words/i })
     await act(async () => { fireEvent.keyDown(walk, { key: "ArrowRight" }) })
     expect(within(card()).getByRole("radio", { name: /show the calculation/i }).getAttribute("aria-checked")).toBe("true")
   })
 })
 
 describe("the flow diagram", () => {
+  beforeEach(() => actions.setPref("flowOpen", true))
+
   it("labels each arrow with what it carries and explains the selected box", async () => {
     render(<Harness />)
     expect(screen.getByRole("button", { name: "Input: First box, passes on numbers" })).toBeTruthy()
@@ -130,11 +132,23 @@ describe("the flow diagram", () => {
     expect(document.querySelector("[data-teach=pb]")!.getAttribute("data-highlighted")).toBe("true")
   })
 
-  it("can be hidden and shown again", async () => {
+  it("can be hidden and shown again; the question stays visible either way", async () => {
     render(<Harness />)
     await click(/hide the flow/i)
-    expect(screen.queryByText("A test question")).toBeNull()
-    await click(/show the flow/i)
+    expect(screen.queryByRole("navigation", { name: /flow of this workspace/i })).toBeNull()
     expect(screen.getByText("A test question")).toBeTruthy()
+    expect(document.querySelector("[data-teach=pa]")!.getAttribute("data-highlighted")).toBeNull()
+    await click(/show the flow/i)
+    expect(screen.getByRole("navigation", { name: /flow of this workspace/i })).toBeTruthy()
+  })
+})
+
+describe("the guide on arrival", () => {
+  it("starts compact: the question and Read and watch, with the flow closed", () => {
+    render(<Harness />)
+    expect(screen.getByText("A test question")).toBeTruthy()
+    expect(screen.getByRole("button", { name: /^read and watch$/i })).toBeTruthy()
+    expect(screen.queryByRole("navigation", { name: /flow of this workspace/i })).toBeNull()
+    expect(screen.getByRole("button", { name: /show the flow/i }).getAttribute("aria-expanded")).toBe("false")
   })
 })

@@ -36,13 +36,13 @@ export default function Glossary() {
           <div className="relative">
             <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <label htmlFor="g-search" className="sr-only">Search the glossary</label>
-            <input id="g-search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search terms" className="h-9 w-full rounded-md border border-input bg-card pl-9 pr-3 text-sm" />
+            <input id="g-search" data-help-id="glossary.search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search terms" className="h-9 w-full rounded-md border border-input bg-card pl-9 pr-3 text-sm" />
           </div>
           <Select value={stage} onValueChange={(v) => setStage(v as typeof stage)} items={stageItems}>
-            <SelectTrigger aria-label="Filter by stage"><SelectValue /></SelectTrigger>
+            <SelectTrigger aria-label="Filter by stage" data-help-id="glossary.filter"><SelectValue /></SelectTrigger>
             <SelectContent>{stageItems.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}</SelectContent>
           </Select>
-          <p className="text-[13px] text-muted-foreground">{list.length} of {GLOSSARY.length}</p>
+          <p className="text-label text-muted-foreground">{list.length} of {GLOSSARY.length}</p>
           {list.length === 0 ? <EmptyNote>No term matches “{query}”. Try a shorter word.</EmptyNote> : (
             <ul className="flex max-h-[70vh] flex-col overflow-auto rounded-md border border-border">
               {list.map((g) => {
@@ -55,8 +55,8 @@ export default function Glossary() {
                         {g.term}
                         {bookmarks.includes(g.id) && <BookmarkSolidIcon className="size-3.5 text-muted-foreground" aria-label="Bookmarked" />}
                       </span>
-                      <span className="line-clamp-1 text-[13px] text-muted-foreground">{g.plain}</span>
-                      <span className="text-[12px] text-muted-foreground">{WHERE[g.where]}{ev?.explained ? ", explained by you" : ev?.explored ? ", explored" : ""}</span>
+                      <span className="line-clamp-1 text-label text-muted-foreground">{g.plain}</span>
+                      <span className="text-label text-muted-foreground">{WHERE[g.where]}{ev?.explained ? ", explained by you" : ev?.explored ? ", explored" : ""}</span>
                     </button>
                   </li>
                 )
@@ -65,9 +65,9 @@ export default function Glossary() {
           )}
         </section>
         {selected ? (
-          <article aria-labelledby="entry-title" className="min-w-0 rounded-lg border border-border p-5">
+          <article aria-labelledby="entry-title" className="min-w-0 rounded-2xl border border-canvas-edge bg-canvas p-5 sm:p-7">
             {!wide && <button type="button" className="mb-3 text-sm underline underline-offset-2" onClick={() => navigate("glossary")}>Back to all terms</button>}
-            <h2 id="entry-title" className="text-xl font-semibold">{selected.term}</h2>
+            <h2 id="entry-title" className="text-lesson font-semibold">{selected.term}</h2>
             {selected.aliases && <p className="text-sm text-muted-foreground">Also: {selected.aliases.join(", ")}</p>}
             <EntryBody entry={selected} onOpenTerm={(id) => navigate("glossary", { term: id })} />
           </article>

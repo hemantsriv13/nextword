@@ -4,7 +4,7 @@
 
 export type Route =
   | "home" | "journey" | "playground" | "data" | "counts" | "neural" | "attention" | "decoding"
-  | "evaluation" | "adapt" | "serving" | "glossary" | "notebook"
+  | "evaluation" | "adapt" | "serving" | "glossary" | "notebook" | "toolkit"
 
 export type StageId = "text" | "tokens" | "prediction" | "training" | "attention" | "generation" | "evaluation" | "serving" | "adaptation"
 

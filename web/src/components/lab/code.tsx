@@ -33,7 +33,7 @@ function CodeBlockView({ path, symbol, text }: { path: string; symbol: string; t
   if (!found) return <p className="text-sm text-muted-foreground">Couldn't find {symbol} in {path}.</p>
   return (
     <figure className="flex flex-col gap-1.5">
-      <figcaption className="text-[13px] text-muted-foreground">
+      <figcaption className="text-label text-muted-foreground">
         <code className="tok">{path}</code>, line {found.start}
       </figcaption>
       <pre className="max-h-96 overflow-auto rounded-md bg-raised p-3 text-[12.5px] leading-[1.55]">

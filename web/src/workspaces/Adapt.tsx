@@ -10,6 +10,7 @@ import { EvidenceRecorder } from "@/components/lab/evidence"
 import { Term } from "@/components/lab/glossary"
 import { GuidedCycle } from "@/components/lab/guide"
 import { EmptyNote, ErrorNote, Explain, ExplainSection, LoadingRows, Note, Panel, SliderField, Workspace } from "@/components/lab/layout"
+import { useHelpReveal } from "@/components/lab/help"
 import { Source } from "@/components/lab/source"
 import { Symbols, Teach, WorkspaceGuide, type Guide } from "@/components/lab/teach"
 import { api, type Adaptation } from "@/lib/api"
@@ -78,6 +79,8 @@ const GUIDE: Guide = {
 
 export default function Adapt() {
   const [tab, setTab] = useState<Tab>("stages")
+  // Help links and tours open the tab that holds a control. They never change an input.
+  useHelpReveal((r) => { if (r.tab) setTab(r.tab as Tab) })
   return (
     <Teach guide={GUIDE} onStep={(where) => where.tab && setTab(where.tab as Tab)}>
     <Workspace
@@ -87,7 +90,7 @@ export default function Adapt() {
     >
       <WorkspaceGuide />
       <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
-        <TabsList className="h-auto flex-wrap justify-start">
+        <TabsList className="h-auto flex-wrap justify-start" data-help-id="adapt.tabs">
           <TabsTrigger value="stages">Training stages</TabsTrigger>
           <TabsTrigger value="continued">Continued training</TabsTrigger>
           <TabsTrigger value="retrieval">Retrieval</TabsTrigger>
@@ -124,11 +127,11 @@ function StagesTab() {
   const right = SCENARIOS.filter((s) => answers[s.id] === s.answer).length
   return (
     <>
-      <Panel id="stages" title="How models are adapted" source={<Source kind="example" detail="a comparison, not a measurement" />}>
+      <Panel id="stages" variant="canvas" title="How models are adapted" source={<Source kind="example" detail="a comparison, not a measurement" />}>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[720px] text-sm">
             <caption className="sr-only">Comparison of adaptation methods</caption>
-            <thead><tr className="text-[12px] text-muted-foreground"><th className="py-2 text-left font-normal">Method</th><th className="py-2 text-left font-normal">What changes</th><th className="py-2 text-left font-normal">Data it needs</th><th className="py-2 text-left font-normal">In this project</th></tr></thead>
+            <thead><tr className="text-label text-muted-foreground"><th className="py-2 text-left font-normal">Method</th><th className="py-2 text-left font-normal">What changes</th><th className="py-2 text-left font-normal">Data it needs</th><th className="py-2 text-left font-normal">In this project</th></tr></thead>
             <tbody>
               {STAGES.map((s) => (
                 <tr key={s.name} className="border-t border-rule align-top">
@@ -141,7 +144,7 @@ function StagesTab() {
             </tbody>
           </table>
         </div>
-        <p className="mt-3 text-[13px] text-muted-foreground">The tiny experiments here show the mechanics. They are many orders of magnitude smaller than real pretraining or fine-tuning, and they say nothing about how large models behave.</p>
+        <p className="mt-3 text-label text-muted-foreground">The tiny experiments here show the mechanics. They are many orders of magnitude smaller than real pretraining or fine-tuning, and they say nothing about how large models behave.</p>
       </Panel>
       <Panel id="where" title="Where does the information live?" source={<Source kind="example" />}>
         <ol className="flex flex-col gap-4">
@@ -150,7 +153,7 @@ function StagesTab() {
               <p className="text-sm"><span className="num mr-1 text-muted-foreground">{i + 1}.</span> {s.text}</p>
               <div className="flex flex-wrap items-center gap-2" role="radiogroup" aria-label={`Scenario ${i + 1}`}>
                 {(["weights", "prompt"] as const).map((opt) => (
-                  <button key={opt} type="button" role="radio" aria-checked={answers[s.id] === opt} onClick={() => setAnswers({ ...answers, [s.id]: opt })}
+                  <button key={opt} type="button" role="radio" data-help-id="adapt.scenario" aria-checked={answers[s.id] === opt} onClick={() => setAnswers({ ...answers, [s.id]: opt })}
                     className={cn("h-8 rounded-md border px-3 text-sm", answers[s.id] === opt ? "border-foreground bg-raised font-medium" : "border-border hover:bg-raised")}>
                     {opt === "weights" ? "In the weights" : "In the prompt"}
                   </button>
@@ -187,7 +190,7 @@ function DistRow({ d, other, label }: { d: Adaptation["before"]; other: Adaptati
             <Tok>{c.label}</Tok>
             <div className="h-3 flex-1 rounded-[3px] bg-secondary"><div className="h-full rounded-[3px] bg-data" style={{ width: `${c.p * 100}%` }} /></div>
             <span className="num w-12 text-right">{c.p.toFixed(3)}</span>
-            {other && <span className="num w-14 text-right text-[12px] text-muted-foreground">{otherMap.has(c.token) ? "" : "new"}</span>}
+            {other && <span className="num w-14 text-right text-label text-muted-foreground">{otherMap.has(c.token) ? "" : "new"}</span>}
           </li>
         ))}
       </ul>
@@ -211,7 +214,7 @@ function ContinuedTab() {
 
   return (
     <>
-      <Panel id="ct" title="Add a second text to your engine's counts" source={<Source kind="model" detail="nextword/lab/service.py adapt()" />}
+      <Panel id="ct" variant="canvas" title="Add a second text to your engine's counts" source={<Source kind="model" detail="nextword/lab/service.py adapt()" />}
         teach={{
           calc: r && ran ? <Symbols rows={[
             ["base pairs", "pairs counted from the first 80% of the base text", fmt.n(r.basePairs)],
@@ -226,22 +229,22 @@ function ContinuedTab() {
             <div className="flex flex-col gap-2">
               <span id="ct-base" className="text-sm font-medium">Base training text</span>
               <Select value={base} onValueChange={(v) => setBase(String(v))} items={(corpora ?? []).map((c) => ({ value: c.id, label: c.name }))}>
-                <SelectTrigger aria-labelledby="ct-base"><SelectValue /></SelectTrigger>
+                <SelectTrigger aria-labelledby="ct-base" data-help-id="adapt.texts"><SelectValue /></SelectTrigger>
                 <SelectContent>{(corpora ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="flex flex-col gap-2">
               <label htmlFor="ct-ctx" className="text-sm font-medium">Context character to watch</label>
-              <input id="ct-ctx" value={context} maxLength={2} onChange={(e) => setContext(Array.from(e.target.value).slice(-1).join(""))} className="tok h-9 w-20 rounded-md border border-input bg-card px-3 text-center text-sm" />
+              <input id="ct-ctx" data-help-id="adapt.texts" value={context} maxLength={2} onChange={(e) => setContext(Array.from(e.target.value).slice(-1).join(""))} className="tok h-9 w-20 rounded-md border border-input bg-card px-3 text-center text-sm" />
             </div>
           </div>
           <div className="flex flex-col gap-2">
             <label htmlFor="ct-extra" className="text-sm font-medium">New text to continue training on</label>
-            <Textarea id="ct-extra" rows={4} value={extra} onChange={(e) => setExtra(e.target.value)} className="text-[14px]" />
-            <p className="text-[13px] text-muted-foreground">The first 80% of each text is counted; the last 20% of each is held out to measure the effect.</p>
+            <Textarea id="ct-extra" data-help-id="adapt.texts" rows={4} value={extra} onChange={(e) => setExtra(e.target.value)} className="text-sm" />
+            <p className="text-label text-muted-foreground">The first 80% of each text is counted; the last 20% of each is held out to measure the effect.</p>
           </div>
         </div>
-        <Button className="mt-4" disabled={!valid || res.loading} onClick={async () => { const cfg = { base, extra, context }; const out = await res.run({ base, extraText: extra, context }); if (out) { setRan(cfg); actions.logRun({ route: "adapt", title: "Continued training", summary: `watched “${visible(context)}”`, source: "model" }, ["continued-training", "forgetting"]) } }}>
+        <Button data-help-id="adapt.continue" className="mt-4" disabled={!valid || res.loading} onClick={async () => { const cfg = { base, extra, context }; const out = await res.run({ base, extraText: extra, context }); if (out) { setRan(cfg); actions.logRun({ route: "adapt", title: "Continued training", summary: `watched “${visible(context)}”`, source: "model" }, ["continued-training", "forgetting"]) } }}>
           {res.loading ? "Counting…" : "Continue training"}
         </Button>
         {changedInputs.length > 0 && <div className="mt-3"><Note tone="warning">You changed the {changedInputs.join(", ")} since this run. The results below still belong to the earlier inputs. Press Continue training to recount.</Note></div>}
@@ -264,7 +267,7 @@ function ContinuedTab() {
           </Panel>
           <Panel id="ct-loss" title="Held-out loss, before and after" source={<Source kind="model" detail="add-1 smoothed so it stays finite" />}>
             <table className="w-full text-sm">
-              <thead><tr className="text-[12px] text-muted-foreground"><th className="text-left font-normal">Held-out text</th><th className="text-right font-normal">Before</th><th className="text-right font-normal">After</th><th className="text-right font-normal">Change</th></tr></thead>
+              <thead><tr className="text-label text-muted-foreground"><th className="text-left font-normal">Held-out text</th><th className="text-right font-normal">Before</th><th className="text-right font-normal">After</th><th className="text-right font-normal">Change</th></tr></thead>
               <tbody>
                 {[["Base text (old material)", r.baseHeldOutNll, baseChange], ["New text", r.extraHeldOutNll, extraChange]].map(([label, x, c]) => {
                   const v = x as Adaptation["baseHeldOutNll"]
@@ -285,7 +288,7 @@ function ContinuedTab() {
               {baseChange !== null && baseChange > 0 ? <>Loss on the base text went up: some <Term id="forgetting">forgetting</Term>. </> : baseChange !== null ? "Loss on the base text did not rise. " : ""}
               Pairs counted: {fmt.n(r.basePairs)} base, {fmt.n(r.extraPairs)} new.
             </p>
-            <p className="mt-2 text-[13px] text-muted-foreground">{r.note}</p>
+            <p className="mt-2 text-label text-muted-foreground">{r.note}</p>
           </Panel>
         </div>
       )}
@@ -331,7 +334,7 @@ function RetrievalTab() {
     <>
       <Note>No generation model is configured, so the Lab shows the retrieved evidence and the assembled prompt. It never writes an answer for you to mistake for a model&apos;s.</Note>
       <Panel id="docs" title="Documents" source={<Source kind="simulation" detail="kept in this page only" />}
-        aside={<Button variant="outline" size="sm" disabled={docs.length >= 8} onClick={() => setDocs([...docs, { id: `doc${docs.length + 1}`, title: `Document ${docs.length + 1}`, text: "" }])}><PlusIcon className="size-4" /> Add a document</Button>}>
+        aside={<Button variant="outline" size="sm" data-help-id="adapt.docs" disabled={docs.length >= 8} onClick={() => setDocs([...docs, { id: `doc${docs.length + 1}`, title: `Document ${docs.length + 1}`, text: "" }])}><PlusIcon className="size-4" /> Add a document</Button>}>
         <ul className="grid grid-cols-1 gap-4 xl:grid-cols-3">
           {docs.map((d, i) => (
             <li key={d.id} className="flex flex-col gap-2 rounded-md bg-raised p-3">
@@ -341,7 +344,7 @@ function RetrievalTab() {
                 <Button variant="ghost" size="icon" aria-label={`Remove ${d.title}`} disabled={docs.length <= 1} onClick={() => setDocs(docs.filter((_, j) => j !== i))}><TrashIcon className="size-4" /></Button>
               </div>
               <label htmlFor={`dx-${d.id}`} className="sr-only">Text of {d.title}</label>
-              <Textarea id={`dx-${d.id}`} rows={5} value={d.text} onChange={(e) => setDocs(docs.map((x, j) => (j === i ? { ...x, text: e.target.value } : x)))} className="text-[13px]" placeholder="Paste a few paragraphs." />
+              <Textarea id={`dx-${d.id}`} rows={5} value={d.text} onChange={(e) => setDocs(docs.map((x, j) => (j === i ? { ...x, text: e.target.value } : x)))} className="text-label" placeholder="Paste a few paragraphs." />
             </li>
           ))}
         </ul>
@@ -358,22 +361,22 @@ function RetrievalTab() {
           code: <SimCode path="web/src/sim/rag.ts" symbol="chunkDoc" text={ragSource} />,
         }}>
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-          <SliderField id="csize" label="Chunk size" value={size} min={6} max={80} step={1} onChange={setSize} format={(v) => `${v} words`} />
-          <SliderField id="cover" label="Overlap" value={ov} min={0} max={Math.max(0, size - 1)} step={1} onChange={setOverlap} format={(v) => `${v} words`} hint="Words repeated at the start of the next chunk, so a fact on a boundary survives." />
+          <SliderField id="csize" helpId="adapt.chunks" label="Chunk size" value={size} min={6} max={80} step={1} onChange={setSize} format={(v) => `${v} words`} />
+          <SliderField id="cover" helpId="adapt.chunks" label="Overlap" value={ov} min={0} max={Math.max(0, size - 1)} step={1} onChange={setOverlap} format={(v) => `${v} words`} hint="Words repeated at the start of the next chunk, so a fact on a boundary survives." />
         </div>
         <div className="mt-4 flex max-h-80 flex-col gap-2 overflow-auto">
           {chunks.length === 0 ? <EmptyNote>The documents are empty.</EmptyNote> : chunks.map((c) => (
-            <p key={c.id} className="rounded-md border border-border p-2 text-[13px] leading-relaxed">
-              <span className="tok mr-2 text-[12px] text-muted-foreground">[{c.id}] words {c.startWord + 1}–{c.endWord}</span>
+            <p key={c.id} className="rounded-md border border-border p-2 text-label leading-relaxed">
+              <span className="tok mr-2 text-label text-muted-foreground">[{c.id}] words {c.startWord + 1}–{c.endWord}</span>
               {c.index > 1 && ov > 0 ? <><mark className="bg-context text-context-ink">{c.text.split(" ").slice(0, ov).join(" ")}</mark> {c.text.split(" ").slice(ov).join(" ")}</> : c.text}
             </p>
           ))}
         </div>
-        {ov > 0 && <p className="mt-2 text-[13px] text-muted-foreground">Highlighted words repeat the end of the previous chunk.</p>}
+        {ov > 0 && <p className="mt-2 text-label text-muted-foreground">Highlighted words repeat the end of the previous chunk.</p>}
       </Panel>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <Panel id="search" title="Search" source={<Source kind="simulation" detail="lexical search (BM25), not embeddings" />}
+        <Panel id="search" variant="canvas" title="Search" source={<Source kind="simulation" detail="lexical search (BM25), not embeddings" />}
           teach={{
             calc: <><Symbols rows={[
               ["question words", "after dropping common words", qTerms.join(", ") || "none"],
@@ -385,18 +388,18 @@ function RetrievalTab() {
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
               <label htmlFor="q" className="text-sm font-medium">Question</label>
-              <input id="q" value={query} onChange={(e) => setQuery(e.target.value)} className="h-9 rounded-md border border-input bg-card px-3 text-sm" />
-              <p className="text-[13px] text-muted-foreground">Search words after dropping common ones: {qTerms.length ? qTerms.map((t) => <Tok key={t} className="mr-1">{t}</Tok>) : "none"}</p>
+              <input id="q" data-help-id="adapt.question" value={query} onChange={(e) => setQuery(e.target.value)} className="h-9 rounded-md border border-input bg-card px-3 text-sm" />
+              <p className="text-label text-muted-foreground">Search words after dropping common ones: {qTerms.length ? qTerms.map((t) => <Tok key={t} className="mr-1">{t}</Tok>) : "none"}</p>
             </div>
-            <SliderField id="topk-r" label="Passages to include" value={topK} min={1} max={5} step={1} onChange={setTopK} />
+            <SliderField id="topk-r" helpId="adapt.passages" label="Passages to include" value={topK} min={1} max={5} step={1} onChange={setTopK} />
             <table className="w-full text-sm">
               <caption className="sr-only">Chunks ranked by BM25 score</caption>
-              <thead><tr className="text-[12px] text-muted-foreground"><th className="text-left font-normal">Chunk</th><th className="text-left font-normal">Matched words</th><th className="text-right font-normal">Score</th></tr></thead>
+              <thead><tr className="text-label text-muted-foreground"><th className="text-left font-normal">Chunk</th><th className="text-left font-normal">Matched words</th><th className="text-right font-normal">Score</th></tr></thead>
               <tbody>
                 {ranked.slice(0, 6).map((r, i) => (
                   <tr key={r.chunk.id} className={cn("border-t border-rule", r.score > 0 && i < topK && "font-medium")}>
-                    <td className="tok py-1 text-[13px]">{r.chunk.id}</td>
-                    <td className="py-1 text-[13px]">{r.matched.join(", ") || <span className="text-muted-foreground">none</span>}</td>
+                    <td className="tok py-1 text-label">{r.chunk.id}</td>
+                    <td className="py-1 text-label">{r.matched.join(", ") || <span className="text-muted-foreground">none</span>}</td>
                     <td className="num py-1 text-right">{r.score.toFixed(2)}</td>
                   </tr>
                 ))}
@@ -410,9 +413,9 @@ function RetrievalTab() {
             calc: <p>The prompt holds the question and {hits.length} {hits.length === 1 ? "passage" : "passages"} ({hits.map((h) => h.chunk.id).join(", ") || "none"}), {prompt.length.toLocaleString("en-US")} characters in all. This is where the route ends here: no model reads it.</p>,
             code: <SimCode path="web/src/sim/rag.ts" symbol="assemblePrompt" text={ragSource} />,
           }}
-          aside={<Button variant="outline" size="sm" onClick={async () => { await navigator.clipboard?.writeText(prompt); setCopied(true); setTimeout(() => setCopied(false), 1500); actions.logRun({ route: "adapt", title: "Assembled a RAG prompt", summary: `${hits.length} passages`, source: "simulation" }, ["rag", "lexical-search", "grounding"]) }}>{copied ? <CheckIcon className="size-4" /> : <CopyIcon className="size-4" />} {copied ? "Copied" : "Copy"}</Button>}>
+          aside={<Button variant="outline" size="sm" data-help-id="adapt.copy" onClick={async () => { await navigator.clipboard?.writeText(prompt); setCopied(true); setTimeout(() => setCopied(false), 1500); actions.logRun({ route: "adapt", title: "Assembled a RAG prompt", summary: `${hits.length} passages`, source: "simulation" }, ["rag", "lexical-search", "grounding"]) }}>{copied ? <CheckIcon className="size-4" /> : <CopyIcon className="size-4" />} {copied ? "Copied" : "Copy"}</Button>}>
           <pre className="tok max-h-96 overflow-auto whitespace-pre-wrap rounded-md bg-raised p-3 text-[12.5px] leading-relaxed">{prompt}</pre>
-          <p className="mt-3 text-[13px] text-muted-foreground">Each passage carries its source id, so an answer can cite it and a reader can check it. A citation still has to be checked: the model may cite a passage that doesn&apos;t support the claim.</p>
+          <p className="mt-3 text-label text-muted-foreground">Each passage carries its source id, so an answer can cite it and a reader can check it. A citation still has to be checked: the model may cite a passage that doesn&apos;t support the claim.</p>
         </Panel>
       </div>
 
@@ -423,7 +426,7 @@ function RetrievalTab() {
           <li><span className="font-medium">Split fact:</span> with small chunks and no overlap, a sentence can be cut in half. Set overlap to 0 and size to 8 to see it.</li>
           <li><span className="font-medium">Unsupported answer:</span> a model can ignore the sources or add facts. Grounding instructions help; checking is still needed.</li>
         </ul>
-        <p className="mt-3 text-[13px] text-muted-foreground"><Term id="semantic-search">Semantic search</Term> with a trained embedding model and <Term id="reranking">reranking</Term> address some of these. They are not built here; toy vectors would only pretend.</p>
+        <p className="mt-3 text-label text-muted-foreground"><Term id="semantic-search">Semantic search</Term> with a trained embedding model and <Term id="reranking">reranking</Term> address some of these. They are not built here; toy vectors would only pretend.</p>
       </Panel>
     </>
   )

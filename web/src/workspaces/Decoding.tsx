@@ -128,28 +128,28 @@ export default function Decoding() {
             })() : undefined,
             code: <SimCode path="web/src/sim/decoding.ts" symbol="softmax" text={decodingSource} />,
           }}
-          aside={<Segmented label="Preset" value={Object.entries(PRESETS).find(([, v]) => JSON.stringify(v.rows) === JSON.stringify(rows))?.[0] ?? "custom"} onChange={(v) => PRESETS[v] && setRows(PRESETS[v].rows)} options={[...Object.entries(PRESETS).map(([id, v]) => ({ value: id, label: v.label.length > 18 ? "Sentence" : v.label })), ...(Object.values(PRESETS).some((v) => JSON.stringify(v.rows) === JSON.stringify(rows)) ? [] : [{ value: "custom", label: "Custom" }])]} />}>
+          aside={<Segmented label="Preset" helpId="decoding.presets" value={Object.entries(PRESETS).find(([, v]) => JSON.stringify(v.rows) === JSON.stringify(rows))?.[0] ?? "custom"} onChange={(v) => PRESETS[v] && setRows(PRESETS[v].rows)} options={[...Object.entries(PRESETS).map(([id, v]) => ({ value: id, label: v.label.length > 18 ? "Sentence" : v.label })), ...(Object.values(PRESETS).some((v) => JSON.stringify(v.rows) === JSON.stringify(rows)) ? [] : [{ value: "custom", label: "Custom" }])]} />}>
           <table className="w-full text-sm">
-            <caption className="mb-2 text-left text-[13px] text-muted-foreground"><Term id="logits">Logits</Term> are raw scores: any real number, higher means more likely.</caption>
-            <thead><tr className="text-[12px] text-muted-foreground"><th className="py-1 text-left font-normal">Token</th><th className="py-1 text-right font-normal">Logit</th><th className="py-1 text-right font-normal"><Term id="softmax">softmax</Term> at T = 1</th><th className="w-10" /></tr></thead>
+            <caption className="mb-2 text-left text-label text-muted-foreground"><Term id="logits">Logits</Term> are raw scores: any real number, higher means more likely.</caption>
+            <thead><tr className="text-label text-muted-foreground"><th className="py-1 text-left font-normal">Token</th><th className="py-1 text-right font-normal">Logit</th><th className="py-1 text-right font-normal"><Term id="softmax">softmax</Term> at T = 1</th><th className="w-10" /></tr></thead>
             <tbody>
               {rows.map((r, i) => (
                 <tr key={i} className="border-t border-rule">
                   <td className="py-1 pr-2"><input aria-label={`Token ${i + 1}`} value={r.token} onChange={(e) => setRows(rows.map((x, j) => (j === i ? { ...x, token: e.target.value } : x)))} className="tok h-8 w-full rounded-md border border-input bg-card px-2 text-sm" /></td>
                   <td className="py-1 text-right">
-                    <input aria-label={`Logit for ${r.token}`} type="number" step="0.1" value={Number.isFinite(r.logit) ? r.logit : ""} onChange={(e) => setRows(rows.map((x, j) => (j === i ? { ...x, logit: e.target.value === "" ? NaN : Number(e.target.value) } : x)))} className={cn("num h-8 w-24 rounded-md border border-input bg-card px-2 text-right text-sm", !Number.isFinite(r.logit) && "border-negative")} />
+                    <input aria-label={`Logit for ${r.token}`} data-help-id="decoding.logits" type="number" step="0.1" value={Number.isFinite(r.logit) ? r.logit : ""} onChange={(e) => setRows(rows.map((x, j) => (j === i ? { ...x, logit: e.target.value === "" ? NaN : Number(e.target.value) } : x)))} className={cn("num h-8 w-24 rounded-md border border-input bg-card px-2 text-right text-sm", !Number.isFinite(r.logit) && "border-negative")} />
                   </td>
                   <td className="num py-1 text-right">{stages ? stages.softmax1[i].toFixed(3) : "–"}</td>
                   <td className="py-1 text-right">
-                    <Button variant="ghost" size="icon" aria-label={`Remove ${r.token}`} disabled={rows.length <= 2} onClick={() => setRows(rows.filter((_, j) => j !== i))}><TrashIcon className="size-4" /></Button>
+                    <Button variant="ghost" size="icon" data-help-id="decoding.edit-rows" aria-label={`Remove ${r.token}`} disabled={rows.length <= 2} onClick={() => setRows(rows.filter((_, j) => j !== i))}><TrashIcon className="size-4" /></Button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
           <div className="mt-3 flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" disabled={rows.length >= 10} onClick={() => setRows([...rows, { token: `token${rows.length + 1}`, logit: 0 }])}><PlusIcon className="size-4" /> Add a token</Button>
-            <Button variant="ghost" size="sm" onClick={() => setRows(PRESETS.sentence.rows)}><UndoIcon className="size-4" /> Reset</Button>
+            <Button variant="outline" size="sm" data-help-id="decoding.edit-rows" disabled={rows.length >= 10} onClick={() => setRows([...rows, { token: `token${rows.length + 1}`, logit: 0 }])}><PlusIcon className="size-4" /> Add a token</Button>
+            <Button variant="ghost" size="sm" data-help-id="decoding.edit-rows" onClick={() => setRows(PRESETS.sentence.rows)}><UndoIcon className="size-4" /> Reset</Button>
           </div>
           {!valid && <p role="alert" className="mt-2 text-sm text-negative">Every logit needs a number, and there must be at least two tokens.</p>}
         </Panel>
@@ -157,21 +157,21 @@ export default function Decoding() {
         <Panel id="settings" title="Decoding settings" source={<Source kind="simulation" />}
           teach={{ code: <SimCode path="web/src/sim/decoding.ts" symbol="pipeline" text={decodingSource} /> }}>
           <div className="flex flex-col gap-5">
-            <label className="flex items-center justify-between gap-4 text-sm font-medium">
+            <label data-help-id="decoding.greedy" className="flex items-center justify-between gap-4 text-sm font-medium">
               <span><Term id="greedy">Greedy</Term>: always take the most likely token</span>
               <Switch checked={greedy} onCheckedChange={setGreedy} aria-label="Greedy decoding" />
             </label>
             <div className={cn("flex flex-col gap-5", greedy && "opacity-60")} aria-disabled={greedy}>
-              <SliderField id="temp" label={<Term id="temperature">Temperature</Term>} value={temperature} min={MIN_TEMPERATURE} max={3} step={0.05} onChange={setTemperature} format={(v) => `T = ${v.toFixed(2)}`} hint={greedy ? "Not used by greedy decoding." : `Must be above 0 (here ${MIN_TEMPERATURE} to 3; the code accepts up to ${MAX_TEMPERATURE}). T → 0 approaches greedy.`} />
-              <SliderField id="topk" label={<Term id="top-k">Top-k</Term>} value={k} min={0} max={rows.length} step={1} onChange={setK} format={(v) => (v === 0 || v >= rows.length ? "off" : `keep ${v}`)} />
-              <SliderField id="topp" label={<Term id="top-p">Top-p</Term>} value={p} min={0.05} max={1} step={0.05} onChange={setP} format={(v) => (v >= 1 ? "off" : `keep ${fmt.pct(v, 0)} of mass`)} />
+              <SliderField id="temp" helpId="decoding.temperature" label={<Term id="temperature">Temperature</Term>} value={temperature} min={MIN_TEMPERATURE} max={3} step={0.05} onChange={setTemperature} format={(v) => `T = ${v.toFixed(2)}`} hint={greedy ? "Not used by greedy decoding." : `Must be above 0 (here ${MIN_TEMPERATURE} to 3; the code accepts up to ${MAX_TEMPERATURE}). T → 0 approaches greedy.`} />
+              <SliderField id="topk" helpId="decoding.filters" label={<Term id="top-k">Top-k</Term>} value={k} min={0} max={rows.length} step={1} onChange={setK} format={(v) => (v === 0 || v >= rows.length ? "off" : `keep ${v}`)} />
+              <SliderField id="topp" helpId="decoding.filters" label={<Term id="top-p">Top-p</Term>} value={p} min={0.05} max={1} step={0.05} onChange={setP} format={(v) => (v >= 1 ? "off" : `keep ${fmt.pct(v, 0)} of mass`)} />
             </div>
             {greedy && <p className="text-sm">Greedy picks <Tok tone="chosen">{rows[winner]?.token}</Tok> every time. No randomness is involved, so the seed has no effect.</p>}
           </div>
         </Panel>
       </div>
 
-      <Panel id="pipeline" title="The distribution at each stage" source={<Source kind="simulation" />}
+      <Panel id="pipeline" variant="canvas" title="The distribution at each stage" source={<Source kind="simulation" />}
         teach={{
           calc: stages ? <><Symbols rows={[
             [`z ÷ T`, `${rows[top].token}: ${logits[top].toFixed(2)} ÷ ${temperature.toFixed(2)}`, greedy ? "not used (greedy)" : (logits[top] / temperature).toFixed(3)],
@@ -187,7 +187,7 @@ export default function Decoding() {
             <table className="w-full min-w-[640px] text-sm">
               <caption className="sr-only">Probability of each token after each stage</caption>
               <thead>
-                <tr className="text-[12px] text-muted-foreground">
+                <tr className="text-label text-muted-foreground">
                   <th scope="col" className="py-1 text-left font-normal">Token</th>
                   <th scope="col" className="py-1 text-right font-normal">softmax, T = 1</th>
                   <th scope="col" className="py-1 text-right font-normal">{greedy ? "temperature (not used)" : `÷ T = ${temperature.toFixed(2)}`}</th>
@@ -219,13 +219,13 @@ export default function Decoding() {
                 </tr>
               </tbody>
             </table>
-            <p className="mt-2 text-[13px] text-muted-foreground">After filtering, the kept probabilities no longer sum to 1, so they are divided by their sum (renormalized) before sampling.</p>
-            <ol className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px]" aria-label="Order of the stages in the code">
+            <p className="mt-2 text-label text-muted-foreground">After filtering, the kept probabilities no longer sum to 1, so they are divided by their sum (renormalized) before sampling.</p>
+            <ol className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-label" aria-label="Order of the stages in the code">
               {["divide logits by T", "softmax", "top-k", "renormalize", "top-p", "renormalize", greedy ? "take the largest" : "sample"].map((label, i, all) => (
                 <li key={i} className="flex items-center gap-2"><span className="rounded-md bg-raised px-2 py-0.5">{label}</span>{i < all.length - 1 && <span aria-hidden="true" className="text-muted-foreground">→</span>}</li>
               ))}
             </ol>
-            <p className="mt-2 text-[13px] text-muted-foreground">Fixed throughout: the logits, and the model weights that would have produced them. Temperature changes the probabilities made from the scores, never the scores or the weights.</p>
+            <p className="mt-2 text-label text-muted-foreground">Fixed throughout: the logits, and the model weights that would have produced them. Temperature changes the probabilities made from the scores, never the scores or the weights.</p>
           </div>
         )}
       </Panel>
@@ -236,9 +236,9 @@ export default function Decoding() {
           code: <><SimCode path="web/src/sim/decoding.ts" symbol="pickByDraw" text={decodingSource} /><SimCode path="web/src/sim/decoding.ts" symbol="repeatedDraws" text={decodingSource} /></>,
         }}>
         <div className="flex flex-wrap items-end gap-4">
-          <NumberField id="n" label="Number of draws" value={n} min={1} max={100000} onChange={setN} />
-          <NumberField id="dseed" label="Seed" value={seed} min={0} max={4294967295} onChange={setSeed} />
-          <Button onClick={runDraws} disabled={!stages}>Draw {fmt.n(n)} times</Button>
+          <NumberField id="n" helpId="decoding.draw-settings" label="Number of draws" value={n} min={1} max={100000} onChange={setN} />
+          <NumberField id="dseed" helpId="decoding.draw-settings" label="Seed" value={seed} min={0} max={4294967295} onChange={setSeed} />
+          <Button data-help-id="decoding.draw" onClick={runDraws} disabled={!stages}>Draw {fmt.n(n)} times</Button>
         </div>
         {draws && !current && <p className="mt-3 text-sm text-muted-foreground">Settings changed since the last draws. Draw again to compare.</p>}
         {current && stages && (

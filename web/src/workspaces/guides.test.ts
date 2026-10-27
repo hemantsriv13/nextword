@@ -9,7 +9,7 @@ describe("workspace guides", () => {
   it("every workspace with a guide renders it", () => {
     expect(withGuides.map(([p]) => p).sort()).toEqual([
       "./Adapt.tsx", "./Attention.tsx", "./Counts.tsx", "./DataStudio.tsx", "./Decoding.tsx", "./Evaluation.tsx",
-      "./Journey.tsx", "./Neural.tsx", "./Playground.tsx", "./Serving.tsx",
+      "./Neural.tsx", "./Playground.tsx", "./Serving.tsx",
     ])
     for (const [, text] of withGuides) expect(text).toContain("<WorkspaceGuide />")
   })

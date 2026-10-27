@@ -9,6 +9,7 @@ import { ApiError } from "@/lib/api"
 import { useMediaQuery } from "@/lib/hooks"
 import { actions, useLab } from "@/lib/store"
 import { cn } from "@/lib/utils"
+import { ExplanationPanel } from "./explanation"
 import { useFocusMode } from "./shell-state"
 import { TeachInPanel, useTeachTarget, type PanelTeach } from "./teach"
 
@@ -30,14 +31,14 @@ export function Workspace({ title, subtitle, actions: headerActions, explain, ch
 
   const header = (
     <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
-      <div className="min-w-0 max-w-3xl flex-[1_1_28rem]">
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.01em]">{title}</h1>
-        <p className="mt-1 text-[15px] text-muted-foreground">{subtitle}</p>
+      <div className="min-w-0 flex-[1_1_28rem]">
+        <h1 className="text-lesson font-semibold sm:text-page">{title}</h1>
+        <div className="measure mt-2 text-prose text-muted-foreground">{subtitle}</div>
       </div>
       <div className="flex max-w-full flex-none flex-wrap items-center gap-2">
         {headerActions}
         {explain && !focus && wide && (
-          <Button variant="outline" size="sm" onClick={() => actions.setPref("explainOpen", !open)} aria-pressed={open}>
+          <Button variant="outline" size="sm" data-help-id="layout.hide-explanation" onClick={() => actions.setPref("explainOpen", !open)} aria-pressed={open}>
             <SidebarCollapseIcon className={cn("size-4", !open && "rotate-180")} />
             {open ? "Hide explanation" : "Show explanation"}
           </Button>
@@ -47,7 +48,7 @@ export function Workspace({ title, subtitle, actions: headerActions, explain, ch
   )
 
   const main = (
-    <div className="flex min-w-0 flex-col gap-8 p-4 sm:p-6">
+    <div className="flex min-w-0 flex-col gap-10 p-4 sm:p-6 lg:px-8 lg:pt-8">
       {header}
       {children}
     </div>
@@ -58,7 +59,7 @@ export function Workspace({ title, subtitle, actions: headerActions, explain, ch
       <div className="flex flex-col">
         {main}
         {explain && !focus && (
-          <aside aria-label="Explanation" className="border-t border-border bg-raised/40 p-4 sm:p-6">{explain}</aside>
+          <aside aria-label="Explanation" className="px-4 pb-8 sm:px-6"><ExplanationPanel label="Explained" title={title} sticky={false}>{explain}</ExplanationPanel></aside>
         )}
       </div>
     )
@@ -71,7 +72,7 @@ export function Workspace({ title, subtitle, actions: headerActions, explain, ch
       </ResizablePanel>
       <ResizableHandle withHandle aria-label="Resize the explanation panel" />
       <ResizablePanel defaultSize={size} minSize={24} maxSize={50} className="min-w-0 !overflow-visible">
-        <aside aria-label="Explanation" className="sticky top-12 max-h-[calc(100dvh-56px)] overflow-y-auto p-6">{explain}</aside>
+        <aside aria-label="Explanation" className="flex h-full flex-col px-6 pb-8 pt-8"><ExplanationPanel label="Explained" title={title}>{explain}</ExplanationPanel></aside>
       </ResizablePanel>
     </ResizablePanelGroup>
   )
@@ -79,19 +80,31 @@ export function Workspace({ title, subtitle, actions: headerActions, explain, ch
 
 // ----------------------------------------------------------------------------- panels
 
-/** A section of the experiment area: a heading, an optional source label and right-side controls. */
-export function Panel({ title, source, aside, children, className, id, teach }: { title: string; source?: ReactNode; aside?: ReactNode; children: ReactNode; className?: string; id?: string; teach?: PanelTeach }) {
+export type PanelVariant = "section" | "canvas" | "inset"
+
+const PANEL: Record<PanelVariant, string> = {
+  // A section sits on the page ground, set apart by space and its heading, not by a box.
+  section: "",
+  // The canvas is the workspace's one dominant experiment: the only sheet with an edge.
+  canvas: "rounded-2xl border border-canvas-edge bg-canvas p-5 sm:p-7",
+  // An inset groups a small related view inside the flow, one tone step up.
+  inset: "rounded-xl bg-raised p-5",
+}
+
+/** A section of the workspace: a heading, an optional source label and right-side controls. */
+export function Panel({ title, source, aside, children, className, id, teach, variant = "section" }: { title: string; source?: ReactNode; aside?: ReactNode; children: ReactNode; className?: string; id?: string; teach?: PanelTeach; variant?: PanelVariant }) {
   const { highlighted } = useTeachTarget(id)
   return (
     <section
       aria-labelledby={id ? `${id}-h` : undefined}
       data-teach={id}
+      data-variant={variant}
       data-highlighted={highlighted || undefined}
-      className={cn("min-w-0 scroll-mt-16 rounded-lg border border-border bg-card p-5", highlighted && "outline-2 outline-offset-2 outline-data", className)}
+      className={cn("min-w-0 scroll-mt-16", PANEL[variant], highlighted && "rounded-xl outline-2 outline-offset-4 outline-data", className)}
     >
       <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <div className="flex min-w-0 max-w-full flex-wrap items-center gap-x-3 gap-y-1">
-          <h2 id={id ? `${id}-h` : undefined} className="text-base font-semibold">{title}</h2>
+          <h2 id={id ? `${id}-h` : undefined} className="text-section font-semibold">{title}</h2>
           {source}
         </div>
         {aside && <div className="flex flex-wrap items-center gap-2">{aside}</div>}
@@ -107,12 +120,12 @@ export function Panel({ title, source, aside, children, className, id, teach }: 
 export function ExplainSection({ title, children, defaultOpen = false }: { title: string; children: ReactNode; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <Collapsible open={open} onOpenChange={setOpen} className="border-t border-border pt-3">
-      <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md py-1 text-left text-sm font-medium hover:text-foreground">
+    <Collapsible open={open} onOpenChange={setOpen} className="border-t border-companion-edge pt-3">
+      <CollapsibleTrigger data-help-id="explain.section" className="flex w-full items-center justify-between rounded-md py-1.5 text-left text-prose font-medium hover:text-foreground">
         {title}
         <NavArrowDownIcon className={cn("size-4 text-muted-foreground transition-transform", open && "rotate-180")} />
       </CollapsibleTrigger>
-      <CollapsibleContent className="pt-2 text-[14px] leading-relaxed">{children}</CollapsibleContent>
+      <CollapsibleContent className="pt-2 text-prose">{children}</CollapsibleContent>
     </Collapsible>
   )
 }
@@ -122,8 +135,8 @@ export function Explain({ plain, children }: { plain: ReactNode; children?: Reac
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h2 className="mb-1.5 text-base font-semibold">In plain words</h2>
-        <div className="flex flex-col gap-2 text-[15px] leading-relaxed">{plain}</div>
+        <h3 className="mb-2 text-prose font-semibold">In plain words</h3>
+        <div className="measure flex flex-col gap-3 text-prose">{plain}</div>
       </div>
       {children}
     </div>
@@ -173,7 +186,7 @@ export function EmptyNote({ children }: { children: ReactNode }) {
 
 export function Note({ children, tone = "info" }: { children: ReactNode; tone?: "info" | "warning" }) {
   return (
-    <p className={cn("flex items-start gap-2 rounded-md px-3 py-2 text-sm", tone === "info" ? "bg-raised" : "bg-src-sim text-src-sim-ink")}>
+    <p role={tone === "warning" ? "status" : undefined} className={cn("flex items-start gap-2 rounded-lg px-3.5 py-2.5", tone === "info" ? "bg-raised text-sm" : "bg-src-sim text-prose text-src-sim-ink")}>
       {tone === "info" ? <InfoCircleIcon className="mt-0.5 size-4 flex-none text-muted-foreground" /> : <WarningTriangleIcon className="mt-0.5 size-4 flex-none" />}
       <span>{children}</span>
     </p>
@@ -183,7 +196,7 @@ export function Note({ children, tone = "info" }: { children: ReactNode; tone?: 
 // ----------------------------------------------------------------------------- controls
 
 /** A labelled slider with its value printed beside the label. */
-export function SliderField({ label, value, min, max, step, onChange, format = (v) => String(v), hint, id }: {
+export function SliderField({ label, value, min, max, step, onChange, format = (v) => String(v), hint, id, helpId }: {
   label: ReactNode
   value: number
   min: number
@@ -193,9 +206,10 @@ export function SliderField({ label, value, min, max, step, onChange, format = (
   format?: (v: number) => string
   hint?: ReactNode
   id: string
+  helpId?: string
 }) {
   return (
-    <div className="flex min-w-0 flex-col gap-2">
+    <div className="flex min-w-0 flex-col gap-2" data-help-id={helpId}>
       <div className="flex items-baseline justify-between gap-3">
         <label id={`${id}-label`} className="text-sm font-medium">{label}</label>
         <output htmlFor={id} className="num text-sm">{format(value)}</output>
@@ -209,12 +223,12 @@ export function SliderField({ label, value, min, max, step, onChange, format = (
         step={step}
         onValueChange={(v) => onChange(Array.isArray(v) ? (v as number[])[0] : (v as number))}
       />
-      {hint && <p className="text-[13px] text-muted-foreground">{hint}</p>}
+      {hint && <p className="text-label text-muted-foreground">{hint}</p>}
     </div>
   )
 }
 
-export function NumberField({ label, value, onChange, min, max, id, hint, width = "w-24" }: { label: ReactNode; value: number; onChange: (v: number) => void; min: number; max: number; id: string; hint?: ReactNode; width?: string }) {
+export function NumberField({ label, value, onChange, min, max, id, hint, width = "w-24", helpId }: { label: ReactNode; value: number; onChange: (v: number) => void; min: number; max: number; id: string; hint?: ReactNode; width?: string; helpId?: string }) {
   const [text, setText] = useState(String(value))
   const [shownValue, setShownValue] = useState(value)
   if (shownValue !== value) {
@@ -225,7 +239,7 @@ export function NumberField({ label, value, onChange, min, max, id, hint, width 
   const n = Number(text)
   const invalid = text.trim() === "" || !Number.isInteger(n) || n < min || n > max
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2" data-help-id={helpId}>
       <label htmlFor={id} className="text-sm font-medium">{label}</label>
       <input
         id={id}
@@ -240,14 +254,14 @@ export function NumberField({ label, value, onChange, min, max, id, hint, width 
         }}
         className={cn("num h-9 rounded-md border border-input bg-card px-3 text-sm", width, invalid && "border-negative")}
       />
-      {invalid ? <p id={`${id}-err`} className="text-[13px] text-negative">Whole number from {min} to {max}</p> : hint && <p className="text-[13px] text-muted-foreground">{hint}</p>}
+      {invalid ? <p id={`${id}-err`} className="text-label text-negative">Whole number from {min} to {max}</p> : hint && <p className="text-label text-muted-foreground">{hint}</p>}
     </div>
   )
 }
 
-export function Segmented<T extends string>({ value, options, onChange, label }: { value: T; options: { value: T; label: string }[]; onChange: (v: T) => void; label: string }) {
+export function Segmented<T extends string>({ value, options, onChange, label, helpId }: { value: T; options: { value: T; label: string }[]; onChange: (v: T) => void; label: string; helpId?: string }) {
   return (
-    <div role="radiogroup" aria-label={label} className="inline-flex max-w-full flex-wrap rounded-md bg-secondary p-0.5">
+    <div role="radiogroup" aria-label={label} data-help-id={helpId} className="inline-flex max-w-full flex-wrap rounded-md bg-secondary p-0.5">
       {options.map((o) => (
         <button
           key={o.value}

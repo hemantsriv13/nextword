@@ -112,25 +112,25 @@ export default function Evaluation() {
     >
       <WorkspaceGuide />
       <Panel id="config" title="Experiment settings" source={<Source kind="model" detail="nextword/lab/service.py evaluate()" />}
-        aside={<Button onClick={() => run()} disabled={!!problem || !!bench.pending}><PlayIcon className="size-4" /> {bench.pending ? "Measuring…" : config.on === "test" ? "Run the final test check" : "Measure on validation"}</Button>}>
+        aside={<Button data-help-id="evaluation.measure" onClick={() => run()} disabled={!!problem || !!bench.pending}><PlayIcon className="size-4" /> {bench.pending ? "Measuring…" : config.on === "test" ? "Run the final test check" : "Measure on validation"}</Button>}>
         <div className="grid grid-cols-1 gap-x-8 gap-y-5 md:grid-cols-2 xl:grid-cols-3">
           <div className="flex flex-col gap-2">
             <span id="ev-corpus" className="text-sm font-medium">Training text</span>
             <Select value={config.corpus} onValueChange={(v) => set("corpus", String(v))} items={(corpora ?? []).map((c) => ({ value: c.id, label: c.name }))}>
-              <SelectTrigger aria-labelledby="ev-corpus"><SelectValue /></SelectTrigger>
+              <SelectTrigger aria-labelledby="ev-corpus" data-help-id="evaluation.corpus"><SelectValue /></SelectTrigger>
               <SelectContent>{(corpora ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
             </Select>
           </div>
-          <SliderField id="ev-train" label="Training share" value={config.train} min={0.5} max={0.9} step={0.05} onChange={(v) => set("train", v)} format={(v) => fmt.pct(v, 0)} />
-          <SliderField id="ev-val" label="Validation share" value={config.val} min={0.05} max={0.3} step={0.05} onChange={(v) => set("val", v)} format={(v) => fmt.pct(v, 0)} hint={problem ?? `Test gets the remaining ${fmt.pct(testShare(config), 0)}.`} />
+          <SliderField id="ev-train" helpId="evaluation.split" label="Training share" value={config.train} min={0.5} max={0.9} step={0.05} onChange={(v) => set("train", v)} format={(v) => fmt.pct(v, 0)} />
+          <SliderField id="ev-val" helpId="evaluation.split" label="Validation share" value={config.val} min={0.05} max={0.3} step={0.05} onChange={(v) => set("val", v)} format={(v) => fmt.pct(v, 0)} hint={problem ?? `Test gets the remaining ${fmt.pct(testShare(config), 0)}.`} />
           <div className="flex flex-col gap-2">
             <span className="text-sm font-medium">Measure on</span>
-            <Segmented label="Measure on" value={config.on} onChange={(v) => set("on", v)} options={[{ value: "val", label: "Validation" }, { value: "test", label: "Test (final check)" }]} />
-            {config.on === "test" && <p className="text-[13px] text-warning">Test is for one final check, after you&apos;ve chosen settings on validation. Changing settings because of a test score makes the test part of tuning.</p>}
+            <Segmented label="Measure on" helpId="evaluation.on" value={config.on} onChange={(v) => set("on", v)} options={[{ value: "val", label: "Validation" }, { value: "test", label: "Test (final check)" }]} />
+            {config.on === "test" && <p className="text-label text-warning">Test is for one final check, after you&apos;ve chosen settings on validation. Changing settings because of a test score makes the test part of tuning.</p>}
           </div>
-          <SliderField id="ev-k" label={<><Term id="smoothing">Smoothing</Term> k</>} value={config.k} min={0} max={3} step={0.05} onChange={(v) => set("k", v)} format={(v) => (v === 0 ? "0 (engine as built)" : v.toFixed(2))} hint="k = 0 is your engine exactly. k > 0 is a Lab-side add-k variant used only for evaluation." />
+          <SliderField id="ev-k" helpId="evaluation.k" label={<><Term id="smoothing">Smoothing</Term> k</>} value={config.k} min={0} max={3} step={0.05} onChange={(v) => set("k", v)} format={(v) => (v === 0 ? "0 (engine as built)" : v.toFixed(2))} hint="k = 0 is your engine exactly. k > 0 is a Lab-side add-k variant used only for evaluation." />
         </div>
-        <p className="mt-4 text-[13px] text-muted-foreground">The text is cut into three contiguous parts before any pairs are made, so no pair crosses a split. Only the training part is counted.</p>
+        <p className="mt-4 text-label text-muted-foreground">The text is cut into three contiguous parts before any pairs are made, so no pair crosses a split. Only the training part is counted.</p>
         {bench.pending && <p role="status" className="mt-2 text-sm">Measuring {describeConfig(bench.pending, nameOf(bench.pending.corpus))}. Changing the controls now won&apos;t relabel this result.</p>}
       </Panel>
 
@@ -206,7 +206,7 @@ function Results({ run, stale, changed, corpusName }: { run: Measured; stale: bo
   }, [r, sort])
   return (
     <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-      <Panel id="summary" title={`Held-out loss on ${config.on === "val" ? "validation" : "test"}`} source={<Source kind="model" detail={r.modelVersion} />}
+      <Panel id="summary" variant="canvas" title={`Held-out loss on ${config.on === "val" ? "validation" : "test"}`} source={<Source kind="model" detail={r.modelVersion} />}
         teach={{
           calc: <SummaryCalc run={run} label={label} />,
           code: <EngineCode path="nextword/lab/service.py" symbol="evaluate" />,
@@ -222,12 +222,12 @@ function Results({ run, stale, changed, corpusName }: { run: Measured; stale: bo
             {r.meanNll === null && r.meanNllCovered !== null && <dd className="text-sm">Infinite because {r.targets - r.covered} targets had probability 0. On the {r.covered} that didn&apos;t: <span className="num">{r.meanNllCovered.toFixed(3)}</span> nats, which is not a fair score on its own (it ignores the failures).</dd>}
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div><dt className="text-[13px] text-muted-foreground"><Term id="perplexity">Perplexity</Term></dt><dd className="num text-xl">{r.perplexity === null ? "undefined" : r.perplexity.toFixed(2)}</dd></div>
-            <div><dt className="text-[13px] text-muted-foreground">Uniform guess (<Term id="baseline">baseline</Term>)</dt><dd className="num text-xl">{r.uniformBaselineNll.toFixed(3)} <span className="text-sm text-muted-foreground">nats</span></dd></div>
-            <div><dt className="text-[13px] text-muted-foreground">Targets scored</dt><dd className="num text-xl">{fmt.n(r.targets)}</dd></div>
-            <div><dt className="text-[13px] text-muted-foreground">Unseen context / pair</dt><dd className="num text-xl">{r.unseenContext} / {r.unseenPair}</dd></div>
+            <div><dt className="text-label text-muted-foreground"><Term id="perplexity">Perplexity</Term></dt><dd className="num text-xl">{r.perplexity === null ? "undefined" : r.perplexity.toFixed(2)}</dd></div>
+            <div><dt className="text-label text-muted-foreground">Uniform guess (<Term id="baseline">baseline</Term>)</dt><dd className="num text-xl">{r.uniformBaselineNll.toFixed(3)} <span className="text-sm text-muted-foreground">nats</span></dd></div>
+            <div><dt className="text-label text-muted-foreground">Targets scored</dt><dd className="num text-xl">{fmt.n(r.targets)}</dd></div>
+            <div><dt className="text-label text-muted-foreground">Unseen context / pair</dt><dd className="num text-xl">{r.unseenContext} / {r.unseenPair}</dd></div>
           </div>
-          <div className="text-[13px] text-muted-foreground">
+          <div className="text-label text-muted-foreground">
             Split: {fmt.n(r.split.train)} training, {fmt.n(r.split.val)} validation, {fmt.n(r.split.test)} test characters. k = {r.k}. Corpus fingerprint <span className="tok">{r.corpusFingerprint}</span>.
           </div>
           {r.meanNll !== null && <p className="text-sm">{r.meanNll < r.uniformBaselineNll ? `Better than guessing uniformly among ${r.vocabularyWithUnknown} characters by ${(r.uniformBaselineNll - r.meanNll).toFixed(3)} nats.` : "Not better than a uniform guess: the counts don't transfer to this text."}</p>}
@@ -237,16 +237,16 @@ function Results({ run, stale, changed, corpusName }: { run: Measured; stale: bo
           <input id="ev-name" value={name} onChange={(e) => setName(e.target.value)} placeholder={`k ${config.k}, ${config.on}`} className="h-9 rounded-md border border-input bg-card px-3 text-sm" />
           <label htmlFor="ev-notes" className="text-sm font-medium">Error-analysis notes</label>
           <Textarea id="ev-notes" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="What do the worst examples have in common?" />
-          <Button className="self-start" variant="outline" onClick={() => { actions.saveExperiment({ name: name || `k ${config.k}, ${config.on}`, config, result: summarise(r), notes }); setName(""); setNotes("") }}>Save run</Button>
+          <Button data-help-id="evaluation.save" className="self-start" variant="outline" onClick={() => { actions.saveExperiment({ name: name || `k ${config.k}, ${config.on}`, config, result: summarise(r), notes }); setName(""); setNotes("") }}>Save run</Button>
         </div>
       </Panel>
       <Panel id="examples" title="Per-example loss" source={<Source kind="model" />}
-        teach={{ calc: <ExampleCalc run={run} />, code: <EngineCode path="nextword/lab/service.py" symbol="evaluate" /> }} aside={<Segmented label="Order" value={sort} onChange={setSort} options={[{ value: "worst", label: "Worst first" }, { value: "order", label: "Text order" }]} />}>
+        teach={{ calc: <ExampleCalc run={run} />, code: <EngineCode path="nextword/lab/service.py" symbol="evaluate" /> }} aside={<Segmented label="Order" helpId="evaluation.sort" value={sort} onChange={setSort} options={[{ value: "worst", label: "Worst first" }, { value: "order", label: "Text order" }]} />}>
         <p className="mb-3 text-sm text-muted-foreground"><Term id="error-analysis">Error analysis</Term> starts here: which characters surprised the engine most, and why.</p>
         <div className="max-h-[480px] overflow-auto rounded-md border border-border">
           <table className="w-full text-sm">
             <caption className="sr-only">Loss for each held-out pair</caption>
-            <thead className="sticky top-0 bg-card"><tr className="text-[12px] text-muted-foreground"><th className="px-3 py-2 text-right font-normal">#</th><th className="px-3 py-2 text-left font-normal">Context → target</th><th className="px-3 py-2 text-right font-normal">p(target)</th><th className="px-3 py-2 text-right font-normal">−log p</th><th className="px-3 py-2 text-left font-normal">Why</th></tr></thead>
+            <thead className="sticky top-0 bg-card"><tr className="text-label text-muted-foreground"><th className="px-3 py-2 text-right font-normal">#</th><th className="px-3 py-2 text-left font-normal">Context → target</th><th className="px-3 py-2 text-right font-normal">p(target)</th><th className="px-3 py-2 text-right font-normal">−log p</th><th className="px-3 py-2 text-left font-normal">Why</th></tr></thead>
             <tbody>
               {rows.map((e) => (
                 <tr key={e.i} className="border-t border-rule">
@@ -254,13 +254,13 @@ function Results({ run, stale, changed, corpusName }: { run: Measured; stale: bo
                   <td className="px-3 py-1"><Tok tone="context">{e.context}</Tok> → <Tok>{e.target}</Tok></td>
                   <td className="num px-3 py-1 text-right">{e.p.toFixed(4)}</td>
                   <td className={cn("num px-3 py-1 text-right", e.nll === null && "text-negative")}>{fmt.nll(e.nll)}</td>
-                  <td className="px-3 py-1 text-[13px] text-muted-foreground">{e.reason ?? "–"}</td>
+                  <td className="px-3 py-1 text-label text-muted-foreground">{e.reason ?? "–"}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <p className="mt-2 text-[13px] text-muted-foreground">Showing {rows.length} of {fmt.n(r.targets)}.</p>
+        <p className="mt-2 text-label text-muted-foreground">Showing {rows.length} of {fmt.n(r.targets)}.</p>
       </Panel>
     </div>
   )
@@ -315,7 +315,7 @@ function Ablation({ config, corpusName }: { config: Config; corpusName: (id: str
           ["lowest", "the k this sweep suggests", `k = ${best.k}`],
         ]} /> : <p>Run the sweep; its numbers and the settings it held fixed appear here.</p>,
       }} source={<Source kind="model" detail={`${SWEEP.length} runs of your engine, on validation`} />}
-      aside={<Button variant="outline" onClick={start} disabled={running || !!problem}><RefreshDoubleIcon className="size-4" /> {running ? `Running ${sweep!.points.length} of ${SWEEP.length}…` : "Run the k sweep on validation"}</Button>}>
+      aside={<Button variant="outline" data-help-id="evaluation.sweep" onClick={start} disabled={running || !!problem}><RefreshDoubleIcon className="size-4" /> {running ? `Running ${sweep!.points.length} of ${SWEEP.length}…` : "Run the k sweep on validation"}</Button>}>
       <p className="text-sm">Varies smoothing k over {SWEEP.join(", ")} and keeps everything else fixed. It always scores on the validation part, whatever “Measure on” is set to, because choosing k with test results would make the test part of tuning.</p>
       {problem && <p role="alert" className="mt-2 text-sm text-negative">{problem}</p>}
       {config.on === "test" && !problem && <p className="mt-2 text-sm text-warning">“Measure on” is set to Test. The sweep still uses validation; run the test check above once, after choosing k.</p>}
@@ -327,7 +327,7 @@ function Ablation({ config, corpusName }: { config: Config; corpusName: (id: str
           <div className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
             <LineChart ariaLabel="Validation loss for each smoothing strength" series={[{ name: "validation loss", tone: "data", points: finite.map((p) => ({ x: p.k, y: p.nll! })) }]} xLabel="smoothing k" yLabel="nats" height={200} xFormat={(x) => String(+x.toFixed(2))} />
             <table className="text-sm">
-              <thead><tr className="text-[12px] text-muted-foreground"><th className="text-right font-normal">k</th><th className="text-right font-normal">validation loss (nats)</th></tr></thead>
+              <thead><tr className="text-label text-muted-foreground"><th className="text-right font-normal">k</th><th className="text-right font-normal">validation loss (nats)</th></tr></thead>
               <tbody>{sweep.points.map((p) => <tr key={p.k} className={cn("border-t border-rule", best?.k === p.k && "font-semibold")}><td className="num py-0.5 text-right">{p.k}</td><td className="num text-right">{fmt.nll(p.nll)}</td></tr>)}</tbody>
             </table>
           </div>
@@ -362,8 +362,8 @@ function SavedRuns({ onRerun }: { onRerun: (c: Config) => Promise<EvalResult | u
     <Panel id="saved" title="Saved runs" source={experiments.length ? <Source kind="model" detail="results stored in this browser" /> : undefined}
       aside={experiments.length > 0 && (
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={exportJson}><DownloadIcon className="size-4" /> Export runs (JSON file)</Button>
-          <Button variant="outline" size="sm" onClick={exportCsv}><DownloadIcon className="size-4" /> Export for a spreadsheet (CSV)</Button>
+          <Button variant="outline" size="sm" data-help-id="evaluation.export" onClick={exportJson}><DownloadIcon className="size-4" /> Export runs (JSON file)</Button>
+          <Button variant="outline" size="sm" data-help-id="evaluation.export" onClick={exportCsv}><DownloadIcon className="size-4" /> Export for a spreadsheet (CSV)</Button>
         </div>
       )}>
       {experiments.length === 0 ? <EmptyNote>No saved runs yet. Measure, then Save run. Save two runs that differ in one setting to compare them.</EmptyNote> : (
@@ -371,26 +371,26 @@ function SavedRuns({ onRerun }: { onRerun: (c: Config) => Promise<EvalResult | u
           <div className="overflow-x-auto">
             <table className="w-full min-w-[720px] text-sm">
               <caption className="sr-only">Saved evaluation runs</caption>
-              <thead><tr className="text-[12px] text-muted-foreground">
+              <thead><tr className="text-label text-muted-foreground">
                 <th className="py-2 text-left font-normal">Name</th><th className="py-2 text-left font-normal">Settings</th><th className="py-2 text-right font-normal">Loss</th><th className="py-2 text-right font-normal">PPL</th>
                 <th className="py-2 text-center font-normal">Baseline</th><th className="py-2 text-center font-normal">Candidate</th><th className="py-2" />
               </tr></thead>
               <tbody>
                 {experiments.map((e) => (
                   <tr key={e.id} className="border-t border-rule">
-                    <td className="py-2 pr-2"><span className="font-medium">{e.name}</span>{e.notes && <span className="block max-w-xs truncate text-[13px] text-muted-foreground">{e.notes}</span>}</td>
-                    <td className="py-2 pr-2 text-[13px] text-muted-foreground">{describeConfig(e.config)}<span className="tok block">text {e.result.corpusFingerprint}</span></td>
+                    <td className="py-2 pr-2"><span className="font-medium">{e.name}</span>{e.notes && <span className="block max-w-xs truncate text-label text-muted-foreground">{e.notes}</span>}</td>
+                    <td className="py-2 pr-2 text-label text-muted-foreground">{describeConfig(e.config)}<span className="tok block">text {e.result.corpusFingerprint}</span></td>
                     <td className="num py-2 text-right">{fmt.nll(e.result.meanNll)}</td>
                     <td className="num py-2 text-right">{e.result.perplexity === null ? "–" : e.result.perplexity.toFixed(2)}</td>
-                    <td className="py-2 text-center"><input type="radio" name="baseline" aria-label={`Use ${e.name} as baseline`} checked={baseline === e.id} onChange={() => setBaseline(e.id)} className="accent-[var(--foreground)]" /></td>
-                    <td className="py-2 text-center"><input type="radio" name="candidate" aria-label={`Use ${e.name} as candidate`} checked={candidate === e.id} onChange={() => setCandidate(e.id)} className="accent-[var(--foreground)]" /></td>
+                    <td className="py-2 text-center"><input type="radio" name="baseline" data-help-id="evaluation.compare" aria-label={`Use ${e.name} as baseline`} checked={baseline === e.id} onChange={() => setBaseline(e.id)} className="accent-[var(--foreground)]" /></td>
+                    <td className="py-2 text-center"><input type="radio" name="candidate" data-help-id="evaluation.compare" aria-label={`Use ${e.name} as candidate`} checked={candidate === e.id} onChange={() => setCandidate(e.id)} className="accent-[var(--foreground)]" /></td>
                     <td className="py-2 text-right whitespace-nowrap">
-                      <Button variant="ghost" size="sm" onClick={async () => {
+                      <Button data-help-id="evaluation.rerun" variant="ghost" size="sm" onClick={async () => {
                         const res = await onRerun(e.config)
                         setRepro((prev) => ({ ...prev, [e.id]: res ? rerunVerdict(e.result, res) : { kind: "error", message: "Couldn't rerun; see the error above. The training text may have been deleted." } }))
                       }}>Rerun</Button>
                       <Button variant="ghost" size="icon" aria-label={`Delete ${e.name}`} onClick={() => actions.deleteExperiment(e.id)}><TrashIcon className="size-4" /></Button>
-                      {repro[e.id] && <span role="status" className={cn("block max-w-[16rem] whitespace-normal text-left text-[12px]", repro[e.id].kind === "reproduced" ? "text-positive" : "text-warning")}>{repro[e.id].message}</span>}
+                      {repro[e.id] && <span role="status" className={cn("block max-w-[16rem] whitespace-normal text-left text-label", repro[e.id].kind === "reproduced" ? "text-positive" : "text-warning")}>{repro[e.id].message}</span>}
                     </td>
                   </tr>
                 ))}

@@ -18,7 +18,7 @@ export function EvidenceRecorder({ conceptId, compact = false }: { conceptId: st
         <h3 id={`ev-${conceptId}`} className="text-sm font-medium">Your evidence for {term.toLowerCase()}</h3>
         {!compact && <p className="text-sm text-muted-foreground">You record these yourself. Opening a page records nothing.</p>}
       </div>
-      <ul className="flex flex-col gap-2">
+      <ul className="flex flex-col gap-2" data-help-id="evidence.levels">
         {EVIDENCE_LEVELS.filter((l) => l.id !== "explained").map((level) => {
           const id = `ev-${conceptId}-${level.id}`
           const date = evidence[level.id]

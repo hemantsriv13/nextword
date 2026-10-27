@@ -46,6 +46,7 @@ export const WORKSPACES: Workspace[] = [
   { route: "evaluation", title: "Evaluation bench", short: "Evaluation", description: "Held-out loss, baselines and ablations", group: "measure" },
   { route: "serving", title: "Serving and performance", short: "Serving", description: "Requests, latency, caching and KV caches", group: "measure" },
   { route: "adapt", title: "Adaptation and retrieval", short: "Adaptation", description: "Continued training and document retrieval", group: "measure" },
+  { route: "toolkit", title: "Toolkit Guide", short: "Toolkit Guide", description: "What every page, control and tour is for", group: "keep" },
   { route: "glossary", title: "Glossary", short: "Glossary", description: "Every term, with its experiment", group: "keep" },
   { route: "notebook", title: "Notebook", short: "Notebook", description: "Notes, questions, bookmarks and your data", group: "keep" },
 ]

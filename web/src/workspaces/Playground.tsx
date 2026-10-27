@@ -53,7 +53,7 @@ const GUIDE: Guide = {
       why: "Sampling makes likely characters common without making the output always the same.",
       comesOut: "The chosen character.",
       next: "It is appended and becomes the next context.",
-      tryIt: "Press Another suggestion: same rows, new seed, different draws." },
+      tryIt: "Press Another suggestion. With the same text and prompt the first row and its probabilities are unchanged; a new seed gives different draws, which can pick different characters and so lead to different rows later." },
     { id: "repeat", label: "Append and repeat", kind: "operation", target: "trace", carries: "the suggestion",
       goesIn: "The chosen character.",
       happens: "It joins the suggestion, and the loop looks up the row for this new character.",
@@ -159,7 +159,7 @@ export default function Playground() {
     >
       <WorkspaceGuide />
       <Panel
-        id="write"
+        id="write" variant="canvas"
         title="Your text"
         teach={{
           calc: <Symbols rows={[
@@ -172,13 +172,13 @@ export default function Playground() {
         source={<Source kind="model" detail={result ? result.modelVersion : "char-bigram"} />}
         aside={
           <div className="flex flex-wrap items-center gap-2">
-            <Button onClick={() => run(false)} disabled={!prompt || gen.loading}>
+            <Button data-help-id="playground.suggest" onClick={() => run(false)} disabled={!prompt || gen.loading}>
               {gen.loading ? "Generating…" : "Suggest"}
             </Button>
-            <Button variant="outline" onClick={accept} disabled={!shown || stale} title="Tab in the editor also accepts">
+            <Button variant="outline" data-help-id="playground.accept" onClick={accept} disabled={!shown || stale} title="Tab in the editor also accepts">
               <CheckIcon className="size-4" /> Accept
             </Button>
-            <Button variant="outline" onClick={regenerate} disabled={!prompt || gen.loading}>
+            <Button variant="outline" data-help-id="playground.another" onClick={regenerate} disabled={!prompt || gen.loading}>
               <RefreshDoubleIcon className="size-4" /> Another suggestion
             </Button>
           </div>
@@ -187,6 +187,7 @@ export default function Playground() {
         <label htmlFor="prompt" className="sr-only">Your text</label>
         <Textarea
           id="prompt"
+          data-help-id="playground.prompt"
           ref={editor}
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
@@ -195,10 +196,10 @@ export default function Playground() {
             if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); void run(false) }
           }}
           rows={4}
-          className="text-[16px] leading-relaxed"
+          className="text-prose leading-relaxed"
           aria-describedby="prompt-help"
         />
-        <p id="prompt-help" className="mt-2 text-[13px] text-muted-foreground">
+        <p id="prompt-help" className="mt-2 text-label text-muted-foreground">
           Ctrl+Enter suggests. Tab accepts the suggestion shown below.
         </p>
 
@@ -209,7 +210,7 @@ export default function Playground() {
           ) : gen.loading && !result ? (
             <LoadingRows rows={2} label="Generating" />
           ) : (
-            <p className="tok whitespace-pre-wrap break-words text-[15px] leading-7" data-testid="prompt-and-suggestion">
+            <p className="tok whitespace-pre-wrap break-words text-prose leading-7" data-testid="prompt-and-suggestion">
               {view.segments.map((seg, i) => <TraceSegment key={i} seg={seg} step={view.selected} />)}
               {result && !stale && revealed < steps.length && <span className="text-muted-foreground">▏</span>}
             </p>
@@ -219,11 +220,11 @@ export default function Playground() {
           {result?.stopped && !stale && <Note tone="warning">{result.stopped}.</Note>}
         </div>
 
-        <div className="mt-5 grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-5 grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2 2xl:grid-cols-[minmax(11rem,1.2fr)_minmax(11rem,1.2fr)_minmax(10rem,1fr)_auto]">
           <div className="flex flex-col gap-2">
             <span id="engine-label" className="text-sm font-medium">Engine</span>
             <Select value="char-bigram" onValueChange={() => {}} items={ENGINES.map((e) => ({ value: e.id, label: e.label }))}>
-              <SelectTrigger aria-labelledby="engine-label"><SelectValue /></SelectTrigger>
+              <SelectTrigger aria-labelledby="engine-label" data-help-id="playground.engine"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {ENGINES.map((e) => (
                   <SelectItem key={e.id} value={e.id} disabled={!e.available}>
@@ -236,7 +237,7 @@ export default function Playground() {
           <div className="flex flex-col gap-2">
             <span id="corpus-label" className="text-sm font-medium">Training text</span>
             <Select value={corpus} onValueChange={(v) => setCorpus(String(v))} items={(corpora ?? []).map((c) => ({ value: c.id, label: c.name }))}>
-              <SelectTrigger aria-labelledby="corpus-label"><SelectValue /></SelectTrigger>
+              <SelectTrigger aria-labelledby="corpus-label" data-help-id="playground.corpus"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {(corpora ?? [{ id: "sample", name: "Sample passage", chars: 1167 }]).map((c) => (
                   <SelectItem key={c.id} value={c.id}>{c.name} <span className="num text-muted-foreground">({fmt.n(c.chars)} chars)</span></SelectItem>
@@ -244,15 +245,15 @@ export default function Playground() {
               </SelectContent>
             </Select>
           </div>
-          <SliderField id="length" label="Length" value={length} min={1} max={200} step={1} onChange={setLength} format={(v) => `${v} chars`} />
+          <SliderField id="length" helpId="playground.length" label="Length" value={length} min={1} max={200} step={1} onChange={setLength} format={(v) => `${v} chars`} />
           <div className="flex items-start gap-2">
-            <NumberField id="seed" label={<Term id="seed">Seed</Term>} value={seed} min={0} max={4294967295} onChange={setSeed} width="w-28" />
-            <Button variant="outline" size="icon" aria-label="Random seed" title="Random seed" onClick={() => setSeed(newSeed())} className="mt-7">
+            <NumberField id="seed" helpId="playground.seed" label={<Term id="seed">Seed</Term>} value={seed} min={0} max={4294967295} onChange={setSeed} width="w-28" />
+            <Button variant="outline" size="icon" data-help-id="playground.random-seed" aria-label="Random seed" onClick={() => setSeed(newSeed())} className="mt-7">
               <DiceThreeIcon className="size-4" />
             </Button>
           </div>
         </div>
-        <p className="mt-4 text-[13px] text-muted-foreground">
+        <p className="mt-4 text-label text-muted-foreground">
           Decoding: <Term id="sampling">sampling</Term> only. Greedy, temperature, top-k and top-p are in the Decoding sandbox.
         </p>
       </Panel>
@@ -275,13 +276,13 @@ export default function Playground() {
         source={result && <Source kind="model" detail={`seed ${result.seed}`} />}
         aside={
           <div className="flex items-center gap-1.5">
-            <Button variant="outline" size="sm" onClick={step} disabled={!prompt || gen.loading || (!!result && !stale && revealed >= steps.length)}>
+            <Button variant="outline" size="sm" data-help-id="playground.step" onClick={step} disabled={!prompt || gen.loading || (!!result && !stale && revealed >= steps.length)}>
               <SkipNextIcon className="size-4" /> Step
             </Button>
-            <Button variant="outline" size="sm" onClick={() => (result && !stale ? setPlaying(!isPlaying) : run(true).then(() => setPlaying(true)))} disabled={!prompt || gen.loading}>
+            <Button variant="outline" size="sm" data-help-id="playground.play" onClick={() => (result && !stale ? setPlaying(!isPlaying) : run(true).then(() => setPlaying(true)))} disabled={!prompt || gen.loading}>
               {isPlaying ? <PauseIcon className="size-4" /> : <PlayIcon className="size-4" />} {isPlaying ? "Pause" : "Play"}
             </Button>
-            <Button variant="ghost" size="sm" onClick={resetAll} disabled={!result}>
+            <Button variant="ghost" size="sm" data-help-id="playground.reset" onClick={resetAll} disabled={!result}>
               <UndoIcon className="size-4" /> Reset
             </Button>
           </div>
@@ -297,7 +298,7 @@ export default function Playground() {
               <table className="w-full text-sm">
                 <caption className="sr-only">One row per generated character</caption>
                 <thead className="sticky top-0 bg-card">
-                  <tr className="text-left text-[12px] text-muted-foreground">
+                  <tr className="text-left text-label text-muted-foreground">
                     <th scope="col" className="px-3 py-2 text-right font-normal">Step</th>
                     <th scope="col" className="px-3 py-2 font-normal">Context</th>
                     <th scope="col" className="px-3 py-2 text-right font-normal">Draw u</th>
@@ -312,7 +313,7 @@ export default function Playground() {
                     return (
                       <tr key={i} className={cn("border-t border-rule", sel && "bg-active")}>
                         <td className="num px-3 py-1.5 text-right">
-                          <button type="button" className="w-full text-right underline-offset-2 hover:underline" onClick={() => setSelectedStep(i)} aria-pressed={sel} aria-label={`Show step ${i + 1}`}>{i + 1}</button>
+                          <button type="button" data-help-id="playground.trace-row" className="w-full text-right underline-offset-2 hover:underline" onClick={() => setSelectedStep(i)} aria-pressed={sel} aria-label={`Show step ${i + 1}`}>{i + 1}</button>
                         </td>
                         <td className="px-3 py-1.5"><Tok tone="context">{s.contextLabel}</Tok></td>
                         <td className="num px-3 py-1.5 text-right">{s.draw.toFixed(4)}</td>
@@ -328,7 +329,7 @@ export default function Playground() {
           </div>
         )}
         {result && !stale && (
-          <p className="mt-3 text-[13px] text-muted-foreground">
+          <p className="mt-3 text-label text-muted-foreground">
             Showing {revealed} of {steps.length} steps from one request. Stepping replays that request&apos;s trace; it draws no new random numbers, so it always matches the full suggestion.
           </p>
         )}
@@ -373,7 +374,7 @@ function TraceSegment({ seg, step }: { seg: Segment; step: number | null }) {
 function TraceLegend({ step, generated }: { step: number | null; generated: boolean }) {
   const item = "inline-flex items-center gap-1.5"
   return (
-    <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[13px] text-muted-foreground" aria-hidden="true">
+    <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-label text-muted-foreground" aria-hidden="true">
       {step === null ? (
         <span className={item}><span className="inline-block size-3 rounded-sm bg-context" /> context the next prediction reads (one character)</span>
       ) : (
@@ -473,7 +474,7 @@ function ComparePanel({ corpus, length, seed }: { corpus: string; length: number
         id="compare"
         title="Compare side by side"
         source={done && <Source kind="model" detail={done.a.modelVersion} />}
-        aside={<Segmented label="What differs" value={vary} onChange={setVary} options={[{ value: "prompt", label: "Prompt differs" }, { value: "seed", label: "Seed differs" }]} />}
+        aside={<Segmented label="What differs" helpId="playground.compare-mode" value={vary} onChange={setVary} options={[{ value: "prompt", label: "Prompt differs" }, { value: "seed", label: "Seed differs" }]} />}
         teach={{
           calc: done ? <p>Run A: prompt “{done.cfg.promptA}”, seed {done.cfg.seedA}, context {done.a.contextUsedLabel}. Run B: prompt “{done.cfg.promptB}”, seed {done.cfg.seedB}, context {done.b.contextUsedLabel}. A bigram run depends only on the context character, the seed, the length and the training text, so {done.cfg.vary === "prompt" ? (done.a.contextUsed === done.b.contextUsed ? "with the same context and seed the two runs must match." : "with different contexts the first rows differ.") : "with different seeds the draws differ."}</p> : undefined,
         }}
@@ -502,12 +503,12 @@ function ComparePanel({ corpus, length, seed }: { corpus: string; length: number
                 </div>
                 {error ? <ErrorNote error={error} onRetry={compare} /> : pending ? <LoadingRows rows={1} /> : data ? (
                   <div className={cn(stale && "opacity-60")}>
-                    <p className="tok whitespace-pre-wrap break-words text-[14px] leading-6">
+                    <p className="tok whitespace-pre-wrap break-words text-sm leading-6">
                       <span className="text-muted-foreground">{withoutLastChar(data.prompt)}</span>
                       <mark className="rounded-sm bg-context px-0.5 text-context-ink">{data.contextUsedLabel}</mark>
                       <span className="rounded-sm bg-data-soft">{data.suggestion}</span>
                     </p>
-                    <p className="text-[12px] text-muted-foreground">prompt “{data.prompt}”, seed {data.seed}</p>
+                    <p className="text-label text-muted-foreground">prompt “{data.prompt}”, seed {data.seed}</p>
                   </div>
                 ) : <p className="text-sm text-muted-foreground">Not run yet.</p>}
               </div>
@@ -523,8 +524,8 @@ function ComparePanel({ corpus, length, seed }: { corpus: string; length: number
           <div className="mt-2"><Note tone="warning">Settings changed since this comparison ({changed.join(", ")}). The results above still belong to the settings just named. Press Run both to compare with the new ones.</Note></div>
         )}
         <div className="mt-4 flex flex-wrap items-center gap-3">
-          <Button onClick={compare} disabled={!!pending}>Run both</Button>
-          <p className="text-[13px] text-muted-foreground">Uses the training text and length set above; the seed is the one above unless seed B differs.</p>
+          <Button data-help-id="playground.run-both" onClick={compare} disabled={!!pending}>Run both</Button>
+          <p className="text-label text-muted-foreground">Uses the training text and length set above; the seed is the one above unless seed B differs.</p>
         </div>
       </Panel>
       <GuidedCycle

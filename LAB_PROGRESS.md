@@ -31,6 +31,35 @@ Working notes for building the Lab, so the work can resume if a session ends. Ne
 - Comprehension check flags the workspaces as dense (130–170 words). Accepted for a working tool the
   user asked to be deep; copy was trimmed where it didn't carry meaning.
 
+## Done (2026-10-27): contextual help and Toolkit Guide (not committed, not pushed)
+- [x] Inventory `web/src/content/help.ts` (controls, workspace directory, questions, three tours); help layer
+  `components/lab/help.tsx` (hints, Learn this control popover, Help mode markers, goTo/revealers);
+  tours `components/lab/toolkit-tour.tsx`; Toolkit Guide page `workspaces/Toolkit.tsx`; data-help-id on
+  controls across all pages; search finds questions and controls.
+- [x] Tests: vitest 158 OK (help inventory coverage, hint/popover/markers, Toolkit and tours); build OK.
+- [x] Browser checks in Chrome (one desktop width): hover hint, Help mode markers, disabled markers,
+  popover placement, tour across pages with resume after reload, Show me where into a tab, light theme.
+  Fixed: tour card covered results under wide targets; reveal raced lazy pages; help link was cancelled.
+- [ ] Not verified: touch devices, phone layout of the tour card and popovers, reduced motion.
+
+## Done (2026-10-27): explanation panel (not committed, not pushed)
+- [x] `ExplanationPanel` and `TryThis` in `web/src/components/lab/explanation.tsx`; tokens `--companion`,
+  `--companion-edge`, `--companion-callout`, `--companion-shadow` (both themes). Used by the journey and by
+  `Workspace`'s explanation column. Sticky only while it fits the viewport (no nested scrolling).
+- [x] Checks: vitest 130 OK; build OK; inspector 0 FAIL (journey, counts, neural); Chrome dark and light.
+
+## Done (2026-10-27): visual redesign (not committed, not pushed)
+1. [x] Tokens in `web/src/index.css`: type scale (page, lesson, section, prose, label), `.measure`,
+   `--canvas`/`--canvas-edge` surface, `--action` accent. `Panel` variants: section (default, no box),
+   canvas (one per workspace), inset. Workspace header and explanation aside on the scale.
+2. [x] Bigram journey rebuilt as the reference lesson (Guided lesson / Explore all, six stages,
+   process diagram with the feedback loop, explanation column with three levels, Replay without draws).
+3. [x] Shared guide: compact by default (`prefs.flowOpen`, new, false), vertical process rail; walkthrough
+   card and Try it section on the scale; canvases assigned in every workspace; Glossary entry canvas.
+4. [x] Copy: seed guidance, "replay of what followed what", Unicode code points vs visible emoji.
+5. [x] Checks: Python 30 OK; vitest 129 OK; build OK; Taste lint 0 FAIL (UI source); inspector 0 FAIL on
+   13 pages at 1440/768/390; Chrome checks at one width in dark and light, keyboard on the journey.
+
 ## Done (2026-10-27): teaching experience (not committed, not pushed)
 1. [x] Shared teaching layer `web/src/components/lab/teach.tsx`: flow diagram (`Guide`, `FlowNode`),
    walkthrough with three levels, `Panel teach={{ calc, code }}` and `TeachSpot`, tab-aware steps,

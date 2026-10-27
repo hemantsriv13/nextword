@@ -106,7 +106,7 @@ export default function Counts() {
         <div className="flex items-center gap-2">
           <span id="cc-label" className="text-sm text-muted-foreground">Training text</span>
           <Select value={corpus} onValueChange={(v) => setCorpus(String(v))} items={(corpora ?? []).map((c) => ({ value: c.id, label: c.name }))}>
-            <SelectTrigger aria-labelledby="cc-label" className="w-48"><SelectValue /></SelectTrigger>
+            <SelectTrigger aria-labelledby="cc-label" data-help-id="counts.corpus" className="w-48"><SelectValue /></SelectTrigger>
             <SelectContent>{(corpora ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
           </Select>
         </div>
@@ -114,7 +114,7 @@ export default function Counts() {
       explain={<CountsExplain context={context} row={row} />}
     >
       <WorkspaceGuide />
-      <Panel id="matrix" title="Count table" source={<Source kind="model" detail={t ? `${fmt.n(t.pairs)} pairs counted` : undefined} />}
+      <Panel id="matrix" variant="canvas" title="Count table" source={<Source kind="model" detail={t ? `${fmt.n(t.pairs)} pairs counted` : undefined} />}
         teach={{
           calc: t ? <Symbols rows={[
             ["pairs", "neighbouring pairs in the training text (characters − 1)", fmt.n(t.pairs)],
@@ -195,7 +195,7 @@ function Heatmap({ table, selected, onSelect }: { table: CountTable; selected: s
         <p className="text-sm text-muted-foreground">
           Rows: the current character. Columns: the next one. <span className="num">{fmt.n(filled)}</span> of <span className="num">{fmt.n(cells)}</span> cells are non-zero; the rest never happened in this text.
         </p>
-        <Segmented label="Shade cells by" value={mode} onChange={setMode} options={[{ value: "count", label: "Counts" }, { value: "p", label: "Row probabilities" }]} />
+        <Segmented label="Shade cells by" helpId="counts.shade" value={mode} onChange={setMode} options={[{ value: "count", label: "Counts" }, { value: "p", label: "Row probabilities" }]} />
       </div>
       <div className="max-h-[520px] overflow-auto rounded-md border border-border">
         <table className="border-separate border-spacing-0 text-[11px]">
@@ -214,7 +214,7 @@ function Heatmap({ table, selected, onSelect }: { table: CountTable; selected: s
               return (
                 <tr key={r.token}>
                   <th scope="row" className="sticky left-0 z-10 bg-card p-0">
-                    <button
+                    <button data-help-id="counts.row"
                       type="button"
                       onClick={() => onSelect(r.token)}
                       aria-pressed={sel}
@@ -260,7 +260,7 @@ function NormalizationTable({ context, total, items }: { context: string; total:
       <table className="w-full text-sm">
         <caption className="sr-only">Counts, the division, and the resulting probabilities</caption>
         <thead>
-          <tr className="text-[12px] text-muted-foreground">
+          <tr className="text-label text-muted-foreground">
             <th scope="col" className="py-1 text-left font-normal">Next</th>
             <th scope="col" className="py-1 text-right font-normal">Count</th>
             <th scope="col" className="py-1 text-right font-normal">÷ total</th>
@@ -326,8 +326,8 @@ function SamplingDemo({ corpus, context, items }: { corpus: string; context: str
       <p className="text-sm">The probabilities are laid end to end between 0 and 1. A random number u picks whichever interval it lands in. Bigger probability, bigger interval, more likely to be hit.</p>
       <IntervalStrip ariaLabel="Probability intervals in the engine's order" segments={segments} draw={real?.draw} chosen={real?.token} />
       <div className="flex flex-wrap items-end gap-3">
-        <NumberField id="draw-seed" label="Seed" value={seed} min={0} max={4294967295} onChange={setSeed} />
-        <Button onClick={async () => { const r = await draw.run({ corpus, prompt: context, length: 1, seed }); if (r) actions.logRun({ route: "counts", title: "One draw from the engine", summary: `seed ${seed} picked ${visible(r.suggestion)}`, source: "model" }, ["sampling", "seed"]) }} disabled={draw.loading}>
+        <NumberField id="draw-seed" helpId="counts.draw-seed" label="Seed" value={seed} min={0} max={4294967295} onChange={setSeed} />
+        <Button data-help-id="counts.draw" onClick={async () => { const r = await draw.run({ corpus, prompt: context, length: 1, seed }); if (r) actions.logRun({ route: "counts", title: "One draw from the engine", summary: `seed ${seed} picked ${visible(r.suggestion)}`, source: "model" }, ["sampling", "seed"]) }} disabled={draw.loading}>
           <DiceThreeIcon className="size-4" /> Draw with your engine
         </Button>
       </div>
@@ -337,11 +337,11 @@ function SamplingDemo({ corpus, context, items }: { corpus: string; context: str
           <h3 className="text-sm font-medium">Repeat 1,000 times</h3>
           <Source kind="simulation" detail="same interval rule, browser generator" />
         </div>
-        <p className="text-[13px] text-muted-foreground">Uses the same rule as sample_next on these exact probabilities, but a browser random generator, so the seed does not match Python&apos;s.</p>
-        <Button variant="outline" size="sm" className="self-start" onClick={repeatDraws}>Run 1,000 draws</Button>
+        <p className="text-label text-muted-foreground">Uses the same rule as sample_next on these exact probabilities, but a browser random generator, so the seed does not match Python&apos;s.</p>
+        <Button variant="outline" size="sm" className="self-start" data-help-id="counts.draws-1000" onClick={repeatDraws}>Run 1,000 draws</Button>
         {repeat && (
           <table className="text-sm">
-            <thead><tr className="text-[12px] text-muted-foreground"><th className="text-left font-normal">Next</th><th className="text-right font-normal">Expected</th><th className="text-right font-normal">Observed</th></tr></thead>
+            <thead><tr className="text-label text-muted-foreground"><th className="text-left font-normal">Next</th><th className="text-right font-normal">Expected</th><th className="text-right font-normal">Observed</th></tr></thead>
             <tbody>
               {segments.map((s, i) => ({ s, i })).sort((a, b) => b.s.p - a.s.p).slice(0, 8).map(({ s, i }) => (
                 <tr key={s.key} className="border-t border-rule">
@@ -369,8 +369,8 @@ function TryAnyCharacter({ corpus, onPick }: { corpus: string; onPick: (c: strin
           <label htmlFor="anych" className="text-sm font-medium">Context character</label>
           <input id="anych" value={ch} maxLength={2} onChange={(e) => setCh(Array.from(e.target.value).slice(-1).join(""))} className="tok h-9 w-20 rounded-md border border-input bg-card px-3 text-center text-sm" />
         </div>
-        <Button type="submit" disabled={Array.from(ch).length !== 1}>Ask the engine</Button>
-        <p className="pb-2 text-[13px] text-muted-foreground">Try “!”, which never appears in the sample.</p>
+        <Button type="submit" data-help-id="counts.ask" disabled={Array.from(ch).length !== 1}>Ask the engine</Button>
+        <p className="pb-2 text-label text-muted-foreground">Try “!”, which never appears in the sample.</p>
       </form>
       <div className="mt-3">
         {res.error ? (
@@ -402,15 +402,15 @@ function BeforeAfter({ baseText, baseTable, context }: { baseText: string; baseT
   return (
     <div className="flex flex-col gap-3">
       <label htmlFor="edited" className="text-sm">Edit the text (it starts as the current corpus plus one sentence), then recount. The row for <Tok tone="context">{visible(context)}</Tok> is compared.</label>
-      <Textarea id="edited" rows={4} value={text} onChange={(e) => setText(e.target.value)} className="tok text-[13px]" />
-      <Button className="self-start" onClick={async () => { const r = await after.run(text); if (r) actions.logRun({ route: "counts", title: "Recounted an edited text", summary: `${fmt.n(r.pairs)} pairs`, source: "model" }, ["corpus", "conditional-probability"]) }} disabled={after.loading || charCount(text) < 2}>
+      <Textarea id="edited" rows={4} value={text} onChange={(e) => setText(e.target.value)} className="tok text-label" />
+      <Button data-help-id="counts.recount" className="self-start" onClick={async () => { const r = await after.run(text); if (r) actions.logRun({ route: "counts", title: "Recounted an edited text", summary: `${fmt.n(r.pairs)} pairs`, source: "model" }, ["corpus", "conditional-probability"]) }} disabled={after.loading || charCount(text) < 2}>
         {after.loading ? "Counting…" : "Recount with your engine"}
       </Button>
       {after.error && <ErrorNote error={after.error} />}
       {afterRow && (
         <table className="text-sm">
-          <caption className="mb-1 text-left text-[13px] text-muted-foreground">Largest changes in P(next | {visible(context)}). Row total {before.total} → {afterRow.total}.</caption>
-          <thead><tr className="text-[12px] text-muted-foreground"><th className="text-left font-normal">Next</th><th className="text-right font-normal">Before</th><th className="text-right font-normal">After</th><th className="text-right font-normal">Change</th></tr></thead>
+          <caption className="mb-1 text-left text-label text-muted-foreground">Largest changes in P(next | {visible(context)}). Row total {before.total} → {afterRow.total}.</caption>
+          <thead><tr className="text-label text-muted-foreground"><th className="text-left font-normal">Next</th><th className="text-right font-normal">Before</th><th className="text-right font-normal">After</th><th className="text-right font-normal">Change</th></tr></thead>
           <tbody>
             {rows.map((r) => (
               <tr key={r.tok} className="border-t border-rule">
@@ -442,13 +442,13 @@ function Smoothing({ table, context }: { table: CountTable; context: string }) {
   const top = [...items].sort((a, b) => b.smooth - a.smooth).slice(0, 6)
   return (
     <div className="flex flex-col gap-4">
-      <SliderField id="k" label={<>Add-k strength, k</>} value={k} min={0} max={5} step={0.1} onChange={setK} format={(x) => x.toFixed(1)} hint={<>P = (count + k) ÷ (row total + k × {v}). {v} = {table.vocab.length} known characters + 1 slot for any unknown one.</>} />
+      <SliderField id="k" helpId="counts.smoothing" label={<>Add-k strength, k</>} value={k} min={0} max={5} step={0.1} onChange={setK} format={(x) => x.toFixed(1)} hint={<>P = (count + k) ÷ (row total + k × {v}). {v} = {table.vocab.length} known characters + 1 slot for any unknown one.</>} />
       {total === 0 && k === 0 ? (
         <Note tone="warning">This row has no counts, so without smoothing every probability is 0 ÷ 0.</Note>
       ) : (
         <>
           <table className="text-sm">
-            <thead><tr className="text-[12px] text-muted-foreground"><th className="text-left font-normal">Next</th><th className="text-right font-normal">Raw</th><th className="text-right font-normal">Smoothed</th></tr></thead>
+            <thead><tr className="text-label text-muted-foreground"><th className="text-left font-normal">Next</th><th className="text-right font-normal">Raw</th><th className="text-right font-normal">Smoothed</th></tr></thead>
             <tbody>
               {top.map((i) => (
                 <tr key={i.token} className="border-t border-rule">
@@ -464,7 +464,7 @@ function Smoothing({ table, context }: { table: CountTable; context: string }) {
           </p>
         </>
       )}
-      <p className="text-[13px] text-muted-foreground">Smoothing moves probability away from what was seen. It adds no knowledge. Its effect on held-out loss is measured on the Evaluation bench.</p>
+      <p className="text-label text-muted-foreground">Smoothing moves probability away from what was seen. It adds no knowledge. Its effect on held-out loss is measured on the Evaluation bench.</p>
     </div>
   )
 }

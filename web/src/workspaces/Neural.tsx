@@ -97,9 +97,9 @@ function ScalarDescent() {
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
         <div className="flex flex-col gap-5">
           <p className="text-sm">The loss is f(w) = (w − 3)², smallest at w = 3. The <Term id="gradient">gradient</Term> is f′(w) = 2(w − 3). Each step moves w by −<Term id="learning-rate">learning rate</Term> × gradient.</p>
-          <SliderField id="w0" label="Starting w" value={start} min={-6} max={10} step={0.5} onChange={setStart} format={(v) => v.toFixed(1)} />
-          <SliderField id="lr0" label="Learning rate" value={lr} min={0.01} max={1.2} step={0.01} onChange={setLr} format={(v) => v.toFixed(2)} hint="Above 1.0 each step overshoots by more than it corrects." />
-          <SliderField id="st0" label="Steps" value={steps} min={1} max={60} step={1} onChange={setSteps} />
+          <SliderField id="w0" helpId="neural.scalar" label="Starting w" value={start} min={-6} max={10} step={0.5} onChange={setStart} format={(v) => v.toFixed(1)} />
+          <SliderField id="lr0" helpId="neural.scalar" label="Learning rate" value={lr} min={0.01} max={1.2} step={0.01} onChange={setLr} format={(v) => v.toFixed(2)} hint="Above 1.0 each step overshoots by more than it corrects." />
+          <SliderField id="st0" helpId="neural.scalar" label="Steps" value={steps} min={1} max={60} step={1} onChange={setSteps} />
           <p className={cn("text-sm", diverged && "text-negative")}>
             After {path.length - 1} steps: w = <span className="num">{Number.isFinite(last.w) ? last.w.toFixed(4) : "overflow"}</span>, loss = <span className="num">{Number.isFinite(last.loss) ? last.loss.toExponential(2) : "∞"}</span>. {diverged ? "It is moving away from 3: the steps are too big." : Math.abs(last.w - 3) < 1e-3 ? "It has reached the minimum." : "Still on its way."}
           </p>
@@ -108,7 +108,7 @@ function ScalarDescent() {
           <LineChart ariaLabel="w after each step" series={[{ name: "w", tone: "data", points: path.map((p) => ({ x: p.step, y: p.w })) }, { name: "target (3)", tone: "grey", dashed: true, points: path.map((p) => ({ x: p.step, y: 3 })) }]} xLabel="step" yLabel="w" height={180} yMin={Math.min(0, ...path.map((p) => p.w).filter(Number.isFinite))} />
           <table className="text-sm">
             <caption className="sr-only">The first steps of gradient descent</caption>
-            <thead><tr className="text-[12px] text-muted-foreground"><th className="text-right font-normal">Step</th><th className="text-right font-normal">w</th><th className="text-right font-normal">gradient 2(w − 3)</th><th className="text-right font-normal">update −lr × grad</th></tr></thead>
+            <thead><tr className="text-label text-muted-foreground"><th className="text-right font-normal">Step</th><th className="text-right font-normal">w</th><th className="text-right font-normal">gradient 2(w − 3)</th><th className="text-right font-normal">update −lr × grad</th></tr></thead>
             <tbody>
               {path.slice(0, 4).map((p) => (
                 <tr key={p.step} className="border-t border-rule">
@@ -173,7 +173,7 @@ function OneStep() {
     if (losses.length === 0) actions.logRun({ route: "neural", title: "Applied one gradient step", summary: `loss ${f.loss.toFixed(3)} before`, source: "simulation" }, ["forward-pass", "cross-entropy", "backpropagation", "gradient"])
   }
   const pick = (value: number, set: (n: number) => void, label: string, id: string) => (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2" data-help-id="neural.example">
       <span id={id} className="text-sm font-medium">{label}</span>
       <Select value={String(value)} onValueChange={(v) => { set(Number(v)); setPrevious(null) }} items={STEP_VOCAB.map((t, i) => ({ value: String(i), label: `${t}  (ID ${i})` }))}>
         <SelectTrigger aria-labelledby={id} className="w-32"><SelectValue /></SelectTrigger>
@@ -183,19 +183,19 @@ function OneStep() {
   )
 
   return (
-    <Panel id="onestep" title="One training step, every number" source={<Source kind="simulation" detail={`${countParams(STEP_CONFIG)} parameters, seed ${seed}`} />}
+    <Panel id="onestep" variant="canvas" title="One training step, every number" source={<Source kind="simulation" detail={`${countParams(STEP_CONFIG)} parameters, seed ${seed}`} />}
       aside={
         <div className="flex items-center gap-2">
-          <Button onClick={apply}><PlayIcon className="size-4" /> Apply one update</Button>
-          <Button variant="ghost" onClick={() => reset()}><UndoIcon className="size-4" /> Reset weights</Button>
+          <Button data-help-id="neural.apply" onClick={apply}><PlayIcon className="size-4" /> Apply one update</Button>
+          <Button variant="ghost" data-help-id="neural.reset" onClick={() => reset()}><UndoIcon className="size-4" /> Reset weights</Button>
         </div>
       }>
       <div className="flex flex-wrap items-end gap-4">
         {pick(c0, setC0, "Context token 1", "c0")}
         {pick(c1, setC1, "Context token 2", "c1")}
         {pick(target, setTarget, "Correct next token", "tg")}
-        <NumberField id="ws" label="Weight seed" value={seed} min={0} max={9999} onChange={(v) => { setSeed(v); reset(v) }} />
-        <div className="w-56"><SliderField id="lr1" label="Learning rate" value={lr} min={0.05} max={3} step={0.05} onChange={setLr} format={(v) => v.toFixed(2)} /></div>
+        <NumberField id="ws" helpId="neural.weight-seed" label="Weight seed" value={seed} min={0} max={9999} onChange={(v) => { setSeed(v); reset(v) }} />
+        <div className="w-56"><SliderField id="lr1" helpId="neural.lr" label="Learning rate" value={lr} min={0.05} max={3} step={0.05} onChange={setLr} format={(v) => v.toFixed(2)} /></div>
       </div>
       <p className="mt-3 text-sm">Vocabulary: {STEP_VOCAB.map((t, i) => <span key={i} className="mr-2"><Tok>{t}</Tok> = {i}</span>)} The weights start as seeded random numbers; nothing has been learned yet.</p>
 
@@ -297,8 +297,8 @@ function OneStep() {
             <>
             {before && (
               <table className="w-full max-w-3xl text-sm" data-testid="before-after">
-                <caption className="mb-1 text-left text-[13px] text-muted-foreground">The last update, with learning rate {prevLr.toFixed(2)}</caption>
-                <thead><tr className="text-left text-[12px] text-muted-foreground"><th scope="col" className="font-normal">Value</th><th scope="col" className="text-right font-normal">Before</th><th scope="col" className="text-right font-normal">Gradient</th><th scope="col" className="text-right font-normal">−lr × gradient</th><th scope="col" className="text-right font-normal">After</th></tr></thead>
+                <caption className="mb-1 text-left text-label text-muted-foreground">The last update, with learning rate {prevLr.toFixed(2)}</caption>
+                <thead><tr className="text-left text-label text-muted-foreground"><th scope="col" className="font-normal">Value</th><th scope="col" className="text-right font-normal">Before</th><th scope="col" className="text-right font-normal">Gradient</th><th scope="col" className="text-right font-normal">−lr × gradient</th><th scope="col" className="text-right font-normal">After</th></tr></thead>
                 <tbody>
                   {watched.map((w) => (
                     <tr key={w.name} className="border-t border-rule">
@@ -331,7 +331,7 @@ function OneStep() {
         </TeachSpot>
         </li>
       </ol>
-      <p className="mt-4 text-[13px] text-muted-foreground">Shapes, end to end: IDs (2) → E rows (2 × 2) → x (4) → h (3) → logits (5) → p (5) → loss (1 number). Every token ID is used only to pick rows; the arithmetic is all matrix multiplication.</p>
+      <p className="mt-4 text-label text-muted-foreground">Shapes, end to end: IDs (2) → E rows (2 × 2) → x (4) → h (3) → logits (5) → p (5) → loss (1 number). Every token ID is used only to pick rows; the arithmetic is all matrix multiplication.</p>
     </Panel>
   )
 }
@@ -355,7 +355,7 @@ function TensorTable() {
     <div className="overflow-x-auto">
       <table className="w-full min-w-[40rem] text-sm">
         <caption className="mb-1 text-left text-sm font-medium">The arrays in this step</caption>
-        <thead><tr className="text-left text-[12px] text-muted-foreground"><th scope="col" className="font-normal">Name</th><th scope="col" className="font-normal">What rows and columns mean</th><th scope="col" className="text-right font-normal">Shape</th><th scope="col" className="pl-4 font-normal">Values come from</th><th scope="col" className="font-normal">Used next by</th></tr></thead>
+        <thead><tr className="text-left text-label text-muted-foreground"><th scope="col" className="font-normal">Name</th><th scope="col" className="font-normal">What rows and columns mean</th><th scope="col" className="text-right font-normal">Shape</th><th scope="col" className="pl-4 font-normal">Values come from</th><th scope="col" className="font-normal">Used next by</th></tr></thead>
         <tbody>
           {rows.map(([n, m, shape, from, next]) => (
             <tr key={n} className="border-t border-rule">
@@ -454,19 +454,19 @@ function TrainingRun() {
           ]} /> : <p>Press Train; the numbers of the finished run appear here.</p>,
           code: <SimCode path="web/src/sim/neural.ts" symbol="train" text={neuralSource} />,
         }}
-        aside={running ? <Button variant="outline" onClick={cancel}><XmarkIcon className="size-4" /> Cancel</Button> : <Button onClick={start}><PlayIcon className="size-4" /> Train</Button>}>
+        aside={running ? <Button variant="outline" onClick={cancel}><XmarkIcon className="size-4" /> Cancel</Button> : <Button data-help-id="neural.train" onClick={start}><PlayIcon className="size-4" /> Train</Button>}>
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)]">
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-2">
               <span className="text-sm font-medium">Training text</span>
               <Segmented label="Training text" value={text} onChange={setText} options={[{ value: "small", label: `Small (${TRAIN_SMALL.length} chars)` }, { value: "large", label: `Larger (${TRAIN_LARGE.length} chars)` }]} />
-              <p className="text-[13px] text-muted-foreground">Validation is always the same separate text ({VALIDATION.length} chars), never trained on.</p>
+              <p className="text-label text-muted-foreground">Validation is always the same separate text ({VALIDATION.length} chars), never trained on.</p>
             </div>
-            <SliderField id="hid" label="Hidden units" value={hidden} min={4} max={64} step={4} onChange={setHidden} />
-            <SliderField id="lr2" label="Learning rate" value={lr} min={0.01} max={1} step={0.01} onChange={setLr} format={(v) => v.toFixed(2)} />
-            <SliderField id="steps" label="Steps (updates)" value={steps} min={50} max={3000} step={50} onChange={setSteps} />
-            <SliderField id="batch" label={<Term id="batch">Batch size</Term>} value={batch} min={8} max={1000} step={8} onChange={setBatch} format={(v) => (v >= 1000 ? "all pairs" : String(v))} hint="Smaller batches are sampled at random each step." />
-            <NumberField id="tseed" label="Seed" value={seed} min={0} max={9999} onChange={setSeed} />
+            <SliderField id="hid" helpId="neural.run-settings" label="Hidden units" value={hidden} min={4} max={64} step={4} onChange={setHidden} />
+            <SliderField id="lr2" helpId="neural.lr" label="Learning rate" value={lr} min={0.01} max={1} step={0.01} onChange={setLr} format={(v) => v.toFixed(2)} />
+            <SliderField id="steps" helpId="neural.run-settings" label="Steps (updates)" value={steps} min={50} max={3000} step={50} onChange={setSteps} />
+            <SliderField id="batch" helpId="neural.run-settings" label={<Term id="batch">Batch size</Term>} value={batch} min={8} max={1000} step={8} onChange={setBatch} format={(v) => (v >= 1000 ? "all pairs" : String(v))} hint="Smaller batches are sampled at random each step." />
+            <NumberField id="tseed" helpId="neural.run-settings" label="Seed" value={seed} min={0} max={9999} onChange={setSeed} />
           </div>
           <div className="flex min-w-0 flex-col gap-3">
             {error && <ErrorNote error={new Error(error)} />}
@@ -477,10 +477,10 @@ function TrainingRun() {
             )}
             {run?.meta && (
               <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-4">
-                <div><dt className="text-[13px] text-muted-foreground">Parameters</dt><dd className="num">{fmt.n(run.meta.params)}</dd></div>
-                <div><dt className="text-[13px] text-muted-foreground">Training pairs</dt><dd className="num">{run.meta.trainPairs}</dd></div>
-                <div><dt className="text-[13px] text-muted-foreground">Validation pairs</dt><dd className="num">{run.meta.valPairs}</dd></div>
-                <div><dt className="text-[13px] text-muted-foreground">Uniform-guess loss</dt><dd className="num">{uniform?.toFixed(3)}</dd></div>
+                <div><dt className="text-label text-muted-foreground">Parameters</dt><dd className="num">{fmt.n(run.meta.params)}</dd></div>
+                <div><dt className="text-label text-muted-foreground">Training pairs</dt><dd className="num">{run.meta.trainPairs}</dd></div>
+                <div><dt className="text-label text-muted-foreground">Validation pairs</dt><dd className="num">{run.meta.valPairs}</dd></div>
+                <div><dt className="text-label text-muted-foreground">Uniform-guess loss</dt><dd className="num">{uniform?.toFixed(3)}</dd></div>
               </dl>
             )}
             {last && !running && best && (
@@ -537,7 +537,7 @@ function PythonAdapter() {
       <pre className="tok mt-3 overflow-x-auto rounded-md bg-raised p-3 text-[12.5px] leading-relaxed">{`[{ "engine": "char-mlp", "modelVersion": "char-mlp@…",
    "settings": { "context": 3, "embed": 8, "hidden": 64, "lr": 0.1 },
    "curve": [{ "step": 0, "train": 3.3, "val": 3.3 }, …] }]`}</pre>
-      <p className="mt-3 text-[13px] text-muted-foreground">The curve shape is the same CurvePoint type the simulation uses (web/src/sim/neural.ts), so nothing in this page needs rebuilding.</p>
+      <p className="mt-3 text-label text-muted-foreground">The curve shape is the same CurvePoint type the simulation uses (web/src/sim/neural.ts), so nothing in this page needs rebuilding.</p>
     </Panel>
   )
 }

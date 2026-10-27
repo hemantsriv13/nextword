@@ -110,12 +110,12 @@ export default function Attention() {
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <label htmlFor="seq-in" className="text-sm font-medium">Tokens, separated by spaces (2 to 8)</label>
-            <input id="seq-in" value={text} onChange={(e) => { setText(e.target.value); setQuery(null) }} className="tok h-9 rounded-md border border-input bg-card px-3 text-sm" />
+            <input id="seq-in" data-help-id="attention.tokens" value={text} onChange={(e) => { setText(e.target.value); setQuery(null) }} className="tok h-9 rounded-md border border-input bg-card px-3 text-sm" />
           </div>
           <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
-            <label className="flex items-center gap-2 text-sm"><Switch checked={causal} onCheckedChange={(v) => { setCausal(v); actions.logRun({ route: "attention", title: `Causal mask ${v ? "on" : "off"}`, summary: tokens.join(" "), source: "simulation" }, ["causal-mask"]) }} aria-label="Causal mask" /> <Term id="causal-mask">Causal mask</Term></label>
-            <label className="flex items-center gap-2 text-sm"><Switch checked={positions} onCheckedChange={setPositions} aria-label="Add positional information" /> <Term id="positional-encoding">Positional information</Term></label>
-            <Segmented label="Heads" value={heads} onChange={setHeads} options={[{ value: "one", label: "One head, dₖ = 4" }, { value: "two", label: "Two heads, dₖ = 2" }]} />
+            <label className="flex items-center gap-2 text-sm" data-help-id="attention.mask"><Switch checked={causal} onCheckedChange={(v) => { setCausal(v); actions.logRun({ route: "attention", title: `Causal mask ${v ? "on" : "off"}`, summary: tokens.join(" "), source: "simulation" }, ["causal-mask"]) }} aria-label="Causal mask" /> <Term id="causal-mask">Causal mask</Term></label>
+            <label className="flex items-center gap-2 text-sm" data-help-id="attention.positions"><Switch checked={positions} onCheckedChange={setPositions} aria-label="Add positional information" /> <Term id="positional-encoding">Positional information</Term></label>
+            <Segmented label="Heads" helpId="attention.heads" value={heads} onChange={setHeads} options={[{ value: "one", label: "One head, dₖ = 4" }, { value: "two", label: "Two heads, dₖ = 2" }]} />
           </div>
           {!valid ? <EmptyNote>Type at least two tokens.</EmptyNote> : (
             <div className="flex flex-col gap-2">
@@ -124,7 +124,7 @@ export default function Attention() {
                 {tokens.map((t, i) => {
                   const allowed = q !== null && (!causal || i <= q)
                   return (
-                    <button key={i} type="button" onClick={() => { setQuery(i); actions.logRun({ route: "attention", title: `Inspected position ${i + 1}`, summary: `${causal ? "masked" : "unmasked"}`, source: "simulation" }, ["attention", "qkv"]) }} aria-pressed={q === i}
+                    <button key={i} type="button" data-help-id="attention.query" onClick={() => { setQuery(i); actions.logRun({ route: "attention", title: `Inspected position ${i + 1}`, summary: `${causal ? "masked" : "unmasked"}`, source: "simulation" }, ["attention", "qkv"]) }} aria-pressed={q === i}
                       className={cn("tok flex flex-col items-center rounded-md border px-3 py-1.5 text-sm", q === i ? "border-foreground bg-primary text-primary-foreground" : allowed ? "border-data bg-data-soft" : q !== null ? "border-dashed border-border text-muted-foreground" : "border-border hover:bg-raised")}>
                       <span>{t}</span>
                       <span className="num text-[11px] opacity-80">pos {i + 1}</span>
@@ -200,7 +200,7 @@ export default function Attention() {
 function WeightsGrid({ tokens, weights, masked, q }: { tokens: string[]; weights: Matrix; masked: Matrix; q: number | null }) {
   return (
     <div className="overflow-x-auto">
-      <table className="border-separate border-spacing-0.5 text-[12px]">
+      <table className="border-separate border-spacing-0.5 text-label">
         <caption className="mb-1 text-left text-sm"><span className="font-medium">Attention weights</span> <span className="num text-muted-foreground">shape {tokens.length} × {tokens.length}; rows: query, columns: key</span></caption>
         <thead><tr><th />{tokens.map((t, j) => <th key={j} scope="col" className="tok px-1 font-normal text-muted-foreground">{t}</th>)}<th className="px-2 text-right font-normal text-muted-foreground">row sum</th></tr></thead>
         <tbody>
@@ -232,13 +232,13 @@ function QueryRow({ tokens, r, q, dk }: { tokens: string[]; r: ReturnType<typeof
     <div className="mt-5 overflow-x-auto" data-testid="query-row">
       <table className="w-full min-w-[34rem] text-sm">
         <caption className="mb-1 text-left text-sm"><span className="font-medium">Row for position {q + 1} (“{tokens[q]}”)</span> <span className="text-muted-foreground">one line per key position</span></caption>
-        <thead><tr className="text-left text-[12px] text-muted-foreground"><th scope="col" className="font-normal">Key</th><th scope="col" className="text-right font-normal">Q·K score</th><th scope="col" className="text-right font-normal">÷ √{dk}</th><th scope="col" className="pl-4 font-normal">Allowed?</th><th scope="col" className="text-right font-normal">Weight</th></tr></thead>
+        <thead><tr className="text-left text-label text-muted-foreground"><th scope="col" className="font-normal">Key</th><th scope="col" className="text-right font-normal">Q·K score</th><th scope="col" className="text-right font-normal">÷ √{dk}</th><th scope="col" className="pl-4 font-normal">Allowed?</th><th scope="col" className="text-right font-normal">Weight</th></tr></thead>
         <tbody>
           {tokens.map((t, j) => {
             const masked = r.masked[q][j] === -Infinity
             return (
               <tr key={j} className={cn("border-t border-rule", masked && "text-muted-foreground")}>
-                <th scope="row" className="py-1 text-left font-normal"><span className="tok">{t}</span> <span className="num text-[12px] text-muted-foreground">pos {j + 1}</span></th>
+                <th scope="row" className="py-1 text-left font-normal"><span className="tok">{t}</span> <span className="num text-label text-muted-foreground">pos {j + 1}</span></th>
                 <td className="num text-right">{r.scores[q][j].toFixed(3)}</td>
                 <td className="num text-right">{r.scaled[q][j].toFixed(3)}</td>
                 <td className="pl-4">{masked ? "no: future position, set to −∞" : j === q ? "yes: itself" : "yes: earlier position"}</td>
@@ -274,7 +274,7 @@ function SingleHead({ tokens, r, q, causal }: { tokens: string[]; r: ReturnType<
           <MatrixView name="V" m={r.v} rowLabels={tokens} />
         </div>
       </Panel>
-      <Panel id="scores" title="Step 3: scores, scaling, mask, softmax" source={<Source kind="simulation" />}
+      <Panel id="scores" variant="canvas" title="Step 3: scores, scaling, mask, softmax" source={<Source kind="simulation" />}
         teach={{
           calc: q !== null ? <><p>For query position {q + 1}, each key j gives: score = Q[{q + 1}]·K[j], then ÷ √{dk} = ÷ {Math.sqrt(dk).toFixed(2)}, then −∞ if j is in the future, then softmax over the row. The breakdown table under the matrices lists every number.</p>
             <p>weight[j] = e^(scaled[j]) ÷ Σ e^(scaled[allowed]). Masked positions contribute e^(−∞) = 0 to both the top and the sum.</p></> : <p>Pick a position to see its row.</p>,
@@ -300,13 +300,13 @@ function SingleHead({ tokens, r, q, causal }: { tokens: string[]; r: ReturnType<
         {q === null ? <EmptyNote>Pick a position above to see its weighted sum.</EmptyNote> : (
           <div className="flex flex-col gap-3 text-sm">
             <p>Output for position {q + 1} = Σⱼ weight[{q + 1}, j] × V[j]:</p>
-            <ul className="tok flex flex-col gap-1 text-[13px]">
+            <ul className="tok flex flex-col gap-1 text-label">
               {r.weights[q].map((w, j) => w > 0 && (
                 <li key={j}>{w.toFixed(3)} × [{r.v[j].map((v) => v.toFixed(2)).join(", ")}] <span className="text-muted-foreground">({tokens[j]})</span></li>
               ))}
             </ul>
             <p>= <span className="tok">[{r.out[q].map((v) => v.toFixed(3)).join(", ")}]</span>, a new vector of {dk} numbers for position {q + 1}.</p>
-            <p className="text-[13px] text-muted-foreground">The weights show which values were mixed into this vector, in this toy layer. They are not a full account of why a real model produces an answer: real models stack many layers and heads, and the values themselves carry information.</p>
+            <p className="text-label text-muted-foreground">The weights show which values were mixed into this vector, in this toy layer. They are not a full account of why a real model produces an answer: real models stack many layers and heads, and the values themselves carry information.</p>
           </div>
         )}
         <div className="mt-4"><MatrixView name="Output = weights · V" m={r.out} rowLabels={tokens} highlightRows={q !== null ? [q] : undefined} /></div>
@@ -331,7 +331,7 @@ function TwoHeads({ tokens, model, q }: { tokens: string[]; model: { multi: Retu
         <MatrixView name="concat(head 1, head 2)" m={model.multi.concat} rowLabels={tokens} />
         <MatrixView name="× W_O =" m={model.multi.out} rowLabels={tokens} />
       </div>
-      <p className="mt-3 text-[13px] text-muted-foreground">Different heads can spread weight differently. With toy weights, any “meaning” you see in a pattern is coincidence.</p>
+      <p className="mt-3 text-label text-muted-foreground">Different heads can spread weight differently. With toy weights, any “meaning” you see in a pattern is coincidence.</p>
     </Panel>
   )
 }
@@ -352,18 +352,18 @@ function MaskCheck({ tokens, positions }: { tokens: string[]; positions: boolean
       <div className="flex flex-wrap items-end gap-3">
         <div className="flex flex-col gap-2">
           <label htmlFor="repl" className="text-sm font-medium">Replace the last token “{tokens.at(-1)}” with</label>
-          <input id="repl" value={replacement} onChange={(e) => setReplacement(e.target.value.trim())} className="tok h-9 w-40 rounded-md border border-input bg-card px-3 text-sm" />
+          <input id="repl" data-help-id="attention.check" value={replacement} onChange={(e) => setReplacement(e.target.value.trim())} className="tok h-9 w-40 rounded-md border border-input bg-card px-3 text-sm" />
         </div>
       </div>
       <table className="mt-4 text-sm">
         <caption className="sr-only">Largest change in earlier outputs</caption>
-        <thead><tr className="text-[12px] text-muted-foreground"><th className="text-left font-normal">Mask</th><th className="px-4 text-right font-normal">Largest change in outputs 1–{tokens.length - 1}</th><th className="text-left font-normal">Verdict</th></tr></thead>
+        <thead><tr className="text-label text-muted-foreground"><th className="text-left font-normal">Mask</th><th className="px-4 text-right font-normal">Largest change in outputs 1–{tokens.length - 1}</th><th className="text-left font-normal">Verdict</th></tr></thead>
         <tbody>
           <tr className="border-t border-rule"><td className="py-1.5">On</td><td className="num px-4 text-right">{masked.toExponential(1)}</td><td className={masked < 1e-12 ? "text-positive" : "text-negative"}>{masked < 1e-12 ? "Earlier positions are unaffected" : "Leak"}</td></tr>
           <tr className="border-t border-rule"><td className="py-1.5">Off</td><td className="num px-4 text-right">{unmasked.toFixed(4)}</td><td>{unmasked > 1e-12 ? "Earlier positions changed: the future leaked in" : "No change"}</td></tr>
         </tbody>
       </table>
-      <p className="mt-3 text-[13px] text-muted-foreground">The same property is checked by an automated test in attention.test.ts.</p>
+      <p className="mt-3 text-label text-muted-foreground">The same property is checked by an automated test in attention.test.ts.</p>
     </Panel>
   )
 }

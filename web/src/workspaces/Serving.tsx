@@ -127,7 +127,7 @@ function Lifecycle() {
   ] : []
 
   return (
-    <Panel id="life" title="One request, step by step" source={<Source kind="model" detail="measured with perf_counter and performance.now" />}
+    <Panel id="life" variant="canvas" title="One request, step by step" source={<Source kind="model" detail="measured with perf_counter and performance.now" />}
       teach={{
         calc: last && t ? <><Symbols rows={[
           ["round trip", "browser clock, from sending to receiving", fmt.ms(last.roundTrip)],
@@ -137,11 +137,11 @@ function Lifecycle() {
         ]} /><p>1 ms is a thousandth of a second. The Python clock starts after the request has been read and parsed, so that work is part of the remainder, not of any Python stage.</p></> : <p>Send a request; its timings appear here.</p>,
         code: <EngineCode path="nextword/lab/service.py" symbol="generate" />,
       }}
-      aside={<Button onClick={send} disabled={busy || !prompt}><PlayIcon className="size-4" /> {busy ? "Sending…" : "Send a request"}</Button>}>
+      aside={<Button data-help-id="serving.send" onClick={send} disabled={busy || !prompt}><PlayIcon className="size-4" /> {busy ? "Sending…" : "Send a request"}</Button>}>
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-2 sm:max-w-sm">
           <label htmlFor="life-prompt" className="text-sm font-medium">Prompt</label>
-          <input id="life-prompt" value={prompt} onChange={(e) => setPrompt(e.target.value)} className="tok h-9 rounded-md border border-input bg-card px-3 text-sm" />
+          <input id="life-prompt" data-help-id="serving.prompt" value={prompt} onChange={(e) => setPrompt(e.target.value)} className="tok h-9 rounded-md border border-input bg-card px-3 text-sm" />
         </div>
         {error && <ErrorNote error={error} onRetry={send} />}
         {!last ? <EmptyNote>Send a request. The first one counts the training text; later ones reuse the counts.</EmptyNote> : (
@@ -151,28 +151,28 @@ function Lifecycle() {
                 <li key={s.name} className="flex items-center lg:flex-1">
                   <div className="flex-1 rounded-md bg-raised p-3">
                     <p className="text-sm font-medium">{s.name}</p>
-                    <p className="text-[13px] text-muted-foreground">{s.detail}</p>
+                    <p className="text-label text-muted-foreground">{s.detail}</p>
                     <p className="num mt-1 text-sm">{s.ms === null ? "–" : fmt.ms(s.ms)}</p>
-                    <p className="mt-0.5 text-[12px] text-muted-foreground">{s.how}</p>
+                    <p className="mt-0.5 text-label text-muted-foreground">{s.how}</p>
                   </div>
                   {i < stages.length - 1 && <NavArrowRightIcon className="mx-0.5 hidden size-4 flex-none text-muted-foreground lg:block" />}
                 </li>
               ))}
             </ol>
             <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <div><dt className="text-[13px] text-muted-foreground">Round trip (browser)</dt><dd className="num text-[28px] leading-tight">{fmt.ms(last.roundTrip)}</dd></div>
-              <div><dt className="text-[13px] text-muted-foreground">Inside the backend</dt><dd className="num text-xl">{fmt.ms(t!.total)}</dd></div>
-              <div><dt className="text-[13px] text-muted-foreground"><Term id="caching">Count cache</Term></dt><dd className="text-xl">{t!.countCacheHit ? "hit" : "miss"}</dd></div>
-              <div><dt className="text-[13px] text-muted-foreground"><Term id="model-version">Model version</Term></dt><dd className="tok text-sm">{last.gen.modelVersion}</dd></div>
+              <div><dt className="text-label text-muted-foreground">Round trip (browser)</dt><dd className="num text-[28px] leading-tight">{fmt.ms(last.roundTrip)}</dd></div>
+              <div><dt className="text-label text-muted-foreground">Inside the backend</dt><dd className="num text-xl">{fmt.ms(t!.total)}</dd></div>
+              <div><dt className="text-label text-muted-foreground"><Term id="caching">Count cache</Term></dt><dd className="text-xl">{t!.countCacheHit ? "hit" : "miss"}</dd></div>
+              <div><dt className="text-label text-muted-foreground"><Term id="model-version">Model version</Term></dt><dd className="tok text-sm">{last.gen.modelVersion}</dd></div>
             </dl>
             {history.length > 1 && (
               <table className="text-sm">
-                <caption className="mb-1 text-left text-[13px] text-muted-foreground">Recent requests, newest first</caption>
-                <thead><tr className="text-[12px] text-muted-foreground"><th className="text-right font-normal">Round trip</th><th className="text-right font-normal">Backend</th><th className="text-right font-normal">Counting</th><th className="pl-4 text-left font-normal">Cache</th></tr></thead>
+                <caption className="mb-1 text-left text-label text-muted-foreground">Recent requests, newest first</caption>
+                <thead><tr className="text-label text-muted-foreground"><th className="text-right font-normal">Round trip</th><th className="text-right font-normal">Backend</th><th className="text-right font-normal">Counting</th><th className="pl-4 text-left font-normal">Cache</th></tr></thead>
                 <tbody>{history.map((h, i) => <tr key={i} className="border-t border-rule"><td className="num text-right">{fmt.ms(h.roundTrip)}</td><td className="num text-right">{fmt.ms(h.gen.timingsMs.total)}</td><td className="num text-right">{fmt.ms(h.gen.timingsMs.count)}</td><td className="pl-4">{h.gen.timingsMs.countCacheHit ? "hit" : "miss"}</td></tr>)}</tbody>
               </table>
             )}
-            <p className="text-[13px] text-muted-foreground">Times this small vary from run to run; Python, the browser and the operating system all add noise. Use the benchmark for a spread.</p>
+            <p className="text-label text-muted-foreground">Times this small vary from run to run; Python, the browser and the operating system all add noise. Use the benchmark for a spread.</p>
           </>
         )}
       </div>
@@ -189,24 +189,24 @@ function BenchmarkPanel() {
   const b: Benchmark | undefined = bench.data
   return (
     <Panel id="bench" title="Latency and throughput" source={<Source kind="model" detail="measured inside the backend" />}
-      aside={<Button variant="outline" onClick={async () => { const r = await bench.run({ corpus: "sample", prompt: "The rain", length, runs }); if (r) actions.logRun({ route: "serving", title: `Benchmark, ${runs} runs`, summary: `p50 ${r.latencyMs.p50.toFixed(2)} ms`, source: "model" }, ["latency", "throughput"]) }} disabled={bench.loading}>{bench.loading ? "Running…" : "Run benchmark"}</Button>}>
+      aside={<Button variant="outline" data-help-id="serving.benchmark" onClick={async () => { const r = await bench.run({ corpus: "sample", prompt: "The rain", length, runs }); if (r) actions.logRun({ route: "serving", title: `Benchmark, ${runs} runs`, summary: `p50 ${r.latencyMs.p50.toFixed(2)} ms`, source: "model" }, ["latency", "throughput"]) }} disabled={bench.loading}>{bench.loading ? "Running…" : "Run benchmark"}</Button>}>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
         <div className="flex flex-col gap-4">
-          <NumberField id="b-runs" label="Requests (one after another)" value={runs} min={1} max={500} onChange={setRuns} />
-          <SliderField id="b-len" label="Characters per request" value={length} min={1} max={200} step={1} onChange={setLength} />
-          <p className="text-[13px] text-muted-foreground">Each request uses a different seed. The count table is warmed first, so this measures generation, not counting.</p>
+          <NumberField id="b-runs" helpId="serving.bench-settings" label="Requests (one after another)" value={runs} min={1} max={500} onChange={setRuns} />
+          <SliderField id="b-len" helpId="serving.bench-settings" label="Characters per request" value={length} min={1} max={200} step={1} onChange={setLength} />
+          <p className="text-label text-muted-foreground">Each request uses a different seed. The count table is warmed first, so this measures generation, not counting.</p>
         </div>
         <div className="flex min-w-0 flex-col gap-4">
           {bench.error ? <ErrorNote error={bench.error} /> : bench.loading && !b ? <LoadingRows rows={4} /> : !b ? <EmptyNote>Run the benchmark to measure your engine on this machine.</EmptyNote> : (
             <>
               <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                <div><dt className="text-[13px] text-muted-foreground">p50 <Term id="latency">latency</Term></dt><dd className="num text-[28px] leading-tight">{fmt.ms(b.latencyMs.p50)}</dd></div>
-                <div><dt className="text-[13px] text-muted-foreground">p95 latency</dt><dd className="num text-xl">{fmt.ms(b.latencyMs.p95)}</dd></div>
-                <div><dt className="text-[13px] text-muted-foreground"><Term id="throughput">Throughput</Term></dt><dd className="num text-xl">{b.requestsPerSecond ? fmt.n(Math.round(b.requestsPerSecond)) : "–"} <span className="text-sm text-muted-foreground">req/s</span></dd></div>
-                <div><dt className="text-[13px] text-muted-foreground">Characters</dt><dd className="num text-xl">{b.charsPerSecond ? fmt.n(Math.round(b.charsPerSecond)) : "–"} <span className="text-sm text-muted-foreground">/s</span></dd></div>
+                <div><dt className="text-label text-muted-foreground">p50 <Term id="latency">latency</Term></dt><dd className="num text-[28px] leading-tight">{fmt.ms(b.latencyMs.p50)}</dd></div>
+                <div><dt className="text-label text-muted-foreground">p95 latency</dt><dd className="num text-xl">{fmt.ms(b.latencyMs.p95)}</dd></div>
+                <div><dt className="text-label text-muted-foreground"><Term id="throughput">Throughput</Term></dt><dd className="num text-xl">{b.requestsPerSecond ? fmt.n(Math.round(b.requestsPerSecond)) : "–"} <span className="text-sm text-muted-foreground">req/s</span></dd></div>
+                <div><dt className="text-label text-muted-foreground">Characters</dt><dd className="num text-xl">{b.charsPerSecond ? fmt.n(Math.round(b.charsPerSecond)) : "–"} <span className="text-sm text-muted-foreground">/s</span></dd></div>
               </dl>
               <LineChart ariaLabel="Latency of each request" series={[{ name: "latency", tone: "data", points: b.samples.map((y, i) => ({ x: i + 1, y })) }]} xLabel="request" yLabel="ms" height={160} yMin={0} />
-              <p className="text-[13px] text-muted-foreground">p50: half the requests were faster than this. p95: 95% were. {b.runs} requests, {b.length} characters each, {b.wallSeconds.toFixed(2)} s in total, {b.modelVersion}. Measured inside the backend only; the browser&apos;s round trip adds more.</p>
+              <p className="text-label text-muted-foreground">p50: half the requests were faster than this. p95: 95% were. {b.runs} requests, {b.length} characters each, {b.wallSeconds.toFixed(2)} s in total, {b.modelVersion}. Measured inside the backend only; the browser&apos;s round trip adds more.</p>
             </>
           )}
         </div>
@@ -227,12 +227,12 @@ function Batching() {
   return (
     <Panel id="batch" title="Batching" source={<Source kind="simulation" detail="made-up costs, not measured" />}>
       <p className="text-sm">Assume each pass over the model costs a fixed {OVERHEAD} ms plus {PER_ITEM} ms per request in the <Term id="serving-batch">batch</Term>. These numbers are invented for illustration; your engine doesn&apos;t batch.</p>
-      <div className="mt-4"><SliderField id="bs" label="Batch size" value={batch} min={1} max={64} step={1} onChange={setBatch} /></div>
+      <div className="mt-4"><SliderField id="bs" helpId="serving.batch" label="Batch size" value={batch} min={1} max={64} step={1} onChange={setBatch} /></div>
       <dl className="mt-4 grid grid-cols-2 gap-4">
-        <div><dt className="text-[13px] text-muted-foreground">Latency per request</dt><dd className="num text-xl">{perBatch} ms</dd></div>
-        <div><dt className="text-[13px] text-muted-foreground">Throughput</dt><dd className="num text-xl">{throughput.toFixed(0)} req/s</dd></div>
+        <div><dt className="text-label text-muted-foreground">Latency per request</dt><dd className="num text-xl">{perBatch} ms</dd></div>
+        <div><dt className="text-label text-muted-foreground">Throughput</dt><dd className="num text-xl">{throughput.toFixed(0)} req/s</dd></div>
       </dl>
-      <p className="mt-3 text-[13px] text-muted-foreground">Bigger batches share the fixed cost, so throughput rises, but every request waits for the whole batch, so latency rises too.</p>
+      <p className="mt-3 text-label text-muted-foreground">Bigger batches share the fixed cost, so throughput rises, but every request waits for the whole batch, so latency rises too.</p>
     </Panel>
   )
 }
@@ -278,16 +278,16 @@ function Streaming() {
     <Panel id="stream" title="Streaming" source={<Source kind="simulation" detail={`replays a real trace at ${delay} ms per character`} />}>
       <p className="text-sm">Pretend each character takes {delay} ms to generate. <Term id="streaming">Streaming</Term> sends each one as it is ready; without it, you wait for the whole answer.</p>
       <div className="mt-3 flex gap-2">
-        <Button variant="outline" size="sm" onClick={() => run("stream")}>Stream it</Button>
-        <Button variant="outline" size="sm" onClick={() => run("whole")}>Send it whole</Button>
+        <Button variant="outline" size="sm" data-help-id="serving.stream" onClick={() => run("stream")}>Stream it</Button>
+        <Button variant="outline" size="sm" data-help-id="serving.stream" onClick={() => run("whole")}>Send it whole</Button>
       </div>
-      <p className="tok mt-3 min-h-12 whitespace-pre-wrap rounded-md bg-raised p-3 text-[14px]" aria-live="polite">{mode === "idle" ? <span className="text-muted-foreground">Nothing yet.</span> : <>{text.slice(0, shown).join("")}{shown < text.length && <span className="text-muted-foreground">▏</span>}</>}</p>
+      <p className="tok mt-3 min-h-12 whitespace-pre-wrap rounded-md bg-raised p-3 text-sm" aria-live="polite">{mode === "idle" ? <span className="text-muted-foreground">Nothing yet.</span> : <>{text.slice(0, shown).join("")}{shown < text.length && <span className="text-muted-foreground">▏</span>}</>}</p>
       {gen.error && <ErrorNote error={gen.error} />}
       <dl className="mt-3 grid grid-cols-2 gap-4">
-        <div><dt className="text-[13px] text-muted-foreground">Time to first character</dt><dd className="num text-xl">{firstAt === null ? "–" : `${firstAt} ms`}</dd></div>
-        <div><dt className="text-[13px] text-muted-foreground">Time to last character</dt><dd className="num text-xl">{doneAt === null ? "–" : `${doneAt} ms`}</dd></div>
+        <div><dt className="text-label text-muted-foreground">Time to first character</dt><dd className="num text-xl">{firstAt === null ? "–" : `${firstAt} ms`}</dd></div>
+        <div><dt className="text-label text-muted-foreground">Time to last character</dt><dd className="num text-xl">{doneAt === null ? "–" : `${doneAt} ms`}</dd></div>
       </dl>
-      <p className="mt-3 text-[13px] text-muted-foreground">Total time is the same either way; streaming only makes the first words arrive sooner. The Lab&apos;s real API returns whole responses.</p>
+      <p className="mt-3 text-label text-muted-foreground">Total time is the same either way; streaming only makes the first words arrive sooner. The Lab&apos;s real API returns whole responses.</p>
     </Panel>
   )
 }
@@ -301,16 +301,16 @@ function KvCache() {
   return (
     <Panel id="kv" title="KV cache" source={<Source kind="example" detail="counting operations, one layer and head" />}>
       <p className="text-sm">A transformer generating token t needs keys and values for positions 1…t. Without a cache it recomputes all of them every step. A <Term id="kv-cache">KV cache</Term> keeps the ones already computed.</p>
-      <div className="mt-4"><SliderField id="kvn" label="Tokens generated" value={n} min={1} max={64} step={1} onChange={setN} /></div>
+      <div className="mt-4"><SliderField id="kvn" helpId="serving.kv" label="Tokens generated" value={n} min={1} max={64} step={1} onChange={setN} /></div>
       <table className="mt-4 w-full text-sm">
-        <thead><tr className="text-[12px] text-muted-foreground"><th className="text-left font-normal">Work over {n} steps</th><th className="text-right font-normal">No cache</th><th className="text-right font-normal">KV cache</th></tr></thead>
+        <thead><tr className="text-label text-muted-foreground"><th className="text-left font-normal">Work over {n} steps</th><th className="text-right font-normal">No cache</th><th className="text-right font-normal">KV cache</th></tr></thead>
         <tbody>
           <tr className="border-t border-rule"><td className="py-1">Key and value computations</td><td className="num text-right">1 + 2 + … + {n} = {fmt.n(without)}</td><td className="num text-right">{n}</td></tr>
           <tr className="border-t border-rule"><td className="py-1">Query·key dot products</td><td className="num text-right">{fmt.n(dots)}</td><td className="num text-right">{fmt.n(dots)}</td></tr>
           <tr className="border-t border-rule"><td className="py-1">Stored between steps</td><td className="num text-right">nothing</td><td className="num text-right">{n} keys + {n} values</td></tr>
         </tbody>
       </table>
-      <p className="mt-3 text-[13px] text-muted-foreground">It caches attention keys and values for the current sequence only. It is not a cache of complete answers, and it trades memory for compute. Your bigram engine has no attention, so it has nothing to cache this way.</p>
+      <p className="mt-3 text-label text-muted-foreground">It caches attention keys and values for the current sequence only. It is not a cache of complete answers, and it trades memory for compute. Your bigram engine has no attention, so it has nothing to cache this way.</p>
     </Panel>
   )
 }
@@ -329,10 +329,10 @@ function Quantization() {
   return (
     <Panel id="quant" title="Quantization" source={<Source kind="example" detail="eight example weights" />}>
       <p className="text-sm"><Term id="quantization">Quantization</Term> stores each weight as a small integer times one shared scale. Symmetric: scale = max|w| ÷ {levels} = <span className="num">{scale.toFixed(5)}</span>.</p>
-      <div className="mt-4"><SliderField id="qb" label="Bits per weight" value={bits} min={2} max={8} step={1} onChange={setBits} format={(v) => `${v} bits`} /></div>
+      <div className="mt-4"><SliderField id="qb" helpId="serving.quant" label="Bits per weight" value={bits} min={2} max={8} step={1} onChange={setBits} format={(v) => `${v} bits`} /></div>
       <div className="mt-3 overflow-x-auto">
         <table className="w-full text-sm">
-          <thead><tr className="text-[12px] text-muted-foreground"><th className="text-right font-normal">Weight</th><th className="text-right font-normal">÷ scale, rounded</th><th className="text-right font-normal">Read back</th><th className="text-right font-normal">Error</th></tr></thead>
+          <thead><tr className="text-label text-muted-foreground"><th className="text-right font-normal">Weight</th><th className="text-right font-normal">÷ scale, rounded</th><th className="text-right font-normal">Read back</th><th className="text-right font-normal">Error</th></tr></thead>
           <tbody>{WEIGHTS.map((w, i) => <tr key={i} className="border-t border-rule"><td className="num text-right">{w.toFixed(4)}</td><td className="num text-right">{q[i]}</td><td className="num text-right">{back[i].toFixed(4)}</td><td className={cn("num text-right", Math.abs(w - back[i]) > 0.05 && "text-negative")}>{(back[i] - w >= 0 ? "+" : "−") + Math.abs(back[i] - w).toFixed(4)}</td></tr>)}</tbody>
         </table>
       </div>

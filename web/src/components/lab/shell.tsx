@@ -1,7 +1,7 @@
 import { useEffect, useState, type ComponentType, type ReactNode, type SVGProps } from "react"
 import {
   BookIcon, CollapseIcon, DatabaseIcon, DiceThreeIcon, EditPencilIcon, ExpandIcon, EyeIcon, GitForkIcon, GraphUpIcon,
-  HalfMoonIcon, HomeIcon, PathArrowIcon, JournalIcon, MenuIcon, NetworkIcon, SearchIcon, ServerIcon, SidebarCollapseIcon, SidebarExpandIcon, SunLightIcon, TableIcon, WarningTriangleIcon,
+  HalfMoonIcon, HomeIcon, MapIcon, PathArrowIcon, JournalIcon, MenuIcon, NetworkIcon, SearchIcon, ServerIcon, SidebarCollapseIcon, SidebarExpandIcon, SunLightIcon, TableIcon, WarningTriangleIcon,
 } from "@/components/icons"
 import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
@@ -9,7 +9,6 @@ import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, C
 import { Kbd } from "@/components/ui/kbd"
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupLabel, SidebarHeader, SidebarItem } from "@/components/ui/sidebar"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { GLOSSARY, type Route } from "@/content/glossary"
 import { WORKSPACES, WORKSPACE_BY_ROUTE } from "@/content/journey"
 import { api } from "@/lib/api"
@@ -18,12 +17,14 @@ import { actions, useLab } from "@/lib/store"
 import { cn } from "@/lib/utils"
 import { useGlossary } from "./glossary"
 import { useFocusMode } from "./shell-state"
+import { HelpModeSwitch, useHelp } from "./help"
+import { CONCEPTS, CONTROLS } from "@/content/help"
 
 type IconType = ComponentType<SVGProps<SVGSVGElement>>
 
 const ICONS: Record<Route, IconType> = {
   home: HomeIcon, journey: PathArrowIcon, playground: EditPencilIcon, data: DatabaseIcon, counts: TableIcon, neural: NetworkIcon, attention: EyeIcon,
-  decoding: DiceThreeIcon, evaluation: GraphUpIcon, serving: ServerIcon, adapt: GitForkIcon, glossary: BookIcon, notebook: JournalIcon,
+  decoding: DiceThreeIcon, evaluation: GraphUpIcon, serving: ServerIcon, adapt: GitForkIcon, glossary: BookIcon, notebook: JournalIcon, toolkit: MapIcon,
 }
 
 const GROUPS: { id: string; label: string; routes: Route[] }[] = [
@@ -31,7 +32,7 @@ const GROUPS: { id: string; label: string; routes: Route[] }[] = [
   { id: "engine", label: "Text and counts", routes: ["data", "counts"] },
   { id: "neural", label: "Neural models", routes: ["neural", "attention", "decoding"] },
   { id: "measure", label: "Measure and apply", routes: ["evaluation", "serving", "adapt"] },
-  { id: "keep", label: "Reference", routes: ["glossary", "notebook"] },
+  { id: "keep", label: "Reference", routes: ["toolkit", "glossary", "notebook"] },
 ]
 
 /** The product mark: a typed letter followed by its suggested next character. */
@@ -63,19 +64,10 @@ function EngineStatus({ compact = false }: { compact?: boolean }) {
   const s = useEngineStatus()
   const label = !s.checked ? "Checking engine" : s.ok ? "Engine connected" : "Engine offline"
   return (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <span tabIndex={0} className="inline-flex items-center gap-2 rounded-md px-2 py-1 text-sm text-muted-foreground" aria-label={`${label}${s.version ? `, ${s.version}` : ""}`}>
-            {s.checked && !s.ok ? <WarningTriangleIcon className="size-4 text-negative" aria-hidden="true" /> : <span className={cn("size-2 rounded-full", !s.checked ? "bg-chart-5" : "bg-positive")} aria-hidden="true" />}
-            {!compact && <span>{label}</span>}
-          </span>
-        }
-      />
-      <TooltipContent className="max-w-xs">
-        {s.ok ? <>Python engine running locally: <span className="tok">{s.version}</span></> : <>Start it in the project folder: <span className="tok">.venv\Scripts\python -m nextword.lab</span>. Simulations keep working without it.</>}
-      </TooltipContent>
-    </Tooltip>
+    <span tabIndex={0} data-help-id="shell.engine" className="inline-flex items-center gap-2 rounded-md px-2 py-1 text-sm text-muted-foreground" aria-label={`${label}${s.version ? `, ${s.version}` : ""}`}>
+      {s.checked && !s.ok ? <WarningTriangleIcon className="size-4 text-negative" aria-hidden="true" /> : <span className={cn("size-2 rounded-full", !s.checked ? "bg-chart-5" : "bg-positive")} aria-hidden="true" />}
+      {!compact && <span>{label}</span>}
+    </span>
   )
 }
 
@@ -83,11 +75,12 @@ function EngineStatus({ compact = false }: { compact?: boolean }) {
 
 export function SearchPalette({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const glossary = useGlossary()
+  const help = useHelp()
   const notes = useLab((s) => s.notes)
   const go = (fn: () => void) => { onOpenChange(false); fn() }
   return (
     <CommandDialog open={open} onOpenChange={onOpenChange}>
-      <CommandInput placeholder="Search workspaces, terms, experiments and notes" aria-label="Search" />
+      <CommandInput placeholder="Search pages, controls, questions, terms and notes" aria-label="Search" />
       <CommandList className="max-h-[60vh]">
         <CommandEmpty>Nothing matches. Try a term like “softmax” or “leakage”.</CommandEmpty>
         <CommandGroup heading="Workspaces">
@@ -101,6 +94,22 @@ export function SearchPalette({ open, onOpenChange }: { open: boolean; onOpenCha
               </CommandItem>
             )
           })}
+        </CommandGroup>
+        <CommandGroup heading="Questions">
+          {CONCEPTS.map((q) => (
+            <CommandItem key={q.id} value={`question ${q.question} ${q.also.join(" ")}`} onSelect={() => go(() => navigate("toolkit", { view: "find", q: q.question }))}>
+              <MapIcon className="mr-2 size-4 text-muted-foreground" />
+              <span>{q.question}</span>
+            </CommandItem>
+          ))}
+        </CommandGroup>
+        <CommandGroup heading="Controls">
+          {CONTROLS.filter((x) => x.route !== "any" || x.id.startsWith("shell.")).map((x) => (
+            <CommandItem key={x.id} value={`control ${x.label} ${x.where} ${(x.questions ?? []).join(" ")}`} onSelect={() => go(() => help?.goTo(x.id))}>
+              <span>{x.label}</span>
+              <span className="ml-2 truncate text-muted-foreground">{x.where}</span>
+            </CommandItem>
+          ))}
         </CommandGroup>
         <CommandGroup heading="Terms">
           {GLOSSARY.map((g) => (
@@ -139,7 +148,7 @@ export function SearchPalette({ open, onOpenChange }: { open: boolean; onOpenCha
 function NavItems({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: () => void }) {
   const { route } = useRoute()
   return (
-    <nav aria-label="Workspaces" className="flex flex-col gap-4">
+    <nav aria-label="Workspaces" className="flex flex-col gap-4" data-help-id="shell.nav">
       {GROUPS.map((g) => (
         <SidebarGroup key={g.id}>
           {!collapsed && <SidebarGroupLabel>{g.label}</SidebarGroupLabel>}
@@ -156,15 +165,11 @@ function NavItems({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: 
                 aria-current={route === r ? "page" : undefined}
                 aria-label={collapsed ? w.title : undefined}
                 onClick={() => { navigate(r); onNavigate?.() }}
+                data-help-id={r === "toolkit" ? "shell.nav.toolkit" : `nav.${r}`}
                 className={cn("h-8 py-0", route === r && "bg-active font-medium text-foreground")}
               />
             )
-            return collapsed ? (
-              <Tooltip key={r}>
-                <TooltipTrigger render={item} />
-                <TooltipContent side="right">{w.title}</TooltipContent>
-              </Tooltip>
-            ) : item
+            return item
           })}
         </SidebarGroup>
       ))}
@@ -176,16 +181,9 @@ function ThemeButton() {
   const { theme, setTheme } = useTheme()
   const dark = theme === "dark" || (theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches)
   return (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <Button variant="ghost" size="icon" aria-label={dark ? "Switch to light theme" : "Switch to dark theme"} onClick={() => setTheme(dark ? "light" : "dark")}>
-            {dark ? <SunLightIcon className="size-[18px]" /> : <HalfMoonIcon className="size-[18px]" />}
-          </Button>
-        }
-      />
-      <TooltipContent>{dark ? "Light theme" : "Dark theme"} <Kbd className="ml-1">D</Kbd></TooltipContent>
-    </Tooltip>
+    <Button variant="ghost" size="icon" data-help-id="shell.theme" aria-label={dark ? "Switch to light theme" : "Switch to dark theme"} onClick={() => setTheme(dark ? "light" : "dark")}>
+      {dark ? <SunLightIcon className="size-[18px]" /> : <HalfMoonIcon className="size-[18px]" />}
+    </Button>
   )
 }
 
@@ -215,26 +213,20 @@ export function Shell({ children }: { children: ReactNode }) {
   }, [route])
 
   const focusButton = (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <Button variant="ghost" size="icon" aria-label={focus ? "Leave focus mode" : "Focus mode: hide navigation and explanations"} aria-pressed={focus} onClick={() => setFocus(!focus)}>
-            {focus ? <CollapseIcon className="size-[18px]" /> : <ExpandIcon className="size-[18px]" />}
-          </Button>
-        }
-      />
-      <TooltipContent>{focus ? "Leave focus mode (Esc)" : "Focus mode"}</TooltipContent>
-    </Tooltip>
+    <Button variant="ghost" size="icon" data-help-id="shell.focus" aria-label={focus ? "Leave focus mode" : "Focus mode: hide navigation and explanations"} aria-pressed={focus} onClick={() => setFocus(!focus)}>
+      {focus ? <CollapseIcon className="size-[18px]" /> : <ExpandIcon className="size-[18px]" />}
+    </Button>
   )
 
   const searchButton = (
     <button
       type="button"
+      data-help-id="shell.search"
       onClick={() => setSearchOpen(true)}
       className="flex h-8 w-full max-w-[548px] items-center gap-2 rounded-md border border-input bg-card px-3 text-sm text-muted-foreground hover:border-foreground/30"
     >
       <SearchIcon className="size-4" />
-      <span className="truncate">Search terms and experiments</span>
+      <span className="truncate">Search pages, controls, terms and experiments</span>
       <span className="ml-auto hidden items-center gap-1 sm:flex"><Kbd>Ctrl</Kbd><Kbd>K</Kbd></span>
     </button>
   )
@@ -243,7 +235,7 @@ export function Shell({ children }: { children: ReactNode }) {
     return (
       <div className="min-h-dvh bg-card">
         <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded focus:bg-card focus:px-3 focus:py-2">Skip to content</a>
-        <div className="fixed right-3 top-3 z-40 flex items-center gap-1 rounded-md border border-border bg-card p-0.5">{focusButton}</div>
+        <div className="fixed right-3 top-3 z-40 flex items-center gap-1 rounded-md border border-border bg-card p-0.5"><HelpModeSwitch />{focusButton}</div>
         <main id="main" className="mx-auto max-w-[1400px]">{children}</main>
         <SearchPalette open={searchOpen} onOpenChange={setSearchOpen} />
       </div>
@@ -273,6 +265,7 @@ export function Shell({ children }: { children: ReactNode }) {
               label="Collapse sidebar"
               collapsed={collapsed}
               aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              data-help-id="shell.collapse"
               aria-expanded={!collapsed}
               onClick={() => actions.setPref("sidebarCollapsed", !collapsed)}
               className="h-8 py-0"
@@ -284,7 +277,7 @@ export function Shell({ children }: { children: ReactNode }) {
         <header className="sticky top-0 z-30 flex h-12 flex-none items-center gap-2 bg-background px-3">
           {!desktop && (
             <div className="flex min-w-0 flex-1 items-center gap-1">
-              <Button variant="ghost" size="icon" aria-label="Open navigation" onClick={() => setMenuOpen(true)}>
+              <Button variant="ghost" size="icon" aria-label="Open navigation" data-help-id="shell.menu" onClick={() => setMenuOpen(true)}>
                 <MenuIcon className="size-5" />
               </Button>
               <span className="truncate text-sm font-semibold">{WORKSPACE_BY_ROUTE.get(route)?.short}</span>
@@ -293,11 +286,12 @@ export function Shell({ children }: { children: ReactNode }) {
           {desktop && <div className="flex flex-1 justify-center">{searchButton}</div>}
           <div className="flex items-center gap-0.5">
             {!desktop && (
-              <Button variant="ghost" size="icon" aria-label="Search" onClick={() => setSearchOpen(true)}>
+              <Button variant="ghost" size="icon" aria-label="Search" data-help-id="shell.search" onClick={() => setSearchOpen(true)}>
                 <SearchIcon className="size-[18px]" />
               </Button>
             )}
             <EngineStatus compact={!desktop} />
+            <HelpModeSwitch />
             <ThemeButton />
             {focusButton}
           </div>

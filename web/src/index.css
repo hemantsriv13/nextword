@@ -9,6 +9,22 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* The Lab's type scale and surfaces. Three to four sizes per view: page, heading, prose, label. */
+@theme {
+    --text-page: 1.875rem;
+    --text-page--line-height: 1.15;
+    --text-page--letter-spacing: -0.02em;
+    --text-lesson: 1.5rem;
+    --text-lesson--line-height: 1.25;
+    --text-lesson--letter-spacing: -0.015em;
+    --text-section: 1.25rem;
+    --text-section--line-height: 1.3;
+    --text-prose: 1rem;
+    --text-prose--line-height: 1.6;
+    --text-label: 0.8125rem;
+    --text-label--line-height: 1.45;
+}
+
 @theme inline {
     --font-heading: var(--font-sans);
     --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
@@ -62,6 +78,14 @@
     --color-src-example-ink: var(--src-example-ink);
     --color-context: var(--context);
     --color-context-ink: var(--context-ink);
+    --color-canvas: var(--canvas);
+    --color-canvas-edge: var(--canvas-edge);
+    --color-action: var(--action);
+    --color-companion: var(--companion);
+    --color-companion-edge: var(--companion-edge);
+    --color-companion-callout: var(--companion-callout);
+    --shadow-companion: var(--companion-shadow);
+    --color-action-ink: var(--action-ink);
     --radius-sm: calc(var(--radius) * 0.6);
     --radius-md: calc(var(--radius) * 0.8);
     --radius-lg: var(--radius);
@@ -133,6 +157,17 @@
     --src-example-ink: #353736;
     --context: #fff1c2;
     --context-ink: #5c3a00;
+    /* The experiment canvas is the one white sheet; secondary sections sit on the ground. */
+    --canvas: #ffffff;
+    --canvas-edge: #e3e6e9;
+    /* One accent action per screen: the lesson's Next, the experiment's main run. */
+    --action: #1b6c80;
+    --action-ink: #ffffff;
+    /* The teaching companion: a pale teal sheet beside the canvas (about 1.2:1 against the ground). */
+    --companion: #d6eaf0;
+    --companion-edge: #a9d0db;
+    --companion-callout: #c2dfe8;
+    --companion-shadow: 0 1px 2px rgb(16 40 48 / 0.06), 0 8px 18px -12px rgb(16 40 48 / 0.07);
     --radius: 0.5rem;
     --sidebar: #f9fbfc;
     --sidebar-foreground: #131416;
@@ -204,6 +239,15 @@
     --src-example-ink: #d6d6d6;
     --context: #3b2f0c;
     --context-ink: #ffe08a;
+    --canvas: #141414;
+    --canvas-edge: #262626;
+    --action: #5fbdd1;
+    --action-ink: #0a0a0a;
+    --companion: #10222a;
+    --companion-edge: #24505c;
+    --companion-callout: #163a45;
+    /* On black a drop shadow barely reads: a top rim and a hairline draw the edge instead. */
+    --companion-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.05), 0 0 0 1px rgb(0 0 0 / 0.16);
     --sidebar: #0a0a0a;
     --sidebar-foreground: #ffffff;
     --sidebar-primary: #ffffff;
@@ -252,6 +296,10 @@
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
   }
+  /* A readable line length for teaching prose. */
+  .measure {
+    max-width: 66ch;
+  }
 }
 
 /* Touch screens: every control gets at least a 44px target. */
@@ -271,4 +319,15 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* A control a help link or a tour step points at: an outline, never an overlay over the page. */
+[data-help-spot], [data-tour-spot] {
+  outline: 2px solid var(--data);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  [data-help-spot] { animation: help-spot 1.2s ease-out 2; }
+  @keyframes help-spot { 50% { outline-offset: 6px; } }
 }

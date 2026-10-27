@@ -13,7 +13,7 @@ const SOURCES: Record<SourceKind, { label: string; title: string; Icon: typeof C
 export function Source({ kind, detail, className }: { kind: SourceKind; detail?: string; className?: string }) {
   const s = SOURCES[kind]
   return (
-    <span className={cn("inline-flex min-w-0 max-w-full flex-wrap items-center gap-x-1.5 rounded-md px-2 py-0.5 text-xs font-medium leading-5", s.cls, className)} title={s.title}>
+    <span data-help-id="layout.source" className={cn("inline-flex min-w-0 max-w-full flex-wrap items-center gap-x-1.5 rounded-md px-2 py-0.5 text-xs font-medium leading-5", s.cls, className)} title={s.title}>
       <s.Icon className="size-3.5 flex-none" />
       <span className="flex-none whitespace-nowrap">{s.label}</span>
       {detail && <span className="min-w-0 font-normal opacity-80">{detail}</span>}

@@ -58,14 +58,14 @@ export default function Home() {
       subtitle={rec.why}
       actions={
         <>
-          <Button asChild><a href={hrefFor(rec.route)}>{rec.title}<NavArrowRightIcon className="size-4" /></a></Button>
-          <Button asChild variant="outline"><a href={hrefFor(resume.route)}>Resume {resume.short.toLowerCase()}</a></Button>
+          <Button asChild data-help-id="home.recommend"><a href={hrefFor(rec.route)}>{rec.title}<NavArrowRightIcon className="size-4" /></a></Button>
+          <Button asChild variant="outline" data-help-id="home.resume"><a href={hrefFor(resume.route)}>Resume {resume.short.toLowerCase()}</a></Button>
         </>
       }
     >
-      <Panel id="start" title="Start here if the words are new" source={<Source kind="model" />}
-        aside={<Button asChild><a href={hrefFor("journey")}>Open the Bigram journey<NavArrowRightIcon className="size-4" /></a></Button>}>
-        <p className="max-w-3xl text-[15px] leading-relaxed">The Bigram journey follows one short example through your engine: the training text, the pair counts, the probabilities, the prompt, the random draw and the next character. It needs no answers from you. Read it, or press <span className="font-medium">Read and watch</span> there to go one step at a time.</p>
+      <Panel id="start" variant="canvas" title="Start here if the words are new" source={<Source kind="model" />}
+        aside={<Button asChild data-help-id="home.start"><a href={hrefFor("journey")}>Open the Bigram journey<NavArrowRightIcon className="size-4" /></a></Button>}>
+        <p className="max-w-3xl text-prose leading-relaxed">The Bigram journey follows one short example through your engine: the training text, the pair counts, the probabilities, the prompt, the random draw and the next character. It needs no answers from you. Read it, or press <span className="font-medium">Read and watch</span> there to go one step at a time.</p>
         <p className="mt-2 max-w-3xl text-sm text-muted-foreground">Every other workspace starts with the same kind of guide: the question it answers, a flow of what goes in and what comes out, and a walkthrough you can leave at any point.</p>
       </Panel>
 
@@ -80,24 +80,24 @@ export default function Home() {
                 <a href={hrefFor(s.route)} className="flex h-full flex-col gap-2 rounded-lg border border-border p-4 hover:border-foreground/30 hover:bg-raised">
                   <span className="flex items-baseline justify-between gap-2">
                     <span className="font-semibold"><span className="num mr-1.5 text-muted-foreground">{i + 1}.</span>{s.title}</span>
-                    <span className="text-[12px] text-muted-foreground">{s.roadmap}</span>
+                    <span className="text-label text-muted-foreground">{s.roadmap}</span>
                   </span>
                   <span className="text-sm">{s.question}</span>
                   <span className="mt-auto flex flex-col gap-1.5 pt-2">
                     <span className="flex h-1.5 overflow-hidden rounded-full bg-secondary" aria-hidden="true">
                       <span className="bg-data" style={{ width: `${(p.explored / p.total) * 100}%` }} />
                     </span>
-                    <span className="num text-[12px] text-muted-foreground">
+                    <span className="num text-label text-muted-foreground">
                       {p.explored} of {p.total} explored{p.practiced ? `, ${p.practiced} practiced` : ""}{p.explained ? `, ${p.explained} explained` : ""}
                     </span>
-                    <span className="text-[12px] text-muted-foreground">{s.source === "model" ? "Your engine" : s.source === "simulation" ? "Simulation" : "Your engine and simulations"} in {w.short}</span>
+                    <span className="text-label text-muted-foreground">{s.source === "model" ? "Your engine" : s.source === "simulation" ? "Simulation" : "Your engine and simulations"} in {w.short}</span>
                   </span>
                 </a>
               </li>
             )
           })}
         </ol>
-        <p className="text-[13px] text-muted-foreground">Counts only what you recorded. Explored means you ran an experiment, not that you mastered it.</p>
+        <p className="text-label text-muted-foreground">Counts only what you recorded. Explored means you ran an experiment, not that you mastered it.</p>
       </section>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
@@ -105,7 +105,7 @@ export default function Home() {
           <ol className="flex flex-col">
             {GUIDE.map((g, i) => (
               <li key={g.id} className="flex items-start gap-3 border-t border-rule py-3 first:border-0 first:pt-0">
-                <Checkbox id={g.id} checked={!!guide[g.id]} onCheckedChange={(on) => actions.setGuideStep(g.id, !!on)} className="mt-1" aria-label={`Mark step ${i + 1} done`} />
+                <Checkbox id={g.id} data-help-id="home.guide-step" checked={!!guide[g.id]} onCheckedChange={(on) => actions.setGuideStep(g.id, !!on)} className="mt-1" aria-label={`Mark step ${i + 1} done`} />
                 <div className="min-w-0 flex-1">
                   <label htmlFor={g.id} className={cn("text-sm font-medium", guide[g.id] && "text-muted-foreground line-through")}>{i + 1}. {g.title}</label>
                   {g.id === nextStep && <p className="text-sm text-muted-foreground">{g.detail}</p>}
@@ -121,18 +121,18 @@ export default function Home() {
               <caption className="sr-only">Prediction engines</caption>
               <tbody>
                 <tr className="border-b border-rule">
-                  <td className="py-2 pr-2"><Term id="bigram">Character bigram</Term><span className="block text-[13px] text-muted-foreground">nextword/bigram.py</span></td>
+                  <td className="py-2 pr-2"><Term id="bigram">Character bigram</Term><span className="block text-label text-muted-foreground">nextword/bigram.py</span></td>
                   <td className="py-2 text-right">
                     <Source kind="model" detail={health.data ? health.data.modelVersion.split("@")[1] : health.error ? "backend offline" : undefined} />
                   </td>
                 </tr>
                 <tr className="border-b border-rule">
-                  <td className="py-2 pr-2">Neural MLP<span className="block text-[13px] text-muted-foreground">Stage 2, not built. Simulated in Neural training.</span></td>
-                  <td className="py-2 text-right text-[13px] text-muted-foreground">planned</td>
+                  <td className="py-2 pr-2">Neural MLP<span className="block text-label text-muted-foreground">Stage 2, not built. Simulated in Neural training.</span></td>
+                  <td className="py-2 text-right text-label text-muted-foreground">planned</td>
                 </tr>
                 <tr>
-                  <td className="py-2 pr-2">Tiny transformer<span className="block text-[13px] text-muted-foreground">Stage 3, not built. Simulated in Attention.</span></td>
-                  <td className="py-2 text-right text-[13px] text-muted-foreground">planned</td>
+                  <td className="py-2 pr-2">Tiny transformer<span className="block text-label text-muted-foreground">Stage 3, not built. Simulated in Attention.</span></td>
+                  <td className="py-2 text-right text-label text-muted-foreground">planned</td>
                 </tr>
               </tbody>
             </table>
@@ -143,7 +143,7 @@ export default function Home() {
                 {runs.slice(0, 5).map((r) => (
                   <li key={r.id} className="border-t border-rule py-2 first:border-0 first:pt-0">
                     <a href={hrefFor(r.route as Route)} className="text-sm font-medium hover:underline">{r.title}</a>
-                    <p className="truncate text-[13px] text-muted-foreground">{r.summary}</p>
+                    <p className="truncate text-label text-muted-foreground">{r.summary}</p>
                   </li>
                 ))}
               </ul>

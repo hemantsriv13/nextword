@@ -10,6 +10,7 @@ import { EvidenceRecorder } from "@/components/lab/evidence"
 import { Term } from "@/components/lab/glossary"
 import { GuidedCycle } from "@/components/lab/guide"
 import { EmptyNote, ErrorNote, Explain, ExplainSection, LoadingRows, Note, Panel, Segmented, SliderField, Workspace } from "@/components/lab/layout"
+import { useHelpReveal } from "@/components/lab/help"
 import { Source } from "@/components/lab/source"
 import { Symbols, Teach, WorkspaceGuide, type Guide } from "@/components/lab/teach"
 import { api } from "@/lib/api"
@@ -83,6 +84,8 @@ const GUIDE: Guide = {
 
 export default function DataStudio() {
   const [tab, setTab] = useState<Tab>("corpus")
+  // Help links and tours open the tab that holds a control. They never change an input.
+  useHelpReveal((r) => { if (r.tab) setTab(r.tab as Tab) })
   return (
     <Teach guide={GUIDE} onStep={(where) => where.tab && setTab(where.tab as Tab)}>
     <Workspace
@@ -92,7 +95,7 @@ export default function DataStudio() {
     >
       <WorkspaceGuide />
       <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
-        <TabsList className="h-auto flex-wrap justify-start">
+        <TabsList className="h-auto flex-wrap justify-start" data-help-id="data.tabs">
           <TabsTrigger value="corpus">Corpus</TabsTrigger>
           <TabsTrigger value="tokens">Tokenizers</TabsTrigger>
           <TabsTrigger value="windows">Windows and pairs</TabsTrigger>
@@ -148,7 +151,7 @@ function CorpusTab() {
           <table className="w-full text-sm">
             <caption className="sr-only">Available training texts</caption>
             <thead>
-              <tr className="text-[12px] text-muted-foreground">
+              <tr className="text-label text-muted-foreground">
                 <th scope="col" className="py-2 text-left font-normal">Name</th>
                 <th scope="col" className="py-2 text-left font-normal">File</th>
                 <th scope="col" className="py-2 text-right font-normal">Characters</th>
@@ -160,9 +163,9 @@ function CorpusTab() {
               {corpora.map((c) => (
                 <tr key={c.id} className={cn("border-t border-rule", c.id === selected && "bg-active")}>
                   <td className="py-2 pl-2">
-                    <button type="button" className="text-left font-medium hover:underline" onClick={() => setSelected(c.id)} aria-pressed={c.id === selected}>{c.name}</button>
+                    <button data-help-id="data.corpus-pick" type="button" className="text-left font-medium hover:underline" onClick={() => setSelected(c.id)} aria-pressed={c.id === selected}>{c.name}</button>
                   </td>
-                  <td className="tok py-2 text-[13px] text-muted-foreground">{c.file}</td>
+                  <td className="tok py-2 text-label text-muted-foreground">{c.file}</td>
                   <td className="num py-2 text-right">{fmt.n(c.chars)}</td>
                   <td className="num py-2 text-right">{c.distinct}</td>
                   <td className="py-2 pr-2 text-right">
@@ -174,7 +177,7 @@ function CorpusTab() {
                         <Button variant="ghost" size="sm" onClick={() => setConfirming(null)}>Keep</Button>
                       </span>
                     ) : (
-                      <Button variant="ghost" size="sm" aria-label={`Delete ${c.name}`} onClick={() => setConfirming(c.id)}>
+                      <Button data-help-id="data.corpus-delete" variant="ghost" size="sm" aria-label={`Delete ${c.name}`} onClick={() => setConfirming(c.id)}>
                         <TrashIcon className="size-4" /> Delete
                       </Button>
                     ))}
@@ -188,19 +191,19 @@ function CorpusTab() {
       </Panel>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-        <Panel id="preview" title={d ? `Preview: ${d.name}` : "Preview"} source={<Source kind="model" detail="counted by tokenize()" />}
-          aside={<label className="flex items-center gap-2 text-sm"><Switch checked={showWs} onCheckedChange={setShowWs} aria-label="Show spaces and newlines" /> Show spaces and newlines</label>}>
+        <Panel id="preview" variant="canvas" title={d ? `Preview: ${d.name}` : "Preview"} source={<Source kind="model" detail="counted by tokenize()" />}
+          aside={<label className="flex items-center gap-2 text-sm" data-help-id="data.whitespace"><Switch checked={showWs} onCheckedChange={setShowWs} aria-label="Show spaces and newlines" /> Show spaces and newlines</label>}>
           {detail.error ? <ErrorNote error={detail.error} onRetry={detail.retry} /> : !d ? <LoadingRows rows={6} /> : (
             <div className="flex flex-col gap-4">
               <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                 {[["Characters (tokens)", d.stats.chars], ["Distinct characters", d.stats.distinct], ["Words", d.stats.words], ["Lines", d.stats.lines]].map(([k, v]) => (
                   <div key={k as string}>
-                    <dt className="text-[13px] text-muted-foreground">{k}</dt>
+                    <dt className="text-label text-muted-foreground">{k}</dt>
                     <dd className="num text-2xl">{fmt.n(v as number)}</dd>
                   </div>
                 ))}
               </dl>
-              <pre className="tok max-h-72 overflow-auto whitespace-pre-wrap break-words rounded-md bg-raised p-3 text-[13px] leading-6">
+              <pre className="tok max-h-72 overflow-auto whitespace-pre-wrap break-words rounded-md bg-raised p-3 text-label leading-6">
                 {showWs ? visible(firstChars(d.text, 3000)).replace(/↵/g, "↵\n") : firstChars(d.text, 3000)}
                 {d.chars > 3000 && <span className="text-muted-foreground">{"\n"}… {fmt.n(d.chars - 3000)} more characters</span>}
               </pre>
@@ -242,12 +245,12 @@ function CorpusTab() {
           </div>
           <div className="flex flex-col gap-2">
             <label htmlFor="ctext" className="text-sm font-medium">Text</label>
-            <Textarea id="ctext" rows={6} value={text} onChange={(e) => setText(e.target.value)} placeholder="Paste text you wrote or have permission to use." className="text-[14px]" />
-            <p className="num text-[13px] text-muted-foreground">{fmt.n(charCount(text))} characters{charCount(text) > MAX_UPLOAD ? `; over the ${fmt.n(MAX_UPLOAD)} limit` : ""}. Use text you own or may use.</p>
+            <Textarea id="ctext" rows={6} value={text} onChange={(e) => setText(e.target.value)} placeholder="Paste text you wrote or have permission to use." className="text-sm" />
+            <p className="num text-label text-muted-foreground">{fmt.n(charCount(text))} characters{charCount(text) > MAX_UPLOAD ? `; over the ${fmt.n(MAX_UPLOAD)} limit` : ""}. Use text you own or may use.</p>
           </div>
           {fileError && <p role="alert" className="text-sm text-negative">{fileError}</p>}
           {add.error && <ErrorNote error={add.error} />}
-          <Button type="submit" className="self-start" disabled={!text.trim() || charCount(text) > MAX_UPLOAD || add.loading}>{add.loading ? "Saving…" : "Save as a training text"}</Button>
+          <Button data-help-id="data.add" type="submit" className="self-start" disabled={!text.trim() || charCount(text) > MAX_UPLOAD || add.loading}>{add.loading ? "Saving…" : "Save as a training text"}</Button>
         </form>
       </Panel>
     </>
@@ -288,11 +291,11 @@ function TokensTab() {
     <>
       <Panel id="tok-in" title="Your sentence">
         <label htmlFor="tok-text" className="sr-only">Sentence to tokenize</label>
-        <Textarea id="tok-text" rows={2} value={text} onChange={(e) => setText(e.target.value)} className="text-[15px]" />
+        <Textarea id="tok-text" data-help-id="data.sentence" rows={2} value={text} onChange={(e) => setText(e.target.value)} className="text-prose" />
         <div className="mt-4 overflow-x-auto">
           <table className="w-full text-sm">
             <caption className="sr-only">Token counts for each tokenizer</caption>
-            <thead><tr className="text-[12px] text-muted-foreground"><th className="text-left font-normal">Tokenizer</th><th className="text-right font-normal">Tokens for this sentence</th><th className="text-right font-normal">Characters per token</th></tr></thead>
+            <thead><tr className="text-label text-muted-foreground"><th className="text-left font-normal">Tokenizer</th><th className="text-right font-normal">Tokens for this sentence</th><th className="text-right font-normal">Characters per token</th></tr></thead>
             <tbody>
               {[["Characters (your engine)", chars.length], ["Simple word splitter", words.length], [`BPE, ${bpe?.steps.length ?? 0} merges`, bpeTokens.length]].map(([n, c]) => (
                 <tr key={n as string} className="border-t border-rule">
@@ -304,11 +307,11 @@ function TokensTab() {
             </tbody>
           </table>
         </div>
-        <p className="mt-3 text-[13px] text-muted-foreground">The same text becomes different numbers of tokens. That is why <Term id="perplexity">perplexity</Term> can't be compared across tokenizers without care.</p>
+        <p className="mt-3 text-label text-muted-foreground">The same text becomes different numbers of tokens. That is why <Term id="perplexity">perplexity</Term> can't be compared across tokenizers without care.</p>
       </Panel>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <Panel id="tok-char" title="Character tokens and IDs" source={<Source kind="simulation" detail="same rule as tokenize()" />}
+        <Panel id="tok-char" variant="canvas" title="Character tokens and IDs" source={<Source kind="simulation" detail="same rule as tokenize()" />}
           teach={{
             calc: <Symbols rows={[
               ["tokens", "characters in your sentence, one per code point", String(chars.length)],
@@ -318,10 +321,10 @@ function TokensTab() {
             code: <SimCode path="web/src/sim/tokenize.ts" symbol="idTable" text={tokenizeSource} />,
           }}>
           <TokenList tokens={chars} ids={toId} label="Character tokens with IDs" />
-          <p className="mt-3 text-[13px] text-muted-foreground">IDs are numbered by first appearance in this sentence, a Lab convention for display. Your bigram engine works on the characters directly and has no ID table yet; neural models need one.</p>
+          <p className="mt-3 text-label text-muted-foreground">IDs are numbered by first appearance in this sentence, a Lab convention for display. Your bigram engine works on the characters directly and has no ID table yet; neural models need one.</p>
           <div className="mt-4 flex flex-col gap-2 border-t border-border pt-4">
             <label htmlFor="ids" className="text-sm font-medium">IDs back to tokens</label>
-            <input id="ids" value={idsText} onChange={(e) => setIdsText(e.target.value)} className="num h-9 rounded-md border border-input bg-card px-3 text-sm" />
+            <input id="ids" data-help-id="data.ids" value={idsText} onChange={(e) => setIdsText(e.target.value)} className="num h-9 rounded-md border border-input bg-card px-3 text-sm" />
             <p className="text-sm">
               {decoded.length === 0 ? <span className="text-muted-foreground">Type IDs separated by spaces.</span> : decoded.map((t, i) => t === null ? <span key={i} className="mr-1 text-negative">[no ID {idsText.trim().split(/[\s,]+/)[i]}]</span> : <Tok key={i} className="mr-1">{visible(t)}</Tok>)}
             </p>
@@ -329,7 +332,7 @@ function TokensTab() {
         </Panel>
         <Panel id="tok-word" title="Word splitting" source={<Source kind="simulation" detail="simple regular expression" />}>
           <TokenList tokens={words} label="Word tokens" />
-          <p className="mt-3 text-[13px] text-muted-foreground">Letters and digits stay together; each punctuation mark and run of spaces is its own token. Unseen words would be unknown to a word-level model.</p>
+          <p className="mt-3 text-label text-muted-foreground">Letters and digits stay together; each punctuation mark and run of spaces is its own token. Unseen words would be unknown to a word-level model.</p>
         </Panel>
       </div>
 
@@ -340,12 +343,12 @@ function TokensTab() {
         }}>
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
           <div className="flex flex-col gap-4">
-            <SliderField id="merges" label="Merges learned" value={merges} min={0} max={40} step={1} onChange={setMerges} hint="Each merge glues the most frequent neighbouring pair in the sample into one new token." />
+            <SliderField id="merges" helpId="data.merges" label="Merges learned" value={merges} min={0} max={40} step={1} onChange={setMerges} hint="Each merge glues the most frequent neighbouring pair in the sample into one new token." />
             {!bpe ? <LoadingRows /> : bpe.steps.length === 0 ? <EmptyNote>No merges: every character is its own token.</EmptyNote> : (
               <div className="max-h-72 overflow-auto rounded-md border border-border">
                 <table className="w-full text-sm">
                   <caption className="sr-only">BPE merge steps</caption>
-                  <thead className="sticky top-0 bg-card"><tr className="text-[12px] text-muted-foreground"><th className="px-2 py-1 text-right font-normal">Merge</th><th className="px-2 py-1 text-left font-normal">Pair</th><th className="px-2 py-1 text-right font-normal">Seen</th><th className="px-2 py-1 text-right font-normal">Sample length</th></tr></thead>
+                  <thead className="sticky top-0 bg-card"><tr className="text-label text-muted-foreground"><th className="px-2 py-1 text-right font-normal">Merge</th><th className="px-2 py-1 text-left font-normal">Pair</th><th className="px-2 py-1 text-right font-normal">Seen</th><th className="px-2 py-1 text-right font-normal">Sample length</th></tr></thead>
                   <tbody>
                     {bpe.steps.map((s, i) => (
                       <tr key={i} className="border-t border-rule">
@@ -385,7 +388,7 @@ function WindowsTab() {
   const idsOf = (t: string) => charTokens(t).map((c) => toId.get(c)).join(" ")
   return (
     <>
-      <Panel id="win" title="Sliding context window" source={<Source kind="simulation" />}
+      <Panel id="win" variant="canvas" title="Sliding context window" source={<Source kind="simulation" />}
         teach={{
           calc: w ? <Symbols rows={[
             ["N", "characters in the text", String(chars.length)],
@@ -400,7 +403,7 @@ function WindowsTab() {
             <label htmlFor="win-text" className="text-sm font-medium">Text</label>
             <input id="win-text" value={text} onChange={(e) => { setText(e.target.value); setPos(0) }} className="tok h-9 rounded-md border border-input bg-card px-3 text-sm" />
           </div>
-          <SliderField id="ctx" label={<Term id="context-window">Context size</Term>} value={size} min={1} max={8} step={1} onChange={(v) => { setSize(v); setPos(0) }} format={(v) => `${v} chars`} />
+          <SliderField id="ctx" helpId="data.window" label={<Term id="context-window">Context size</Term>} value={size} min={1} max={8} step={1} onChange={(v) => { setSize(v); setPos(0) }} format={(v) => `${v} chars`} />
         </div>
         {windows.length === 0 ? <div className="mt-4"><EmptyNote>The text needs more than {size} characters to make one pair.</EmptyNote></div> : (
           <div className="mt-5 flex flex-col gap-4">
@@ -409,7 +412,7 @@ function WindowsTab() {
                 <li key={i}><Tok tone={i >= w.start && i < w.start + size ? "context" : i === w.start + size ? "chosen" : "plain"}>{visible(c)}</Tok></li>
               ))}
             </ol>
-            <SliderField id="pos" label="Window position" value={at} min={0} max={windows.length - 1} step={1} onChange={setPos} format={(v) => `${v + 1} of ${windows.length}`} />
+            <SliderField id="pos" helpId="data.window" label="Window position" value={at} min={0} max={windows.length - 1} step={1} onChange={setPos} format={(v) => `${v + 1} of ${windows.length}`} />
             <p className="text-sm">Input <Tok tone="context">{visible(w.context)}</Tok> → target <Tok tone="chosen">{visible(w.target)}</Tok>. With {chars.length} characters and context {size}, there are {chars.length} − {size} = <span className="num font-medium">{windows.length}</span> <Term id="training-pair">training pairs</Term>.</p>
           </div>
         )}
@@ -418,7 +421,7 @@ function WindowsTab() {
         {windows.length === 0 ? <EmptyNote>No pairs yet.</EmptyNote> : (
           <div className="max-h-80 overflow-auto">
             <table className="w-full text-sm">
-              <thead className="sticky top-0 bg-card"><tr className="text-[12px] text-muted-foreground"><th className="py-1 text-right font-normal">#</th><th className="px-3 py-1 text-left font-normal">Input ({size} tokens)</th><th className="py-1 text-left font-normal">Target</th><th className="px-3 py-1 text-left font-normal">As IDs</th></tr></thead>
+              <thead className="sticky top-0 bg-card"><tr className="text-label text-muted-foreground"><th className="py-1 text-right font-normal">#</th><th className="px-3 py-1 text-left font-normal">Input ({size} tokens)</th><th className="py-1 text-left font-normal">Target</th><th className="px-3 py-1 text-left font-normal">As IDs</th></tr></thead>
               <tbody>
                 {windows.slice(0, 60).map((p, i) => (
                   <tr key={i} className={cn("border-t border-rule", i === at && "bg-active")}>
@@ -430,10 +433,10 @@ function WindowsTab() {
                 ))}
               </tbody>
             </table>
-            {windows.length > 60 && <p className="mt-2 text-[13px] text-muted-foreground">Showing 60 of {windows.length}.</p>}
+            {windows.length > 60 && <p className="mt-2 text-label text-muted-foreground">Showing 60 of {windows.length}.</p>}
           </div>
         )}
-        <p className="mt-3 text-[13px] text-muted-foreground">Neighbouring pairs share {size - 1 > 0 ? `${size - 1} of their ${size}` : "none of their"} input characters. That overlap is why the next tab matters. A bigram is the case context = 1. The IDs are the same pairs as a neural model receives them; they are labels for looking up rows, not amounts.</p>
+        <p className="mt-3 text-label text-muted-foreground">Neighbouring pairs share {size - 1 > 0 ? `${size - 1} of their ${size}` : "none of their"} input characters. That overlap is why the next tab matters. A bigram is the case context = 1. The IDs are the same pairs as a neural model receives them; they are labels for looking up rows, not amounts.</p>
       </Panel>
     </>
   )
@@ -457,7 +460,7 @@ function SplitsTab() {
 
   return (
     <>
-      <Panel id="split" title="Make windows, then split?" source={<Source kind="simulation" detail="on the first characters of the sample" />}
+      <Panel id="split" variant="canvas" title="Make windows, then split?" source={<Source kind="simulation" detail="on the first characters of the sample" />}
         teach={{
           calc: result && other ? <Symbols rows={[
             ["window", `${size} context characters + 1 target, so ${size + 1} characters`, undefined],
@@ -467,7 +470,7 @@ function SplitsTab() {
           ]} /> : undefined,
           code: <SimCode path="web/src/sim/windows.ts" symbol="splitWindows" text={windowsSource} />,
         }}
-        aside={<Segmented label="Strategy" value={strategy} onChange={setStrategy} options={[{ value: "windows-first", label: "Windows first, random split" }, { value: "split-first", label: "Split text first" }]} />}>
+        aside={<Segmented label="Strategy" helpId="data.strategy" value={strategy} onChange={setStrategy} options={[{ value: "windows-first", label: "Windows first, random split" }, { value: "split-first", label: "Split text first" }]} />}>
         {!result ? <LoadingRows /> : (
           <div className="flex flex-col gap-5">
             <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
@@ -476,12 +479,12 @@ function SplitsTab() {
               <SliderField id="sp-len" label="Text length" value={length} min={80} max={600} step={20} onChange={setLength} format={(v) => `${v} chars`} />
             </div>
             <div className="flex flex-col gap-2">
-              <div className="flex flex-wrap gap-x-5 gap-y-1 text-[13px] text-muted-foreground">
+              <div className="flex flex-wrap gap-x-5 gap-y-1 text-label text-muted-foreground">
                 <span className="inline-flex items-center gap-1.5"><span className="inline-block size-3 rounded-sm bg-chart-5" /> read only by training windows</span>
                 <span className="inline-flex items-center gap-1.5"><span className="inline-block size-3 rounded-full bg-data" /> read only by validation windows (rounded)</span>
                 <span className="inline-flex items-center gap-1.5"><span className="inline-block size-3 rounded-sm bg-negative" /> read by both: leaked (bold, underlined)</span>
               </div>
-              <div className="tok flex flex-wrap gap-px text-[12px]" aria-label="Each character, coloured by which split reads it">
+              <div className="tok flex flex-wrap gap-px text-label" aria-label="Each character, coloured by which split reads it">
                 {chars.map((c, i) => {
                   const p = result.positions[i]
                   return (
@@ -498,11 +501,11 @@ function SplitsTab() {
               </p>
             )}
             <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-              <div><dt className="text-[13px] text-muted-foreground">Validation windows</dt><dd className="num text-2xl">{result.valCount}</dd></div>
-              <div><dt className="text-[13px] text-muted-foreground">Share text with a training window</dt><dd className={cn("num text-2xl", result.leakedVal > 0 && "text-negative")}>{result.leakedVal}</dd></div>
-              <div><dt className="text-[13px] text-muted-foreground">Exact input also in training</dt><dd className="num text-2xl">{result.duplicatedContexts}</dd></div>
+              <div><dt className="text-label text-muted-foreground">Validation windows</dt><dd className="num text-2xl">{result.valCount}</dd></div>
+              <div><dt className="text-label text-muted-foreground">Share text with a training window</dt><dd className={cn("num text-2xl", result.leakedVal > 0 && "text-negative")}>{result.leakedVal}</dd></div>
+              <div><dt className="text-label text-muted-foreground">Exact input also in training</dt><dd className="num text-2xl">{result.duplicatedContexts}</dd></div>
             </dl>
-            <Button variant="outline" className="self-start" onClick={() => { setRan({ strategy, leaked: result.leakedVal, total: result.valCount }); actions.logRun({ route: "data", title: `Split: ${strategy}`, summary: `${result.leakedVal} of ${result.valCount} validation windows leaked`, source: "simulation" }, ["split", "leakage"]) }}>
+            <Button data-help-id="data.record" variant="outline" className="self-start" onClick={() => { setRan({ strategy, leaked: result.leakedVal, total: result.valCount }); actions.logRun({ route: "data", title: `Split: ${strategy}`, summary: `${result.leakedVal} of ${result.valCount} validation windows leaked`, source: "simulation" }, ["split", "leakage"]) }}>
               Record this result
             </Button>
             <p className="text-sm">

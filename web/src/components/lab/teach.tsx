@@ -59,11 +59,38 @@ export interface Guide {
 
 export type Level = "walk" | "calc" | "code"
 
-const LEVELS: { id: Level; label: string }[] = [
-  { id: "walk", label: "Walk me through it" },
+export const LEVELS: { id: Level; label: string }[] = [
+  { id: "walk", label: "In plain words" },
   { id: "calc", label: "Show the calculation" },
   { id: "code", label: "Show the code" },
 ]
+
+/** How much detail an explanation shows. A radio group: arrow keys move between levels. */
+export function LevelSwitch({ level, onChange, className }: { level: Level; onChange: (l: Level) => void; className?: string }) {
+  return (
+    <div role="radiogroup" aria-label="How much detail" data-help-id="teach.level" className={cn("inline-flex max-w-full flex-wrap gap-0.5 self-start rounded-lg bg-raised p-1", className)}>
+      {LEVELS.map((l) => (
+        <button
+          key={l.id}
+          type="button"
+          role="radio"
+          aria-checked={level === l.id}
+          data-selected={level === l.id || undefined}
+          tabIndex={level === l.id ? 0 : -1}
+          onClick={() => onChange(l.id)}
+          onKeyDown={(e) => {
+            const i = LEVELS.findIndex((x) => x.id === level)
+            if (e.key === "ArrowRight" || e.key === "ArrowDown") { e.preventDefault(); onChange(LEVELS[(i + 1) % LEVELS.length].id) }
+            if (e.key === "ArrowLeft" || e.key === "ArrowUp") { e.preventDefault(); onChange(LEVELS[(i + LEVELS.length - 1) % LEVELS.length].id) }
+          }}
+          className={cn("h-8 rounded-md px-3 text-sm transition-colors", level === l.id ? "bg-card font-semibold text-foreground outline outline-1 -outline-offset-1 outline-data/60" : "text-muted-foreground hover:bg-card/50 hover:text-foreground")}
+        >
+          {l.label}
+        </button>
+      ))}
+    </div>
+  )
+}
 
 const KIND_LABEL: Record<NodeKind, string> = { input: "Input", operation: "Operation", output: "Output" }
 
@@ -143,10 +170,12 @@ export function useTeach() {
 /** What a panel needs to know: is it highlighted, and is the walkthrough on one of its steps? */
 export function useTeachTarget(id: string | undefined) {
   const t = useTeach()
+  const flowOpen = useLab((s) => s.prefs.flowOpen ?? false)
   if (!t || !id) return { highlighted: false, step: undefined, flowNode: undefined }
   const step = t.tour ? t.guide.tour[t.tour.index] : undefined
   const onStep = step?.target === id ? step : undefined
-  const node = !t.tour ? t.guide.nodes.find((n) => n.id === t.selectedNode && n.target === id) : undefined
+  // A flow box only points at its panel while the flow is open on screen.
+  const node = !t.tour && flowOpen ? t.guide.nodes.find((n) => n.id === t.selectedNode && n.target === id) : undefined
   return { highlighted: !!onStep || !!node, step: onStep, flowNode: node }
 }
 
@@ -161,7 +190,8 @@ function scrollToTarget(id: string, smooth: boolean) {
 /** The top of a workspace: its question, its flow diagram, and the way into the walkthrough. */
 export function WorkspaceGuide() {
   const t = useTeach()
-  const open = useLab((s) => s.prefs.guideOpen ?? true)
+  // The flow opens on request, so the experiment stays the first thing on the screen.
+  const open = useLab((s) => s.prefs.flowOpen ?? false)
   const headingId = useId()
   const step = t?.tour ? t.guide.tour[t.tour.index] : undefined
   const [missing, setMissing] = useState<string | null>(null)
@@ -176,18 +206,18 @@ export function WorkspaceGuide() {
   const { guide, tour, selectedNode, selectNode, startTour, exitTour, startRef, guideRef } = t
   const node = guide.nodes.find((n) => n.id === selectedNode)
   return (
-    <section ref={guideRef} aria-labelledby={headingId} className="scroll-mt-16 rounded-lg border border-border bg-card p-5">
+    <section ref={guideRef} aria-labelledby={headingId} className="scroll-mt-16 flex flex-col">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-          <h2 id={headingId} className="text-base font-semibold">How this workspace works</h2>
+          <h2 id={headingId} className="text-prose font-semibold">How this workspace works</h2>
           {guide.sources.map((s) => <Source key={s} kind={s} />)}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button ref={startRef} variant="outline" onClick={tour ? exitTour : startTour} aria-pressed={!!tour}>
+          <Button ref={startRef} variant="outline" data-help-id="teach.read-and-watch" onClick={tour ? exitTour : startTour} aria-pressed={!!tour}>
             {tour ? <XmarkIcon className="size-4" /> : <PlayIcon className="size-4" />}
             {tour ? "Exit the walkthrough" : "Read and watch"}
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => actions.setPref("guideOpen", !open)} aria-expanded={open}>
+          <Button variant="ghost" size="sm" data-help-id="teach.show-flow" onClick={() => actions.setPref("flowOpen", !open)} aria-expanded={open}>
             <NavArrowDownIcon className={cn("size-4 transition-transform", open && "rotate-180")} />
             {open ? "Hide the flow" : "Show the flow"}
           </Button>
@@ -198,50 +228,54 @@ export function WorkspaceGuide() {
           <TourCard step={step} fallback={step.missing ?? "This view appears once the experiment has been run. Run it with the button in the settings panel, then come back to this step."} />
         </div>
       )}
+      <p className="measure mt-2 text-prose text-muted-foreground"><span className="font-medium text-foreground">The question it answers:</span> {guide.question}</p>
       {open && (
-        <div className="mt-4 flex flex-col gap-4">
-          <p className="max-w-3xl text-[15px] leading-relaxed"><span className="font-medium">The question it answers:</span> {guide.question}</p>
-          <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">{guide.scope}</p>
-          <FlowDiagram nodes={guide.nodes} selected={selectedNode} onSelect={selectNode} />
-          {node && <NodeDetail node={node} />}
+        <div className="mt-4 flex flex-col gap-5">
+          <p className="measure text-label text-muted-foreground">{guide.scope}</p>
+          <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-[minmax(13rem,17rem)_minmax(0,1fr)]">
+            <FlowDiagram nodes={guide.nodes} selected={selectedNode} onSelect={selectNode} />
+            {node && <NodeDetail node={node} />}
+          </div>
         </div>
       )}
     </section>
   )
 }
 
-/** The flow diagram: boxes in order, each arrow labelled with what it carries. */
+/** The flow diagram: a vertical process rail, each connector labelled with what it carries. */
 export function FlowDiagram({ nodes, selected, onSelect }: { nodes: FlowNode[]; selected: string | null; onSelect: (id: string) => void }) {
   return (
     <nav aria-label="Flow of this workspace">
-      <ol className="flex flex-wrap items-stretch gap-y-3">
+      <ol className="flex flex-col">
         {nodes.map((n, i) => {
           const sel = n.id === selected
           return (
-            <li key={n.id} className="flex items-center">
+            <li key={n.id} className="flex flex-col">
               <button
                 type="button"
                 onClick={() => onSelect(n.id)}
                 aria-pressed={sel}
+                data-help-id="teach.flow-node"
                 aria-label={`${KIND_LABEL[n.kind]}: ${n.label}${n.carries && i < nodes.length - 1 ? `, passes on ${n.carries}` : ""}`}
                 data-kind={n.kind}
                 className={cn(
-                  "flex min-h-11 flex-col items-start justify-center px-3 py-1.5 text-left text-sm transition-colors",
-                  // Shape carries the kind as well as the label: inputs are square, operations are
-                  // pills, outputs have a heavy edge.
-                  n.kind === "input" && "rounded-sm border border-dashed border-foreground/50 bg-card",
-                  n.kind === "operation" && "rounded-full bg-secondary px-4",
-                  n.kind === "output" && "rounded-md border-2 border-foreground/70 bg-card",
-                  sel ? "bg-data-soft outline-2 outline-offset-2 outline-data" : "hover:bg-accent",
+                  "flex min-h-11 w-full flex-col items-start justify-center px-3.5 py-2 text-left transition-colors duration-150",
+                  // Shape carries the kind as well as the label: inputs are dashed squares,
+                  // operations are rounded and filled, outputs have a heavy edge.
+                  n.kind === "input" && "rounded-sm border border-dashed border-foreground/45",
+                  n.kind === "operation" && "rounded-xl bg-raised",
+                  n.kind === "output" && "rounded-lg border-2 border-foreground/60",
+                  sel ? "bg-data-soft outline-2 outline-offset-2 outline-data" : "hover:bg-active",
                 )}
               >
-                <span className="text-[12px] text-muted-foreground">{KIND_LABEL[n.kind]}</span>
-                <span className="font-medium leading-snug">{n.label}</span>
+                <span className="text-label text-muted-foreground">{KIND_LABEL[n.kind]}</span>
+                <span className="text-sm font-medium leading-snug">{n.label}</span>
               </button>
               {i < nodes.length - 1 && (
-                <span className="flex items-center gap-1 px-2 text-[12px] text-muted-foreground" aria-hidden="true">
-                  <ArrowRightIcon className="size-4 flex-none" />
-                  {n.carries && <span className="max-w-[9rem] leading-tight">{n.carries}</span>}
+                <span className="flex items-center gap-2 py-1 pl-4 text-label text-muted-foreground" aria-hidden="true">
+                  <span className="flex h-5 w-4 flex-none justify-center"><span className="w-px bg-foreground/35" /></span>
+                  <ArrowRightIcon className="size-3.5 flex-none rotate-90" />
+                  {n.carries && <span className="leading-tight">{n.carries}</span>}
                 </span>
               )}
             </li>
@@ -263,19 +297,19 @@ function NodeDetail({ node }: { node: FlowNode }) {
   ]
   if (node.tryIt) rows.push(["What to change, and what to watch", node.tryIt])
   return (
-    <div className="rounded-md bg-raised p-4" aria-live="polite">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-[15px] font-semibold">{KIND_LABEL[node.kind]}: {node.label}</h3>
+    <div className="rounded-2xl border border-canvas-edge bg-canvas p-5 sm:p-6 md:sticky md:top-16" aria-live="polite">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-prose font-semibold">{KIND_LABEL[node.kind]}: {node.label}</h3>
         {node.target && (
           <Button size="sm" variant="outline" onClick={() => t.reveal(node.target!, node.tab)}>
             Show it in the workspace <NavArrowDownIcon className="size-4" />
           </Button>
         )}
       </div>
-      <dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-[14px] leading-relaxed md:grid-cols-2">
+      <dl className="grid grid-cols-1 gap-x-8 gap-y-4 text-prose 2xl:grid-cols-2">
         {rows.map(([k, v]) => (
           <div key={k}>
-            <dt className="text-[13px] font-medium text-muted-foreground">{k}</dt>
+            <dt className="text-label font-medium text-muted-foreground">{k}</dt>
             <dd>{v}</dd>
           </div>
         ))}
@@ -337,39 +371,20 @@ function TourCard({ step, teach, fallback }: { step: TourStep; teach?: PanelTeac
       role="region"
       aria-label="Walkthrough"
       onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); t.exitTour() } }}
-      className="mb-5 flex flex-col gap-3 rounded-md bg-data-soft/60 p-4"
+      className="mb-6 flex flex-col gap-4 rounded-2xl bg-data-soft/60 p-5 sm:p-6"
       data-testid="tour-card"
     >
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <h3 ref={heading} tabIndex={-1} className="text-[16px] font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring">{step.title}</h3>
+        <h3 ref={heading} tabIndex={-1} className="text-section font-semibold outline-none focus-visible:outline-2 focus-visible:outline-ring">{step.title}</h3>
         <span className="num text-sm text-muted-foreground">{index + 1} of {total}</span>
       </div>
-      <div role="radiogroup" aria-label="How much detail" className="inline-flex max-w-full flex-wrap gap-0.5 self-start rounded-md bg-card p-0.5">
-        {LEVELS.map((l) => (
-          <button
-            key={l.id}
-            type="button"
-            role="radio"
-            aria-checked={level === l.id}
-            tabIndex={level === l.id ? 0 : -1}
-            onClick={() => t.setLevel(l.id)}
-            onKeyDown={(e) => {
-              const i = LEVELS.findIndex((x) => x.id === level)
-              if (e.key === "ArrowRight" || e.key === "ArrowDown") { e.preventDefault(); t.setLevel(LEVELS[(i + 1) % LEVELS.length].id) }
-              if (e.key === "ArrowLeft" || e.key === "ArrowUp") { e.preventDefault(); t.setLevel(LEVELS[(i + LEVELS.length - 1) % LEVELS.length].id) }
-            }}
-            className={cn("h-8 rounded-[5px] px-3 text-sm", level === l.id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}
-          >
-            {l.label}
-          </button>
-        ))}
-      </div>
+      <LevelSwitch level={level} onChange={t.setLevel} />
       {fallback && <p className="max-w-3xl rounded-md bg-card px-3 py-2 text-sm">{fallback}</p>}
-      <div className="flex max-w-3xl flex-col gap-2 text-[15px] leading-relaxed" data-testid="tour-body">{body}</div>
+      <div className="measure flex flex-col gap-3 text-prose" data-testid="tour-body">{body}</div>
       {level === "walk" && step.terms && step.terms.length > 0 && (
         <details className="max-w-3xl">
-          <summary className="cursor-pointer text-[13px] font-medium text-muted-foreground hover:text-foreground">Words used in this step ({step.terms.length})</summary>
-          <ul className="mt-1.5 flex flex-col gap-1.5 text-[14px]">
+          <summary className="cursor-pointer text-label font-medium text-muted-foreground hover:text-foreground">Words used in this step ({step.terms.length})</summary>
+          <ul className="mt-1.5 flex flex-col gap-1.5 text-sm">
             {step.terms.map((term) => {
               const entry = findTerm(term.id)
               return (
@@ -381,7 +396,7 @@ function TourCard({ step, teach, fallback }: { step: TourStep; teach?: PanelTeac
           </ul>
         </details>
       )}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2" data-help-id="teach.tour-controls">
         <Button variant="outline" size="sm" onClick={() => t.goTo(index - 1)} disabled={index === 0}>
           <NavArrowLeftIcon className="size-4" /> Back
         </Button>
@@ -392,7 +407,7 @@ function TourCard({ step, teach, fallback }: { step: TourStep; teach?: PanelTeac
         )}
         <Button variant="ghost" size="sm" onClick={t.replay}><RefreshDoubleIcon className="size-4" /> Replay</Button>
         <Button variant="ghost" size="sm" onClick={t.exitTour}><XmarkIcon className="size-4" /> Exit</Button>
-        <span className="text-[13px] text-muted-foreground">Esc also exits. Your settings and results stay as they are.</span>
+        <span className="text-label text-muted-foreground">Esc also exits. Your settings and results stay as they are.</span>
       </div>
     </div>
   )
@@ -414,7 +429,7 @@ export function TeachSpot({ id, teach, children, className }: { id: string; teac
 /** A labelled calculation line: the symbol, what it stands for, and its value. */
 export function Symbols({ rows }: { rows: [ReactNode, ReactNode, ReactNode?][] }) {
   return (
-    <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[14px]">
+    <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
       {rows.map(([sym, meaning, value], i) => (
         <div key={i} className="contents">
           <dt className="tok text-right">{sym}</dt>
@@ -429,7 +444,7 @@ export function Symbols({ rows }: { rows: [ReactNode, ReactNode, ReactNode?][] }
 export function Pseudocode({ children, note }: { children: string; note?: ReactNode }) {
   return (
     <figure className="flex flex-col gap-1.5">
-      <figcaption className="text-[13px] text-muted-foreground">Pseudocode, not the real source{note && <>: {note}</>}</figcaption>
+      <figcaption className="text-label text-muted-foreground">Pseudocode, not the real source{note && <>: {note}</>}</figcaption>
       <pre className="overflow-auto rounded-md bg-raised p-3 text-[12.5px] leading-[1.55]"><code className="tok">{children}</code></pre>
     </figure>
   )

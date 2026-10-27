@@ -31,10 +31,50 @@ Open **Bigram journey** (second item in the sidebar, or *Start here* on Home). I
 example through your engine and needs nothing from you. Every workspace starts with **How this workspace
 works**: the question it answers, a flow diagram, and **Read and watch**.
 
+## How the screens are laid out
+
+- **One canvas per workspace.** The experiment that answers the workspace's question sits on the only
+  edged sheet (`Panel variant="canvas"`). Secondary sections sit on the page ground, separated by space
+  and headings, not boxes. Explanations sit beside the canvas on wide screens and below it on narrow ones.
+- **The teaching companion** (`components/lab/explanation.tsx`): every explanation column is one tinted
+  panel with a teal top edge, a small header ("Step explained" or "Explained") and the step or
+  workspace name, then the detail levels, the explanation, a *Try this* callout and the terms. It stays
+  in view while you scroll when it fits on screen, and scrolls with the page when it doesn't.
+- **Type scale** (`web/src/index.css`): page 30px (24px on phones), lesson 24px, section 20px, prose
+  16px at about 66 characters per line, labels 13px. Monospace is only for tokens, code and aligned
+  numbers. One accent (`--action`) marks the main action; context, generated and chosen characters
+  keep their own role colours, always with a label or shape as well.
+- **Bigram journey** is the reference lesson: a compact header with *Guided lesson* / *Explore all*, the
+  run summary (provenance in *Run details*), six numbered stages, one dominant stage canvas with its
+  upstream numbers, an explanation column (plain words, the calculation, the code), Back / Next /
+  Replay in one place, and a separate process diagram whose dashed loop shows the appended character
+  becoming the next context. Switching views or replaying keeps the run and your selections.
+
+## Help for every control, and the Toolkit Guide
+
+- **Quick hints.** Rest the pointer on a control for about half a second, or reach it with the keyboard:
+  a short hint says what it does, when to use it, and whether it only changes the view, changes a
+  setting, reads data, or runs your engine or a simulation.
+- **Learn this control.** Turn on **Help** in the top bar: a small marker appears beside every control
+  (the way in on a touch screen). A marker, or Alt+H on a focused control, opens a pinned panel with a
+  small worked picture (illustrative numbers are labelled), what the control uses, what changes, what
+  to look for, and a common misunderstanding. Esc closes it. A disabled control always has a marker that
+  says why it is unavailable.
+- **Toolkit Guide** (sidebar, Reference): a directory of every page, a search for controls and plain
+  questions ("Why did I get different text?") with **Show me where** links that open the right page and
+  tab and point at the control, and three tours. Ctrl K search finds questions and controls too.
+- **Tours.** *Find your way around* (about 5 minutes), *Understand your first prediction* (10 to 15)
+  and *Choose your next experiment* (5 to 10). Manual Back / Next / Skip, an outline instead of an
+  overlay, your place saved in this browser. Finishing one records nothing as understood.
+- **One inventory** (`web/src/content/help.ts`) holds all of it; controls are found by `data-help-id`.
+  A test fails if a page uses an id without help, or if help exists for a control no page has.
+- Opening the Bigram journey always loads its built-in example run, also when a tour or a help link
+  takes you there; that is the page's own behaviour. Help itself never sends a request.
+
 ## How the explanations work
 
-- **Flow diagram.** Boxes in order: square dashed boxes are inputs, pills are operations, heavy-edged
-  boxes are outputs. Each arrow is labelled with what it carries (counts, probabilities, IDs, …).
+- **Flow diagram.** Closed by default under *How this workspace works*; open it with *Show the flow*.
+  A vertical rail: dashed boxes are inputs, filled boxes are operations, heavy-edged boxes are outputs. Each arrow is labelled with what it carries (counts, probabilities, IDs, …).
   Selecting a box highlights its panel and says what goes in, what happens, why, what comes out, where
   it goes next, and what to change. Diagrams describe one workspace; they don't claim the workspaces form
   one pipeline (only the bigram pages run your engine end to end).
@@ -119,18 +159,18 @@ their file name.
 - The Evaluation bench's smoothing is a Lab-side variant; your engine itself does not smooth.
 - Timings are wall-clock on your machine and vary between runs.
 - The Lab does not grade free-text explanations. It stores them for you to review.
-- A character is one Unicode code point, as in the engine (`list(text)`). An emoji is one character,
-  but an accented letter typed as letter + combining accent is two, and multi-part emoji (flags,
-  skin tones, families joined with U+200D) are several, each shown as its own token.
+- One token is one Unicode code point, as in the engine (`list(text)`). Many emoji are a single code
+  point, but some symbols you see as one are several: flags, skin tones, families joined with U+200D,
+  and a letter typed as letter + combining accent. Each of those code points is its own token.
 - Evaluation results, saved runs and sweeps keep the settings they were measured with. Changing a
   control marks them stale rather than relabelling them; measure again to replace them.
 
 ## A gentle first walkthrough (about 15 minutes, nothing to answer)
 
-1. **Bigram journey, 6 min.** Press *Read and watch* and use *Next* through the seven steps. At
+1. **Bigram journey, 6 min.** Stay in *Guided lesson* and use *Next* through the six steps. At
    *Sample a character*, switch to *Show the calculation*: the draw u = 0.956 lands in the stretch of
-   ‘a’ (0.8 to 1), though ‘e’ was more likely. At the last step press *Next step* a few times, then
-   select any generated character to see where it came from.
+   ‘a’ (0.8 to 1), though ‘e’ was more likely. At *Append and repeat* press *Next step* a few times,
+   then select any generated character to see where it came from. *Explore all* shows every step at once.
 2. **Counts, 3 min.** Press *Read and watch*. The same division you saw in the journey, on the
    1,167-character sample.
 3. **Data and tokens, 3 min.** Press *Read and watch*. It opens each tab for you; the last step shows

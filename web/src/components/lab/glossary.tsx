@@ -64,7 +64,7 @@ export function EntryBody({ entry, onNavigate, onOpenTerm }: { entry: GlossaryEn
   const bookmarked = useLab((s) => s.bookmarks.includes(entry.id))
   const workspace = WORKSPACE_BY_ROUTE.get(entry.experiment.route)
   return (
-    <div className="mt-4 flex flex-col gap-5 text-[15px] leading-relaxed">
+    <div className="mt-4 flex flex-col gap-5 text-prose leading-relaxed">
       <p className="text-base">{entry.plain}</p>
       <dl className="flex flex-col gap-4">
         <div>
@@ -86,7 +86,7 @@ export function EntryBody({ entry, onNavigate, onOpenTerm }: { entry: GlossaryEn
             {entry.code && (
               <span className="inline-flex items-center gap-1 text-muted-foreground">
                 <CodeIcon className="size-3.5" />
-                <code className="tok text-[13px]">{entry.code.path}</code>
+                <code className="tok text-label">{entry.code.path}</code>
                 <span>({entry.code.symbol})</span>
               </span>
             )}
@@ -100,7 +100,7 @@ export function EntryBody({ entry, onNavigate, onOpenTerm }: { entry: GlossaryEn
             <NavArrowRightIcon className="size-4" />
           </a>
         </Button>
-        <Button size="sm" variant="outline" onClick={() => actions.toggleBookmark(entry.id)} aria-pressed={bookmarked}>
+        <Button size="sm" variant="outline" data-help-id="glossary.bookmark" onClick={() => actions.toggleBookmark(entry.id)} aria-pressed={bookmarked}>
           {bookmarked ? <BookmarkSolidIcon className="size-4" /> : <BookmarkIcon className="size-4" />}
           {bookmarked ? "Bookmarked" : "Bookmark"}
         </Button>

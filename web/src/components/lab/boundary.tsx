@@ -19,7 +19,7 @@ export class WorkspaceBoundary extends Component<{ children: ReactNode; name: st
     return (
       <div role="alert" className="flex max-w-xl flex-col gap-3 p-6">
         <h1 className="text-[22px] font-semibold">This workspace didn&apos;t load</h1>
-        <p className="text-[15px]">{stale ? "The Lab was rebuilt since this page opened. Reloading picks up the new version." : this.state.error.message}</p>
+        <p className="text-prose">{stale ? "The Lab was rebuilt since this page opened. Reloading picks up the new version." : this.state.error.message}</p>
         <div className="flex gap-2">
           <Button onClick={() => window.location.reload()}>Reload the page</Button>
           {!stale && <Button variant="outline" onClick={() => this.setState({ error: null })}>Try again</Button>}

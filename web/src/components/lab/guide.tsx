@@ -35,13 +35,13 @@ export function GuidedCycle({ id, conceptId, route, question, choices, correct, 
   const predicted = choices ? picked !== null : written.trim().length > 0
 
   return (
-    <section aria-labelledby={`${id}-cycle`} className="flex flex-col gap-4 rounded-lg border border-border bg-card p-4">
-      <h2 id={`${id}-cycle`} className="text-base font-semibold">Try it</h2>
-      <ol className="flex flex-col gap-4 text-[14px]">
+    <section aria-labelledby={`${id}-cycle`} className="flex flex-col gap-4 rounded-2xl bg-raised p-5 sm:p-6">
+      <h2 id={`${id}-cycle`} className="text-section font-semibold">Try it</h2>
+      <ol className="flex flex-col gap-4 text-sm">
         <li className="flex flex-col gap-2">
           <p><span className="font-medium">Predict.</span> {question} <span className="text-muted-foreground">(optional)</span></p>
           {choices ? (
-            <div role="radiogroup" aria-label="Your prediction" className="flex flex-col gap-1.5">
+            <div role="radiogroup" aria-label="Your prediction" data-help-id="cycle.predict" className="flex flex-col gap-1.5">
               {choices.map((c) => (
                 <label key={c.id} className={cn("flex cursor-pointer items-start gap-2 rounded-md border px-3 py-2", picked === c.id ? "border-foreground bg-raised" : "border-border hover:bg-raised")}>
                   <input type="radio" name={`${id}-predict`} value={c.id} checked={picked === c.id} onChange={() => setPicked(c.id)} className="mt-1 accent-[var(--foreground)]" />
@@ -81,7 +81,7 @@ export function GuidedCycle({ id, conceptId, route, question, choices, correct, 
           <label htmlFor={`${id}-explain`}><span className="font-medium">Explain.</span> {explainPrompt}</label>
           <Textarea id={`${id}-explain`} rows={3} value={explanation} onChange={(e) => setExplanation(e.target.value)} />
           <div className="flex flex-wrap items-center gap-2">
-            <Button size="sm" variant="outline" disabled={!explanation.trim()} onClick={() => { actions.addNote({ kind: "explanation", text: explanation.trim(), conceptId, route }); setSaved("explanation"); setExplanation("") }}>
+            <Button size="sm" variant="outline" data-help-id="cycle.explain" disabled={!explanation.trim()} onClick={() => { actions.addNote({ kind: "explanation", text: explanation.trim(), conceptId, route }); setSaved("explanation"); setExplanation("") }}>
               Save to notebook
             </Button>
             {hints.length > 0 && hintCount < hints.length && (
