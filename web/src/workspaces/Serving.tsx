@@ -173,7 +173,8 @@ function Batching() {
 // ----------------------------------------------------------------------------- streaming (simulation)
 
 function Streaming() {
-  const [text, setText] = useState("")
+  // One entry per engine character (from the trace), so an emoji streams as one piece.
+  const [text, setText] = useState<string[]>([])
   const [shown, setShown] = useState(0)
   const [mode, setMode] = useState<"idle" | "stream" | "whole">("idle")
   const [firstAt, setFirstAt] = useState<number | null>(null)
@@ -188,12 +189,13 @@ function Streaming() {
     clearInterval(timer.current)
     const r = gen.data ?? (await gen.run({ corpus: "sample", prompt: "The rain", length: 40, seed: 3 }))
     if (!r) return
-    setText(r.suggestion)
+    const chars = r.steps.map((s) => s.token)
+    setText(chars)
     setMode(m)
     setFirstAt(null); setDoneAt(null); setShown(0)
-    const total = r.suggestion.length * delay
+    const total = chars.length * delay
     if (m === "whole") {
-      timer.current = window.setTimeout(() => { setShown(r.suggestion.length); setFirstAt(total); setDoneAt(total) }, reduced ? 0 : total)
+      timer.current = window.setTimeout(() => { setShown(chars.length); setFirstAt(total); setDoneAt(total) }, reduced ? 0 : total)
       return
     }
     let i = 0
@@ -201,7 +203,7 @@ function Streaming() {
       i++
       setShown(i)
       if (i === 1) setFirstAt(delay)
-      if (i >= r.suggestion.length) { clearInterval(timer.current); setDoneAt(total) }
+      if (i >= chars.length) { clearInterval(timer.current); setDoneAt(total) }
     }, reduced ? 1 : delay)
   }
 
@@ -212,7 +214,7 @@ function Streaming() {
         <Button variant="outline" size="sm" onClick={() => run("stream")}>Stream it</Button>
         <Button variant="outline" size="sm" onClick={() => run("whole")}>Send it whole</Button>
       </div>
-      <p className="tok mt-3 min-h-12 whitespace-pre-wrap rounded-md bg-raised p-3 text-[14px]" aria-live="polite">{mode === "idle" ? <span className="text-muted-foreground">Nothing yet.</span> : <>{text.slice(0, shown)}{shown < text.length && <span className="text-muted-foreground">▏</span>}</>}</p>
+      <p className="tok mt-3 min-h-12 whitespace-pre-wrap rounded-md bg-raised p-3 text-[14px]" aria-live="polite">{mode === "idle" ? <span className="text-muted-foreground">Nothing yet.</span> : <>{text.slice(0, shown).join("")}{shown < text.length && <span className="text-muted-foreground">▏</span>}</>}</p>
       {gen.error && <ErrorNote error={gen.error} />}
       <dl className="mt-3 grid grid-cols-2 gap-4">
         <div><dt className="text-[13px] text-muted-foreground">Time to first character</dt><dd className="num text-xl">{firstAt === null ? "–" : `${firstAt} ms`}</dd></div>

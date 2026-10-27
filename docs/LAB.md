@@ -63,19 +63,26 @@ browser (web/)                          Python (nextword/)
 
 ## Checks
 
-- `python -m unittest` (21): engine baseline, sampling = `rng.choices`, rows sum to 1, counts match
+- `python -m unittest` (27): engine baseline, sampling = `rng.choices`, rows sum to 1, counts match
   the corpus, step = full generation, splits contiguous with no straddling pair, loss formula,
-  smoothing sums to 1, validation errors, uploads, adaptation without leakage.
-- `npm --prefix web test` (58): softmax/temperature/top-k/top-p, draws follow the distribution, causal
+  smoothing sums to 1, validation errors, uploads (unique IDs, no overwrites, legacy files, cache
+  follows content), emoji and combining marks as single characters, adaptation without leakage.
+- `npm --prefix web test` (82): softmax/temperature/top-k/top-p, draws follow the distribution, causal
   mask zeroes the future and blocks leaks, weights normalize, gradients match finite differences, the
   update equals −lr × gradient, the overfitting experiment overfits, split-first never leaks, BPE and
-  chunking, persistence export/import/reset, glossary links.
+  chunking, persistence export/import/reset, glossary links, code-point windows and trace layout.
+  Component tests (jsdom) for the Evaluation bench (results, saves and sweeps stay bound to the
+  settings that produced them; the sweep never uses the test split) and the Playground (step context
+  vs next-prediction context, stale traces, emoji).
 
 ## Your data
 
 Notes, evidence, bookmarks, saved runs and history live in this browser's localStorage (about 5 MB,
 cleared with site data, not shared across browsers). Export them from the Notebook. Uploaded training
-texts live in `data/lab/` (ignored by Git).
+texts live in `data/lab/` (ignored by Git). Each upload gets its own random ID (`c` plus 10 hex
+digits) and a `.json` beside it with its name, date and content fingerprint, so two uploads never
+overwrite each other, even with the same name. Files from before this change still load, named by
+their file name.
 
 ## Limitations
 
@@ -84,6 +91,11 @@ texts live in `data/lab/` (ignored by Git).
 - The Evaluation bench's smoothing is a Lab-side variant; your engine itself does not smooth.
 - Timings are wall-clock on your machine and vary between runs.
 - The Lab does not grade free-text explanations. It stores them for you to review.
+- A character is one Unicode code point, as in the engine (`list(text)`). An emoji is one character,
+  but an accented letter typed as letter + combining accent is two, and multi-part emoji (flags,
+  skin tones, families joined with U+200D) are several, each shown as its own token.
+- Evaluation results, saved runs and sweeps keep the settings they were measured with. Changing a
+  control marks them stale rather than relabelling them; measure again to replace them.
 
 ## First guided session (about 30 minutes)
 

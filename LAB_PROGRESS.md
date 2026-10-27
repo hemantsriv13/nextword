@@ -31,17 +31,17 @@ Working notes for building the Lab, so the work can resume if a session ends. Ne
 - Comprehension check flags the workspaces as dense (130–170 words). Accepted for a working tool the
   user asked to be deep; copy was trimmed where it didn't carry meaning.
 
-## In progress (2026-10-25): fixes from the review of 75a0941 (branch fix/review-75a0941, not pushed)
-1. [x] Issue 2, corpus uploads: unique random IDs (`c<hex>`), exclusive-create writes, name in a
-   `.json` beside each file, legacy files keep working. 5 new Python tests (26 passing).
-2. [~] Issues 1 and 4, Evaluation: `web/src/lib/evaluation.ts` (`useSnapshotRun`, `sameConfig`,
-   `describeConfig`, `splitProblem`, `rerunVerdict`). Results, saves, sweep and reruns are bound to the
-   settings that produced them; stale notes; sweep always on validation; rerun checks the corpus
-   fingerprint. Component tests in `Evaluation.test.tsx`: 6 of 7 pass. **Next:** the training-text
-   test can't operate the Base UI select with fireEvent; try `@testing-library/user-event`.
-3. [ ] Issue 3, Playground context highlight (selected-step context vs next-prediction context;
-   stale traces; tests with a mocked trace).
-4. [ ] Issue 5, code points: Playground `slice` → tokens from the trace; `neural.ts buildDataset`
-   windows by code point; Data studio counts/preview; emoji and combining-mark tests (Python + TS).
-5. [ ] Then: full Python and frontend suites, `npm run build`, browser checks, docs, final report
-   (what changed per issue, test results, limitations, a browser checklist for the user).
+## Done (2026-10-27): fixes from the review of 75a0941 (branch fix/review-75a0941, not pushed)
+1. [x] Issue 1, evaluation snapshots: `web/src/lib/evaluation.ts` (`useSnapshotRun`, `describeConfig`,
+   `changedSettings`, `rerunVerdict`). Results, saves, reruns and the guided cycle use the frozen
+   config; changed controls show a stale note; superseded requests are ignored.
+2. [x] Issue 2, corpus uploads: random IDs, exclusive-create writes, `.json` metadata, legacy files.
+3. [x] Issue 3, playground highlight: `web/src/lib/trace.ts` separates the selected step's context
+   (fill), its choice (outline) and the next prediction's context (dashed underline); stale traces
+   are hidden and the highlight falls back to the current prompt.
+4. [x] Issue 4, sweep on validation only: frozen sweep settings, split validated first, separate
+   "Run the final test check" action, labels bound to the sweep.
+5. [x] Issue 5, code points: revealed text from trace tokens (Playground, Serving stream),
+   `buildDataset` windows by code point, Data studio counts and preview, Counts guard.
+6. [x] Checks: Python 27 OK; vitest 82 OK; `npm run build` OK; browser checks on the real backend at
+   one desktop width (1677 px; window resizing had no effect, so 390/1440/1728 were not measured).

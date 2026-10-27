@@ -95,6 +95,28 @@ class GenerationTests(unittest.TestCase):
             with self.assertRaises(LabError):
                 service.generate(self.store, "sample", prompt, length, seed)
 
+    def test_emoji_and_combining_marks_are_code_points(self):
+        # The engine's character is one code point (Python's list(text)); the web app mirrors this.
+        # "🌧" is outside the BMP (two UTF-16 units in JavaScript); "é" is written e + U+0301.
+        text = "rain 🌧 rain 🌧 café 🌧 rain"
+        info = self.store.add("Weather", text)
+        self.assertEqual(info["chars"], len(list(text)))
+        result = service.generate(self.store, info["id"], "rain 🌧", 12, 4)
+        self.assertEqual(result["contextUsed"], "🌧")
+        self.assertEqual(result["steps"][0]["context"], "🌧")
+        for step in result["steps"]:
+            self.assertEqual(len(step["token"]), 1)
+            self.assertEqual(len(step["context"]), 1)
+        # Each step reads the previous step's token, and the tokens join into the suggestion.
+        for before, after in zip(result["steps"], result["steps"][1:]):
+            self.assertEqual(after["context"], before["token"])
+        self.assertEqual("".join(s["token"] for s in result["steps"]), result["suggestion"])
+        # The combining accent is its own character, with "e" as its only predecessor.
+        accent = service.distribution(bigram.count_bigrams(bigram.tokenize(text)), "e")
+        self.assertIn("́", [c["token"] for c in accent["candidates"]])
+        accent_prompt = service.generate(self.store, info["id"], "café", 3, 1)
+        self.assertEqual(accent_prompt["contextUsed"], "́")
+
     def test_upload_round_trip(self):
         info = self.store.add("My notes", "abab abba\nbaab")
         self.assertTrue(info["id"].startswith("upload-c"))

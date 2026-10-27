@@ -17,7 +17,7 @@ import { actions } from "@/lib/store"
 import { cn } from "@/lib/utils"
 import { pickByDraw } from "@/sim/decoding"
 import { mulberry32 } from "@/sim/rng"
-import { visible } from "@/sim/tokenize"
+import { charCount, visible } from "@/sim/tokenize"
 
 function rowOf(table: CountTable, context: string) {
   const row = table.rows[context] ?? {}
@@ -309,7 +309,7 @@ function BeforeAfter({ baseText, baseTable, context }: { baseText: string; baseT
     <div className="flex flex-col gap-3">
       <label htmlFor="edited" className="text-sm">Edit the text (it starts as the current corpus plus one sentence), then recount. The row for <Tok tone="context">{visible(context)}</Tok> is compared.</label>
       <Textarea id="edited" rows={4} value={text} onChange={(e) => setText(e.target.value)} className="tok text-[13px]" />
-      <Button className="self-start" onClick={async () => { const r = await after.run(text); if (r) actions.logRun({ route: "counts", title: "Recounted an edited text", summary: `${fmt.n(r.pairs)} pairs`, source: "model" }, ["corpus", "conditional-probability"]) }} disabled={after.loading || text.length < 2}>
+      <Button className="self-start" onClick={async () => { const r = await after.run(text); if (r) actions.logRun({ route: "counts", title: "Recounted an edited text", summary: `${fmt.n(r.pairs)} pairs`, source: "model" }, ["corpus", "conditional-probability"]) }} disabled={after.loading || charCount(text) < 2}>
         {after.loading ? "Counting…" : "Recount with your engine"}
       </Button>
       {after.error && <ErrorNote error={after.error} />}

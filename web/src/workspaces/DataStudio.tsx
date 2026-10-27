@@ -16,7 +16,7 @@ import { useCorpora } from "@/lib/corpora"
 import { fmt, useAsync, useLoad } from "@/lib/hooks"
 import { actions } from "@/lib/store"
 import { cn } from "@/lib/utils"
-import { charTokens, encodeBpe, idTable, learnBpe, visible, wordTokens } from "@/sim/tokenize"
+import { charCount, charTokens, encodeBpe, firstChars, idTable, learnBpe, visible, wordTokens } from "@/sim/tokenize"
 import tokenizeSource from "@/sim/tokenize.ts?raw"
 import windowsSource from "@/sim/windows.ts?raw"
 import { makeWindows, splitWindows } from "@/sim/windows"
@@ -140,8 +140,8 @@ function CorpusTab() {
                 ))}
               </dl>
               <pre className="tok max-h-72 overflow-auto whitespace-pre-wrap break-words rounded-md bg-raised p-3 text-[13px] leading-6">
-                {showWs ? visible(d.text.slice(0, 3000)).replace(/↵/g, "↵\n") : d.text.slice(0, 3000)}
-                {d.text.length > 3000 && <span className="text-muted-foreground">{"\n"}… {fmt.n(d.text.length - 3000)} more characters</span>}
+                {showWs ? visible(firstChars(d.text, 3000)).replace(/↵/g, "↵\n") : firstChars(d.text, 3000)}
+                {d.chars > 3000 && <span className="text-muted-foreground">{"\n"}… {fmt.n(d.chars - 3000)} more characters</span>}
               </pre>
             </div>
           )}
@@ -182,11 +182,11 @@ function CorpusTab() {
           <div className="flex flex-col gap-2">
             <label htmlFor="ctext" className="text-sm font-medium">Text</label>
             <Textarea id="ctext" rows={6} value={text} onChange={(e) => setText(e.target.value)} placeholder="Paste text you wrote or have permission to use." className="text-[14px]" />
-            <p className="num text-[13px] text-muted-foreground">{fmt.n(text.length)} characters{text.length > MAX_UPLOAD ? `; over the ${fmt.n(MAX_UPLOAD)} limit` : ""}. Use text you own or may use.</p>
+            <p className="num text-[13px] text-muted-foreground">{fmt.n(charCount(text))} characters{charCount(text) > MAX_UPLOAD ? `; over the ${fmt.n(MAX_UPLOAD)} limit` : ""}. Use text you own or may use.</p>
           </div>
           {fileError && <p role="alert" className="text-sm text-negative">{fileError}</p>}
           {add.error && <ErrorNote error={add.error} />}
-          <Button type="submit" className="self-start" disabled={!text.trim() || text.length > MAX_UPLOAD || add.loading}>{add.loading ? "Saving…" : "Save as a training text"}</Button>
+          <Button type="submit" className="self-start" disabled={!text.trim() || charCount(text) > MAX_UPLOAD || add.loading}>{add.loading ? "Saving…" : "Save as a training text"}</Button>
         </form>
       </Panel>
     </>
@@ -363,7 +363,7 @@ function SplitsTab() {
   const [val, setVal] = useState(0.2)
   const [length, setLength] = useState(240)
   const [ran, setRan] = useState<{ strategy: string; leaked: number; total: number } | null>(null)
-  const text = sample.data?.text.slice(0, length) ?? ""
+  const text = sample.data ? firstChars(sample.data.text, length) : ""
   const result = useMemo(() => (text ? splitWindows(text, size, val, strategy, 7) : null), [text, size, val, strategy])
   const chars = charTokens(text)
 

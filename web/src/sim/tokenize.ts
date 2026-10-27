@@ -12,6 +12,21 @@ export function charTokens(text: string): string[] {
   return Array.from(text)
 }
 
+/** How many characters the engine sees: code points, not UTF-16 units (an emoji counts once). */
+export function charCount(text: string): number {
+  let n = 0
+  for (let i = 0; i < text.length; i++) {
+    const c = text.charCodeAt(i)
+    if (c < 0xd800 || c > 0xdbff || i + 1 >= text.length) n++ // a high surrogate starts a pair; count the pair once
+  }
+  return n
+}
+
+/** The first `n` characters by code point, so an emoji is never cut in half. */
+export function firstChars(text: string, n: number): string {
+  return charTokens(text).slice(0, n).join("")
+}
+
 /** A simple word splitter: runs of letters/digits, single punctuation marks, and runs of spaces. */
 export function wordTokens(text: string): string[] {
   return text.match(/[\p{L}\p{N}']+|\s+|[^\s\p{L}\p{N}]/gu) ?? []

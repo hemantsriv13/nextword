@@ -64,6 +64,24 @@ describe("data and training", () => {
     expect(data.train.length).toBe(data.trainText.length - 3)
     expect(data.val.length).toBe(data.valText.length - 3)
   })
+  it("windows by code point, so emoji and combining marks are whole characters", () => {
+    // 🌧 and 🌈 are two UTF-16 units each; "é" is two code points (e + combining accent).
+    const text = "a🌧b🌈café 🌧a🌧b"
+    const chars = Array.from(text)
+    const data = buildDataset(text, 2, 0.5)
+    expect(data.vocab).toContain("🌧")
+    expect(data.vocab).toContain("́")
+    for (const t of data.vocab) expect(Array.from(t).length).toBe(1)
+    const cut = Math.floor(chars.length * 0.5)
+    expect(data.trainText).toBe(chars.slice(0, cut).join(""))
+    expect(data.trainText + data.valText).toBe(text)
+    // Every window is kept: none is dropped for containing half a surrogate pair.
+    expect(data.train.length).toBe(cut - 2)
+    expect(data.val.length).toBe(chars.length - cut - 2)
+    const first = data.train[0]
+    expect(first.context.map((i) => data.vocab[i])).toEqual(["a", "🌧"])
+    expect(data.vocab[first.target]).toBe("b")
+  })
   it("is reproducible with the same seed", () => {
     const data = buildDataset("the cat sat on the mat. the dog sat on the log. ", 2, 0.7)
     const s = { config: { vocabSize: data.vocab.length, context: 2, embed: 4, hidden: 8 }, lr: 0.5, steps: 40, batchSize: 8, seed: 9, evalEvery: 10 }

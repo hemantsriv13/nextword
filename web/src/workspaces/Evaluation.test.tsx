@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import userEvent from "@testing-library/user-event"
 import { deferred } from "@/test/setup-dom"
 import type { Evaluation as EvalResult } from "@/lib/api"
 
@@ -84,9 +85,9 @@ describe("Evaluation bench keeps results with the settings that produced them", 
     render(<Evaluation />)
     await act(async () => clickButton(/measure on validation/i))
     // Pick "My notes" in the training-text select.
-    await act(async () => fireEvent.click(screen.getAllByRole("combobox")[0]))
-    const option = await screen.findByRole("option", { name: "My notes" })
-    await act(async () => fireEvent.click(option))
+    const user = userEvent.setup()
+    await user.click(screen.getAllByRole("combobox")[0])
+    await user.click(await screen.findByRole("option", { name: "My notes" }))
     expect(screen.getByText(/settings changed since this run \(training text\)/i)).toBeTruthy()
     clickButton(/^save run$/i)
     expect(getState().experiments[0].config.corpus).toBe("sample")

@@ -146,22 +146,27 @@ export interface Dataset {
   valText: string
 }
 
-/** Split the text first, then build windows inside each part, so no window spans both. */
+/**
+ * Split the text first, then build windows inside each part, so no window spans both.
+ * Positions are code points (one engine character each, like Python's list(text)), so the cut
+ * and the windows never land inside an emoji's UTF-16 surrogate pair.
+ */
 export function buildDataset(text: string, context: number, trainFraction: number, vocabFrom = text): Dataset {
   const vocab = [...new Set(vocabFrom)].sort()
   const id = new Map(vocab.map((t, i) => [t, i]))
-  const cut = Math.floor(text.length * trainFraction)
-  const trainText = text.slice(0, cut)
-  const valText = text.slice(cut)
-  const windows = (part: string): Example[] => {
+  const chars = Array.from(text)
+  const cut = Math.floor(chars.length * trainFraction)
+  const trainChars = chars.slice(0, cut)
+  const valChars = chars.slice(cut)
+  const windows = (part: string[]): Example[] => {
     const out: Example[] = []
     for (let i = 0; i + context < part.length; i++) {
-      const ids = [...part.slice(i, i + context + 1)].map((ch) => id.get(ch))
+      const ids = part.slice(i, i + context + 1).map((ch) => id.get(ch))
       if (ids.every((v) => v !== undefined)) out.push({ context: ids.slice(0, context) as number[], target: ids[context] as number })
     }
     return out
   }
-  return { vocab, train: windows(trainText), val: windows(valText), trainText, valText }
+  return { vocab, train: windows(trainChars), val: windows(valChars), trainText: trainChars.join(""), valText: valChars.join("") }
 }
 
 // ----------------------------------------------------------------------------- training run

@@ -14,6 +14,7 @@ import { api, type Generation } from "@/lib/api"
 import { useCorpora } from "@/lib/corpora"
 import { fmt, useAsync, usePrefersReducedMotion } from "@/lib/hooks"
 import { actions } from "@/lib/store"
+import { lastChars, traceView, withoutLastChar, type Segment } from "@/lib/trace"
 import { cn } from "@/lib/utils"
 import { visible } from "@/sim/tokenize"
 
@@ -40,8 +41,10 @@ export default function Playground() {
 
   const result = gen.data
   const steps = result?.steps ?? []
-  const shown = result ? result.suggestion.slice(0, revealed) : ""
   const stale = !!result && (result.prompt !== prompt || result.seed !== seed || result.length !== length || result.corpus.id !== corpus)
+  const view = traceView(prompt, result, revealed, selectedStep, stale)
+  // Built from the trace tokens (one engine character each), never by slicing the suggestion string.
+  const shown = view.revealedText
 
   async function run(stepMode: boolean, seedOverride?: number) {
     setPlaying(false)
@@ -50,7 +53,7 @@ export default function Playground() {
     if (r) {
       setRevealed(stepMode ? 1 : r.steps.length)
       setSelectedStep(stepMode ? 0 : null)
-      actions.logRun({ route: "playground", title: `Generated from “${prompt.slice(-20)}”`, summary: `${r.suggestion.length} chars, seed ${r.seed}, ${r.modelVersion}`, source: "model" }, ["bigram", "sampling", "autoregressive"])
+      actions.logRun({ route: "playground", title: `Generated from “${lastChars(prompt, 20)}”`, summary: `${r.steps.length} chars, seed ${r.seed}, ${r.modelVersion}`, source: "model" }, ["bigram", "sampling", "autoregressive"])
     }
   }
 
@@ -92,14 +95,13 @@ export default function Playground() {
     setSelectedStep(null)
   }
 
-  const current = selectedStep !== null ? steps[selectedStep] : steps[Math.max(0, revealed - 1)]
-  const lastChar = prompt.slice(-1)
+  const current = view.selected !== null ? steps[view.selected] : undefined
 
   return (
     <Workspace
       title="Writing playground"
       subtitle="Your bigram engine suggests what comes next. Every number here comes from your Python engine."
-      explain={<PlaygroundExplain current={current} result={result} />}
+      explain={<PlaygroundExplain current={current} index={view.selected} result={stale ? undefined : result} />}
     >
       <Panel
         id="write"
@@ -144,17 +146,12 @@ export default function Playground() {
           ) : gen.loading && !result ? (
             <LoadingRows rows={2} label="Generating" />
           ) : (
-            <p className="tok whitespace-pre-wrap break-words text-[15px] leading-7">
-              <span>{prompt.slice(0, -1)}</span>
-              {lastChar && <mark className="rounded-sm bg-context px-0.5 text-context-ink" title="The only character the engine reads">{lastChar === " " ? "␣" : lastChar === "\n" ? "↵\n" : lastChar}</mark>}
-              {result && !stale && <span className="rounded-sm bg-data-soft">{shown}</span>}
+            <p className="tok whitespace-pre-wrap break-words text-[15px] leading-7" data-testid="prompt-and-suggestion">
+              {view.segments.map((seg, i) => <TraceSegment key={i} seg={seg} step={view.selected} />)}
               {result && !stale && revealed < steps.length && <span className="text-muted-foreground">▏</span>}
             </p>
           )}
-          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[13px] text-muted-foreground">
-            <span className="inline-flex items-center gap-1.5"><span className="inline-block size-3 rounded-sm bg-context" /> context the engine reads (one character)</span>
-            <span className="inline-flex items-center gap-1.5"><span className="inline-block size-3 rounded-sm bg-data-soft" /> generated</span>
-          </div>
+          <TraceLegend step={view.selected} generated={!!shown} />
           {stale && <p className="mt-2 text-sm">The settings changed since this suggestion. Suggest again to update it.</p>}
           {result?.stopped && !stale && <Note tone="warning">{result.stopped}.</Note>}
         </div>
@@ -217,6 +214,8 @@ export default function Playground() {
       >
         {!result ? (
           <EmptyNote>Step generates one character at a time, showing its distribution and random draw.</EmptyNote>
+        ) : stale ? (
+          <Note tone="warning">Trace hidden: it came from earlier settings (seed {result.seed}, length {result.length}). Press Step or Suggest to trace your current text.</Note>
         ) : (
           <div className="grid grid-cols-1 gap-6 2xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
             <div className="max-h-[420px] overflow-auto rounded-md border border-border">
@@ -234,7 +233,7 @@ export default function Playground() {
                 <tbody>
                   {steps.slice(0, revealed).map((s, i) => {
                     const p = s.candidates.find((c) => c.token === s.token)?.p ?? 0
-                    const sel = (selectedStep ?? revealed - 1) === i
+                    const sel = view.selected === i
                     return (
                       <tr key={i} className={cn("border-t border-rule", sel && "bg-active")}>
                         <td className="num px-3 py-1.5 text-right">
@@ -250,7 +249,7 @@ export default function Playground() {
                 </tbody>
               </table>
             </div>
-            {current && <StepDetail step={current} index={(selectedStep ?? revealed - 1) + 1} />}
+            {current && view.selected !== null && <StepDetail step={current} index={view.selected + 1} />}
           </div>
         )}
         {result && !stale && (
@@ -262,6 +261,54 @@ export default function Playground() {
 
       <ComparePanel corpus={corpus} length={length} seed={seed} />
     </Workspace>
+  )
+}
+
+const shownChar = (c: string) => (c === " " ? "␣" : c === "\n" ? "↵\n" : c === "\t" ? "⇥" : c)
+
+/** One run of the prompt-and-suggestion line. Each role has its own shape, so color isn't the only cue. */
+function TraceSegment({ seg, step }: { seg: Segment; step: number | null }) {
+  const marked = seg.stepContext || seg.stepChoice || seg.nextContext
+  if (!marked) return <span className={cn(seg.generated && "rounded-sm bg-data-soft")}>{seg.text}</span>
+  // With no step shown, the next prediction's context is the only context, so it takes the fill.
+  const fill = seg.stepContext || (step === null && seg.nextContext)
+  const roles = [
+    seg.stepContext && `context step ${step! + 1} read`,
+    seg.stepChoice && `chosen at step ${step! + 1}`,
+    seg.nextContext && "context the next prediction reads",
+  ].filter(Boolean).join("; ")
+  return (
+    <mark
+      data-role={[seg.stepContext && "step-context", seg.stepChoice && "step-choice", seg.nextContext && "next-context"].filter(Boolean).join(" ")}
+      title={roles}
+      className={cn(
+        "rounded-sm px-0.5 text-foreground",
+        seg.generated ? "bg-data-soft" : "bg-transparent",
+        fill && "bg-context text-context-ink",
+        seg.stepChoice && "outline-2 -outline-offset-1 outline-primary",
+        seg.nextContext && step !== null && "underline decoration-foreground decoration-dashed decoration-2 underline-offset-[5px]",
+      )}
+    >
+      {shownChar(seg.text)}<span className="sr-only"> ({roles})</span>
+    </mark>
+  )
+}
+
+function TraceLegend({ step, generated }: { step: number | null; generated: boolean }) {
+  const item = "inline-flex items-center gap-1.5"
+  return (
+    <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[13px] text-muted-foreground" aria-hidden="true">
+      {step === null ? (
+        <span className={item}><span className="inline-block size-3 rounded-sm bg-context" /> context the next prediction reads (one character)</span>
+      ) : (
+        <>
+          <span className={item}><span className="inline-block size-3 rounded-sm bg-context" /> context step {step + 1} read</span>
+          <span className={item}><span className="inline-block size-3 rounded-sm outline-2 -outline-offset-1 outline-primary" /> character step {step + 1} chose</span>
+          <span className={item}><span className="inline-block w-3 border-b-2 border-dashed border-foreground" /> context the next prediction reads</span>
+        </>
+      )}
+      {generated && <span className={item}><span className="inline-block size-3 rounded-sm bg-data-soft" /> generated</span>}
+    </div>
   )
 }
 
@@ -342,7 +389,7 @@ function ComparePanel({ corpus, length, seed }: { corpus: string; length: number
                 </div>
                 {r.error ? <ErrorNote error={r.error} onRetry={compare} /> : r.loading ? <LoadingRows rows={1} /> : r.data ? (
                   <p className="tok whitespace-pre-wrap break-words text-[14px] leading-6">
-                    <span className="text-muted-foreground">{r.data.prompt.slice(0, -1)}</span>
+                    <span className="text-muted-foreground">{withoutLastChar(r.data.prompt)}</span>
                     <mark className="rounded-sm bg-context px-0.5 text-context-ink">{r.data.contextUsedLabel}</mark>
                     <span className="rounded-sm bg-data-soft">{r.data.suggestion}</span>
                   </p>
@@ -375,7 +422,7 @@ function ComparePanel({ corpus, length, seed }: { corpus: string; length: number
   )
 }
 
-function PlaygroundExplain({ current, result }: { current?: Generation["steps"][number]; result?: Generation }) {
+function PlaygroundExplain({ current, index, result }: { current?: Generation["steps"][number]; index: number | null; result?: Generation }) {
   const top = current?.candidates[0]
   const chosen = current ? current.candidates.find((c) => c.token === current.token) : undefined
   const calc = useMemo(() => current && chosen ? { label: current.contextLabel, p: chosen.p, token: current.tokenLabel } : null, [current, chosen])
@@ -391,7 +438,7 @@ function PlaygroundExplain({ current, result }: { current?: Generation["steps"][
       <ExplainSection title="Show the calculation" defaultOpen={!!calc}>
         {calc && current ? (
           <div className="flex flex-col gap-2">
-            <p>At this step the context is <Tok tone="context">{calc.label}</Tok>. The engine's row for it gives {current.candidates.length} possible next characters.</p>
+            <p>At step {(index ?? 0) + 1} the context is <Tok tone="context">{calc.label}</Tok>. The engine's row for it gives {current.candidates.length} possible next characters.</p>
             <p>The draw u = <span className="num">{current.draw.toFixed(4)}</span>. Laying the probabilities end to end in the engine&apos;s order, u falls inside the interval of <Tok tone="chosen">{calc.token}</Tok>, which has p = <span className="num">{calc.p.toFixed(3)}</span>.</p>
             {top && top.token !== current.token && <p>The most likely character was <Tok>{top.label}</Tok> (p = {top.p.toFixed(3)}). Sampling doesn&apos;t always pick it; greedy decoding would.</p>}
           </div>
