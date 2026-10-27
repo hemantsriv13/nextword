@@ -18,6 +18,8 @@ from nextword import bigram
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 SAMPLE_PATH = ROOT / "data" / "sample.txt"
+# A short original text for the guided bigram journey: small enough to read every pair.
+EXAMPLE_PATH = ROOT / "data" / "example.txt"
 UPLOAD_DIR = ROOT / "data" / "lab"
 ENGINE_SOURCE = Path(bigram.__file__)
 
@@ -52,6 +54,9 @@ def visible(token: str) -> str:
 
 # ----------------------------------------------------------------------------- corpora
 
+BUILT_IN_NAMES = {"sample": "Sample passage", "example": "Example passage"}
+
+
 class CorpusStore:
     """Training texts: the bundled sample plus any text uploaded through the Lab (kept in data/lab/)."""
 
@@ -60,7 +65,7 @@ class CorpusStore:
         self._tables: dict[str, tuple[str, dict]] = {}  # corpus id -> (fingerprint, counts)
 
     def _paths(self) -> dict[str, tuple[Path, str]]:
-        paths = {"sample": (SAMPLE_PATH, "sample")}
+        paths = {"sample": (SAMPLE_PATH, "sample"), "example": (EXAMPLE_PATH, "example")}
         if self.upload_dir.exists():
             for path in sorted(self.upload_dir.glob("*.txt")):
                 paths["upload-" + path.stem] = (path, "upload")
@@ -79,7 +84,7 @@ class CorpusStore:
         return {
             "id": corpus_id,
             # Uploads made before IDs existed have no metadata file; their name comes from the file name.
-            "name": "Sample passage" if origin == "sample" else meta.get("name") or path.stem.replace("-", " "),
+            "name": BUILT_IN_NAMES.get(origin) or meta.get("name") or path.stem.replace("-", " "),
             "created": meta.get("created"),
             "origin": origin,
             "file": (str(path.relative_to(ROOT)) if path.is_relative_to(ROOT) else str(path)).replace("\\", "/"),
@@ -134,7 +139,7 @@ class CorpusStore:
         if entry is None:
             raise LabError(f"no corpus called {corpus_id!r}", 404, "unknown_corpus")
         if entry[1] != "upload":
-            raise LabError("the bundled sample cannot be deleted", 403, "protected")
+            raise LabError("the bundled texts cannot be deleted", 403, "protected")
         entry[0].unlink()
         entry[0].with_suffix(".json").unlink(missing_ok=True)
         self._tables.pop(corpus_id, None)
@@ -207,8 +212,13 @@ def distribution(counts: dict, context: str) -> dict:
 
 # ----------------------------------------------------------------------------- generation
 
-def generate(store: CorpusStore, corpus_id: str, prompt: str, length: int, seed: int | None) -> dict:
-    """One real generation request, with a trace of every step and a measured timing breakdown."""
+def generate(store: CorpusStore, corpus_id: str, prompt: str, length: int, seed: int | None,
+             counts: dict | None = None, info: dict | None = None) -> dict:
+    """One real generation request, with a trace of every step and a measured timing breakdown.
+
+    `counts` and `info` let a caller that has already read and counted the text (the journey)
+    generate from exactly that snapshot instead of reading the file again.
+    """
     t0 = time.perf_counter()
     if not isinstance(prompt, str) or not prompt:
         raise LabError("type some text first; the bigram model needs at least one character", 422, "empty_prompt")
@@ -222,7 +232,10 @@ def generate(store: CorpusStore, corpus_id: str, prompt: str, length: int, seed:
         raise LabError("seed must be a whole number from 0 to 4,294,967,295", 422, "bad_seed")
     t_validated = time.perf_counter()
 
-    counts, cache_hit, count_ms = store.counts(corpus_id)
+    if counts is None:
+        counts, cache_hit, count_ms = store.counts(corpus_id)
+    else:
+        cache_hit, count_ms = True, 0.0
     t_counted = time.perf_counter()
 
     context_char = prompt[-1]
@@ -254,7 +267,7 @@ def generate(store: CorpusStore, corpus_id: str, prompt: str, length: int, seed:
     return {
         "engine": "char-bigram",
         "modelVersion": engine_version(),
-        "corpus": store.describe(corpus_id),
+        "corpus": info or store.describe(corpus_id),
         "prompt": prompt,
         "contextUsed": context_char,
         "contextUsedLabel": visible(context_char),
@@ -272,6 +285,28 @@ def generate(store: CorpusStore, corpus_id: str, prompt: str, length: int, seed:
             "format": (t_done - t_generated) * 1000,
             "total": (t_done - t0) * 1000,
         },
+    }
+
+
+def journey(store: CorpusStore, corpus_id: str, prompt: str, length: int, seed: int | None) -> dict:
+    """Everything the guided bigram journey shows, from one reading of one training text.
+
+    The text, its count table and the generation trace all come from the same snapshot, so the
+    walkthrough can never pair counts from one version of a text with a run from another.
+    """
+    text = store.text(corpus_id)
+    if len(text) > 20_000:
+        raise LabError("the journey shows the whole text, so it is limited to 20,000 characters; "
+                       "pick a shorter text", 413, "too_large_for_journey")
+    counts = bigram.count_bigrams(bigram.tokenize(text))
+    info = store.describe(corpus_id)
+    if info["fingerprint"] != _fingerprint(text):
+        raise LabError("the training text changed while it was being read; try again", 409, "changed")
+    return {
+        "corpus": info,
+        "text": text,
+        "table": count_table(counts),
+        "generation": generate(store, corpus_id, prompt, length, seed, counts=counts, info=info),
     }
 
 

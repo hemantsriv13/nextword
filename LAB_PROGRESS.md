@@ -31,6 +31,17 @@ Working notes for building the Lab, so the work can resume if a session ends. Ne
 - Comprehension check flags the workspaces as dense (130–170 words). Accepted for a working tool the
   user asked to be deep; copy was trimmed where it didn't carry meaning.
 
+## Done (2026-10-27): teaching experience (not committed, not pushed)
+1. [x] Shared teaching layer `web/src/components/lab/teach.tsx`: flow diagram (`Guide`, `FlowNode`),
+   walkthrough with three levels, `Panel teach={{ calc, code }}` and `TeachSpot`, tab-aware steps,
+   in-guide fallback when a step's panel isn't rendered yet.
+2. [x] `/api/journey` (one snapshot: text, table, run) and `data/example.txt`; `Bigram journey` page.
+3. [x] Guides for Playground, Counts, Data, Neural, Attention, Decoding, Evaluation, Adaptation, Serving.
+   Synchronization fixes: comparison mode stored with its results; Counts engine draw tied to its
+   text/context/seed; continued-training results marked stale; Serving states what is timed and how.
+4. [x] Tests: Python 30 OK; vitest 125 OK; build OK; Taste lint 0/0 and inspector 0 FAIL on 11 pages at
+   1440/768/390; browser checks in Chrome (keyboard, journey tour, tabs, fallback) at one window width.
+
 ## Done (2026-10-27): fixes from the review of 75a0941 (branch fix/review-75a0941, not pushed)
 1. [x] Issue 1, evaluation snapshots: `web/src/lib/evaluation.ts` (`useSnapshotRun`, `describeConfig`,
    `changedSettings`, `rerunVerdict`). Results, saves, reruns and the guided cycle use the frozen

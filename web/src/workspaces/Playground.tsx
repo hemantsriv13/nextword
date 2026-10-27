@@ -10,13 +10,15 @@ import { Term } from "@/components/lab/glossary"
 import { GuidedCycle } from "@/components/lab/guide"
 import { EmptyNote, ErrorNote, Explain, ExplainSection, LoadingRows, Note, NumberField, Panel, Segmented, SliderField, Workspace } from "@/components/lab/layout"
 import { Source } from "@/components/lab/source"
+import { Symbols, Teach, WorkspaceGuide, type Guide } from "@/components/lab/teach"
 import { api, type Generation } from "@/lib/api"
 import { useCorpora } from "@/lib/corpora"
 import { fmt, useAsync, usePrefersReducedMotion } from "@/lib/hooks"
 import { actions } from "@/lib/store"
+import { useSnapshotRun } from "@/lib/evaluation"
 import { lastChars, traceView, withoutLastChar, type Segment } from "@/lib/trace"
 import { cn } from "@/lib/utils"
-import { visible } from "@/sim/tokenize"
+import { charTokens, visible } from "@/sim/tokenize"
 
 const ENGINES = [
   { id: "char-bigram", label: "Character bigram", note: "Your model", available: true },
@@ -25,6 +27,57 @@ const ENGINES = [
 ]
 
 const newSeed = () => Math.floor(Math.random() * 10000)
+
+const GUIDE: Guide = {
+  question: "What does your bigram engine suggest after your text, and why that suggestion?",
+  scope: "Suggestions, the trace and the comparison all come from your Python engine through the local backend. The Bigram journey page walks through the same loop on a three-line example, if you want it slower.",
+  sources: ["model"],
+  nodes: [
+    { id: "prompt", label: "Your text", kind: "input", target: "write", carries: "the last character",
+      goesIn: "What you type in the editor, plus the training text, length and seed below it.",
+      happens: "Nothing yet: the text waits for Suggest.",
+      why: "The prompt supplies the starting context. For this model, that is only its final character.",
+      comesOut: "The last character of your text, marked in the line under the editor.",
+      next: "It selects one row of the engine's count table.",
+      tryIt: "Change an early word: the marked character, and so the suggestion, stays the same." },
+    { id: "row", label: "Look up the row", kind: "operation", target: "trace", carries: "probabilities",
+      goesIn: "The context character.",
+      happens: "The engine reads the counts of everything that followed it in the training text and divides each by their total.",
+      why: "Those shares are the model's whole opinion about what comes next.",
+      comesOut: "A probability for each possible next character (the bars in the trace).",
+      next: "One random draw picks a character from them.",
+      tryIt: "Select different steps in the trace and compare their bars." },
+    { id: "draw", label: "Draw a character", kind: "operation", target: "trace", carries: "one character",
+      goesIn: "The probabilities and one random number from the seeded generator.",
+      happens: "The probabilities are laid end to end from 0 to 1; the random number lands in one character's stretch.",
+      why: "Sampling makes likely characters common without making the output always the same.",
+      comesOut: "The chosen character.",
+      next: "It is appended and becomes the next context.",
+      tryIt: "Press Another suggestion: same rows, new seed, different draws." },
+    { id: "repeat", label: "Append and repeat", kind: "operation", target: "trace", carries: "the suggestion",
+      goesIn: "The chosen character.",
+      happens: "It joins the suggestion, and the loop looks up the row for this new character.",
+      why: "One character at a time, each from the one before, is how a longer suggestion is written.",
+      comesOut: "The suggestion, with one trace row per character.",
+      next: "You decide: Accept appends it to your text.",
+      tryIt: "Use Step to watch it grow one character at a time." },
+    { id: "compare", label: "Compare two runs", kind: "output", target: "compare",
+      goesIn: "Two prompts with one seed, or one prompt with two seeds.",
+      happens: "Both runs go to the engine; the results are stored with the settings that produced them.",
+      why: "Changing one thing at a time shows what the engine actually depends on.",
+      comesOut: "Two suggestions and what they share.",
+      next: "Your own explanation in the guided cycle, if you want one.",
+      tryIt: "Make prompt B end in the same letter as prompt A, with the same seed." },
+  ],
+  tour: [
+    { target: "write", title: "Your text and its last character", plain: <><p>Type anything. The line under the editor marks the one character the engine reads: the last one. Everything before it is ignored by this model.</p><p>Press Suggest to ask the engine for a continuation. It returns the suggestion and a trace of how every character was chosen.</p></>,
+      terms: [{ id: "context-window", role: "here it is one character: the last one you typed." }] },
+    { target: "trace", title: "The trace: one row per generated character", plain: <><p>Each row of the trace is one step. It shows the context the step read, the random number it drew, and the character it chose.</p><p>Select a row to see its probabilities and where the draw landed. The chosen character becomes the next row's context.</p></>,
+      terms: [{ id: "sampling", role: "how each row's character is picked from its probabilities." }, { id: "autoregressive", role: "each chosen character is the next row's input." }] },
+    { target: "compare", title: "Compare to see what matters", plain: <><p>Run two prompts with the same seed, or one prompt with two seeds. If two prompts end in the same character and share a seed, the engine has no way to tell them apart.</p><p>The results stay labelled with the settings that produced them, even if you switch the mode afterwards.</p></>,
+      terms: [{ id: "seed", role: "fixes the random draws, so only the prompt differs." }] },
+  ],
+}
 
 export default function Playground() {
   const [prompt, setPrompt] = useState("The rain")
@@ -98,14 +151,24 @@ export default function Playground() {
   const current = view.selected !== null ? steps[view.selected] : undefined
 
   return (
+    <Teach guide={GUIDE}>
     <Workspace
       title="Writing playground"
       subtitle="Your bigram engine suggests what comes next. Every number here comes from your Python engine."
       explain={<PlaygroundExplain current={current} index={view.selected} result={stale ? undefined : result} />}
     >
+      <WorkspaceGuide />
       <Panel
         id="write"
         title="Your text"
+        teach={{
+          calc: <Symbols rows={[
+            ["prompt", "your text", `${charTokens(prompt).length} characters`],
+            ["context", "its last character, the only one the engine reads", view.nextContext ? visible(view.nextContext) : "none yet"],
+            ...(result && !stale ? [["suggestion", `${result.steps.length} characters drawn with seed ${result.seed}`, `“${result.suggestion}”`] as [string, string, string]] : []),
+          ]} />,
+          code: <EngineCode path="nextword/lab/service.py" symbol="generate" />,
+        }}
         source={<Source kind="model" detail={result ? result.modelVersion : "char-bigram"} />}
         aside={
           <div className="flex flex-wrap items-center gap-2">
@@ -197,6 +260,18 @@ export default function Playground() {
       <Panel
         id="trace"
         title="Generation trace"
+        teach={{
+          calc: current && view.selected !== null && !stale ? <>
+            <Symbols rows={[
+              ["step", "the selected row of the trace", String(view.selected + 1)],
+              ["context", view.selected === 0 ? "the prompt's last character" : "the character chosen one step earlier", current.contextLabel],
+              ...current.candidates.slice(0, 6).map((c) => [`P(${c.label})`, "its count ÷ the row total", c.p.toFixed(3)] as [string, string, string]),
+              ["u", "the random number this step drew", current.draw.toFixed(4)],
+              ["chosen", "the character whose stretch contains u", current.tokenLabel],
+            ]} />
+            <p>The stretches are laid out in the engine's order (the order on the strip below the bars), not sorted by size.</p></> : <p className="text-muted-foreground">Suggest first; then select a row of the trace to see its numbers.</p>,
+          code: <><EngineCode path="nextword/bigram.py" symbol="sample_next" /><EngineCode path="nextword/bigram.py" symbol="generate_steps" /></>,
+        }}
         source={result && <Source kind="model" detail={`seed ${result.seed}`} />}
         aside={
           <div className="flex items-center gap-1.5">
@@ -261,6 +336,7 @@ export default function Playground() {
 
       <ComparePanel corpus={corpus} length={length} seed={seed} />
     </Workspace>
+    </Teach>
   )
 }
 
@@ -328,46 +404,83 @@ function StepDetail({ step, index }: { step: Generation["steps"][number]; index:
   )
 }
 
+interface CompareConfig {
+  vary: "prompt" | "seed"
+  corpus: string
+  length: number
+  promptA: string
+  promptB: string // the prompt B actually used: prompt A when only the seed differs
+  seedA: number
+  seedB: number // the seed B actually used: seed A when only the prompt differs
+}
+
+const compareBoth = (c: CompareConfig) => Promise.all([
+  api.generate({ corpus: c.corpus, prompt: c.promptA, length: c.length, seed: c.seedA }),
+  api.generate({ corpus: c.corpus, prompt: c.promptB, length: c.length, seed: c.seedB }),
+])
+
+/** Which settings differ between a finished comparison and the controls now. */
+function compareChanges(run: CompareConfig, now: CompareConfig): string[] {
+  const out: string[] = []
+  if (run.vary !== now.vary) out.push("what differs")
+  if (run.corpus !== now.corpus) out.push("training text")
+  if (run.length !== now.length) out.push("length")
+  if (run.promptA !== now.promptA) out.push("prompt A")
+  if (run.vary === now.vary && run.promptB !== now.promptB) out.push("prompt B")
+  if (run.seedA !== now.seedA) out.push("seed")
+  if (run.vary === now.vary && run.seedB !== now.seedB) out.push("seed B")
+  return out
+}
+
 function ComparePanel({ corpus, length, seed }: { corpus: string; length: number; seed: number }) {
   const [vary, setVary] = useState<"prompt" | "seed">("prompt")
   const [promptA, setPromptA] = useState("The rain")
   const [promptB, setPromptB] = useState("Spain")
   const [seedB, setSeedB] = useState(seed + 1)
-  const a = useAsync(api.generate)
-  const b = useAsync(api.generate)
+  const { run, pending, error, start } = useSnapshotRun(compareBoth)
+  const now: CompareConfig = { vary, corpus, length, promptA, promptB: vary === "prompt" ? promptB : promptA, seedA: seed, seedB: vary === "seed" ? seedB : seed }
+  const changed = run ? compareChanges(run.config, now) : []
+  const stale = changed.length > 0
 
   async function compare() {
-    const [ra, rb] = await Promise.all([
-      a.run({ corpus, prompt: promptA, length, seed }),
-      b.run({ corpus, prompt: vary === "prompt" ? promptB : promptA, length, seed: vary === "seed" ? seedB : seed }),
-    ])
-    if (ra && rb) actions.logRun({ route: "playground", title: `Compared ${vary === "prompt" ? "two prompts" : "two seeds"}`, summary: ra.suggestion === rb.suggestion ? "identical suggestions" : "different suggestions", source: "model" }, ["bigram", "seed"])
+    const finished = await start(now)
+    if (finished) {
+      const [ra, rb] = finished.result
+      actions.logRun({ route: "playground", title: `Compared ${finished.config.vary === "prompt" ? "two prompts" : "two seeds"}`, summary: ra.suggestion === rb.suggestion ? "identical suggestions" : "different suggestions", source: "model" }, ["bigram", "seed"])
+    }
   }
 
-  const same = a.data && b.data ? a.data.suggestion === b.data.suggestion : undefined
-  const observation = a.data && b.data ? (
-    vary === "prompt" ? (
+  // Everything below describes the comparison that was actually run, in its own mode.
+  const done = run ? { cfg: run.config, a: run.result[0], b: run.result[1] } : null
+  const same = done ? done.a.suggestion === done.b.suggestion : undefined
+  const observation = done ? (
+    done.cfg.vary === "prompt" ? (
       <>
-        A ends in <Tok tone="context">{a.data.contextUsedLabel}</Tok>, B ends in <Tok tone="context">{b.data.contextUsedLabel}</Tok>, same seed {a.data.seed}.
+        A ends in <Tok tone="context">{done.a.contextUsedLabel}</Tok>, B ends in <Tok tone="context">{done.b.contextUsedLabel}</Tok>, same seed {done.a.seed}.
         The suggestions are <strong>{same ? "identical" : "different"}</strong>.
-        {a.data.contextUsed === b.data.contextUsed ? " The engine read the same single character, so it used the same row of counts and the same random draws." : " The engine read different characters, so it started from different rows of counts."}
+        {done.a.contextUsed === done.b.contextUsed ? " The engine read the same single character, so it used the same row of counts and the same random draws." : " The engine read different characters, so it started from different rows of counts."}
       </>
     ) : (
-      <>Same prompt, seeds {a.data.seed} and {b.data.seed}: the suggestions are <strong>{same ? "identical" : "different"}</strong>. {same ? "Different seeds can still give the same output by chance." : "A different seed gives different random draws."}</>
+      <>Same prompt, seeds {done.a.seed} and {done.b.seed}: the suggestions are <strong>{same ? "identical" : "different"}</strong>. {same ? "Different seeds can still give the same output by chance." : "A different seed gives different random draws."}</>
     )
   ) : undefined
+  // The guided cycle asks about the mode selected now; an old run in another mode cannot answer it.
+  const answers = !!done && !stale
 
   return (
     <>
       <Panel
         id="compare"
         title="Compare side by side"
-        source={a.data && <Source kind="model" detail={a.data.modelVersion} />}
+        source={done && <Source kind="model" detail={done.a.modelVersion} />}
         aside={<Segmented label="What differs" value={vary} onChange={setVary} options={[{ value: "prompt", label: "Prompt differs" }, { value: "seed", label: "Seed differs" }]} />}
+        teach={{
+          calc: done ? <p>Run A: prompt “{done.cfg.promptA}”, seed {done.cfg.seedA}, context {done.a.contextUsedLabel}. Run B: prompt “{done.cfg.promptB}”, seed {done.cfg.seedB}, context {done.b.contextUsedLabel}. A bigram run depends only on the context character, the seed, the length and the training text, so {done.cfg.vary === "prompt" ? (done.a.contextUsed === done.b.contextUsed ? "with the same context and seed the two runs must match." : "with different contexts the first rows differ.") : "with different seeds the draws differ."}</p> : undefined,
+        }}
       >
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {(["A", "B"] as const).map((side) => {
-            const r = side === "A" ? a : b
+            const data = done ? (side === "A" ? done.a : done.b) : undefined
             return (
               <div key={side} className="flex min-w-0 flex-col gap-2 rounded-md bg-raised p-4">
                 <div className="flex items-end gap-3">
@@ -387,19 +500,30 @@ function ComparePanel({ corpus, length, seed }: { corpus: string; length: number
                     <p className="num pb-2 text-sm text-muted-foreground">seed {seed}</p>
                   )}
                 </div>
-                {r.error ? <ErrorNote error={r.error} onRetry={compare} /> : r.loading ? <LoadingRows rows={1} /> : r.data ? (
-                  <p className="tok whitespace-pre-wrap break-words text-[14px] leading-6">
-                    <span className="text-muted-foreground">{withoutLastChar(r.data.prompt)}</span>
-                    <mark className="rounded-sm bg-context px-0.5 text-context-ink">{r.data.contextUsedLabel}</mark>
-                    <span className="rounded-sm bg-data-soft">{r.data.suggestion}</span>
-                  </p>
+                {error ? <ErrorNote error={error} onRetry={compare} /> : pending ? <LoadingRows rows={1} /> : data ? (
+                  <div className={cn(stale && "opacity-60")}>
+                    <p className="tok whitespace-pre-wrap break-words text-[14px] leading-6">
+                      <span className="text-muted-foreground">{withoutLastChar(data.prompt)}</span>
+                      <mark className="rounded-sm bg-context px-0.5 text-context-ink">{data.contextUsedLabel}</mark>
+                      <span className="rounded-sm bg-data-soft">{data.suggestion}</span>
+                    </p>
+                    <p className="text-[12px] text-muted-foreground">prompt “{data.prompt}”, seed {data.seed}</p>
+                  </div>
                 ) : <p className="text-sm text-muted-foreground">Not run yet.</p>}
               </div>
             )
           })}
         </div>
+        {done && (
+          <p className="mt-3 text-sm" data-testid="compare-settings">
+            These results are a <strong>{done.cfg.vary === "prompt" ? "different-prompt, same-seed" : "same-prompt, different-seed"}</strong> comparison: A “{done.cfg.promptA}” with seed {done.cfg.seedA}, B “{done.cfg.promptB}” with seed {done.cfg.seedB}.
+          </p>
+        )}
+        {done && stale && (
+          <div className="mt-2"><Note tone="warning">Settings changed since this comparison ({changed.join(", ")}). The results above still belong to the settings just named. Press Run both to compare with the new ones.</Note></div>
+        )}
         <div className="mt-4 flex flex-wrap items-center gap-3">
-          <Button onClick={compare} disabled={a.loading || b.loading}>Run both</Button>
+          <Button onClick={compare} disabled={!!pending}>Run both</Button>
           <p className="text-[13px] text-muted-foreground">Uses the training text and length set above; the seed is the one above unless seed B differs.</p>
         </div>
       </Panel>
@@ -409,8 +533,8 @@ function ComparePanel({ corpus, length, seed }: { corpus: string; length: number
         route="playground"
         question={vary === "prompt" ? `With the same seed, will “${promptA}” and “${promptB}” get the same suggestion?` : "With the same prompt, will seed A and seed B give the same suggestion?"}
         choices={[{ id: "same", label: "Identical suggestions" }, { id: "different", label: "Different suggestions" }]}
-        correct={same === undefined ? undefined : same ? "same" : "different"}
-        observation={observation}
+        correct={answers ? (same ? "same" : "different") : undefined}
+        observation={answers ? observation : undefined}
         explainPrompt="Why did that happen? Use what the engine actually reads."
         change={<>Change only prompt B so it ends in a different character, then run both again. Or switch to <em>Seed differs</em>.</>}
         hints={[

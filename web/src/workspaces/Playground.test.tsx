@@ -97,3 +97,30 @@ describe("Playground keeps emoji whole", () => {
     expect(editor().value).toBe("rain 🌧🌈")
   })
 })
+
+describe("comparison results keep the mode and settings that produced them", () => {
+  it("switching Prompt differs → Seed differs without rerunning does not relabel the old results", async () => {
+    generate.mockImplementation((b: { prompt: string; seed: number; length: number }) =>
+      Promise.resolve(fakeGeneration(b.prompt, ["x", "y"], { seed: b.seed, length: b.length })))
+    render(<Playground />)
+    await click(/^run both$/i)
+    const settings = () => screen.getByTestId("compare-settings").textContent
+    expect(settings()).toMatch(/different-prompt, same-seed/)
+    expect(screen.getByText(/A ends in/)).toBeTruthy() // the observation for this run
+
+    await act(async () => { fireEvent.click(screen.getByRole("radio", { name: /seed differs/i })) })
+    // Still described as what it was; marked stale; no same-prompt/different-seed reading of it.
+    expect(settings()).toMatch(/different-prompt, same-seed/)
+    expect(settings()).toContain("“The rain”")
+    expect(settings()).toContain("“Spain”")
+    expect(screen.getByText(/settings changed since this comparison \(what differs\)/i)).toBeTruthy()
+    expect(screen.queryByText(/Same prompt, seeds/)).toBeNull()
+    expect(screen.queryByText(/A ends in/)).toBeNull()
+    expect(generate).toHaveBeenCalledTimes(2)
+
+    await click(/^run both$/i)
+    expect(settings()).toMatch(/same-prompt, different-seed/)
+    expect(screen.queryByText(/settings changed since this comparison/i)).toBeNull()
+    expect(screen.getByText(/Same prompt, seeds 1 and 2/)).toBeTruthy()
+  })
+})

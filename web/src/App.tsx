@@ -10,6 +10,7 @@ import { useRoute } from "@/lib/hooks"
 
 const PAGES: Record<Route, ComponentType> = {
   home: lazy(() => import("@/workspaces/Home")),
+  journey: lazy(() => import("@/workspaces/Journey")),
   playground: lazy(() => import("@/workspaces/Playground")),
   data: lazy(() => import("@/workspaces/DataStudio")),
   counts: lazy(() => import("@/workspaces/Counts")),

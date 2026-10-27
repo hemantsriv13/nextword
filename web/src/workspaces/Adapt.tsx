@@ -11,6 +11,7 @@ import { Term } from "@/components/lab/glossary"
 import { GuidedCycle } from "@/components/lab/guide"
 import { EmptyNote, ErrorNote, Explain, ExplainSection, LoadingRows, Note, Panel, SliderField, Workspace } from "@/components/lab/layout"
 import { Source } from "@/components/lab/source"
+import { Symbols, Teach, WorkspaceGuide, type Guide } from "@/components/lab/teach"
 import { api, type Adaptation } from "@/lib/api"
 import { useCorpora } from "@/lib/corpora"
 import { fmt, useAsync } from "@/lib/hooks"
@@ -22,14 +23,69 @@ import { visible } from "@/sim/tokenize"
 
 type Tab = "stages" | "continued" | "retrieval"
 
+const GUIDE: Guide = {
+  question: "When a model needs new information, does it go into the weights, or into the prompt, and what does each route actually change?",
+  scope: "Three separate routes, not one pipeline. Continued training is real: your engine's counts change. Retrieval is a browser simulation using lexical search (BM25, matching words, not meanings). No generation model is connected, so the retrieval route ends at the assembled prompt; the Lab never writes an answer.",
+  sources: ["model", "simulation", "example"],
+  nodes: [
+    { id: "docs", label: "Documents", kind: "input", target: "docs", tab: "retrieval", carries: "text",
+      goesIn: "A few documents you can edit, kept only in this page.",
+      happens: "Nothing yet; they wait to be cut up.",
+      why: "Retrieval can only find what is in these documents.",
+      comesOut: "Whole documents.",
+      next: "They are cut into chunks." },
+    { id: "chunks", label: "Chunks", kind: "operation", target: "chunks", tab: "retrieval", carries: "passages",
+      goesIn: "The documents, a chunk size and an overlap, in words.",
+      happens: "Each document is cut into windows of that many words; each new window repeats the last few words of the previous one.",
+      why: "A prompt has limited room, so short passages are retrieved rather than whole documents. Overlap keeps a sentence on a boundary in one piece somewhere.",
+      comesOut: "Passages, each with a source id.",
+      next: "Each passage is scored against the question.",
+      tryIt: "Set overlap to 0 and size to 8: some sentences are cut in half." },
+    { id: "scores", label: "Retrieval scores", kind: "operation", target: "search", tab: "retrieval", carries: "a score each",
+      goesIn: "The question and every passage.",
+      happens: "BM25 adds up, for each question word a passage contains, a weight that is higher for rare words and saturates for repeated ones.",
+      why: "A passage that shares the question's distinctive words is likely about the same thing.",
+      comesOut: "One score per passage; 0 if it shares no word.",
+      next: "The best-scoring passages are kept.",
+      tryIt: "Ask with a synonym that isn't in the documents: lexical search finds nothing." },
+    { id: "ranked", label: "Ranked evidence", kind: "operation", target: "search", tab: "retrieval", carries: "top passages",
+      goesIn: "The scores.",
+      happens: "Passages are sorted by score; the top few with a score above 0 are kept.",
+      why: "Only the most relevant evidence should take up room in the prompt.",
+      comesOut: "The passages to include, with their ids.",
+      next: "They are placed into the prompt." },
+    { id: "prompt", label: "Assembled prompt", kind: "output", target: "prompt", tab: "retrieval",
+      goesIn: "The question and the kept passages.",
+      happens: "They are written into one prompt, each passage labelled with its source id, with an instruction to answer from them.",
+      why: "The model can only use evidence that is in its prompt. Nothing about its weights changes.",
+      comesOut: "The text a generation model would receive.",
+      next: "Here, nothing: no generation model is connected, so the route stops at this prompt." },
+  ],
+  tour: [
+    { target: "stages", tab: "stages", title: "Two places information can live", plain: <><p>Training changes a model's weights: for your engine, its counts. A prompt changes only what the model reads for one request. Retrieval is a way of choosing what goes into that prompt.</p></>,
+      terms: [{ id: "prompt-vs-weights", role: "the difference this tab is about." }, { id: "continued-training", role: "changing the weights with more text." }] },
+    { target: "ct", tab: "continued", title: "Change the weights: add text to the counts", plain: <><p>Press Continue training. Your engine counts the new text and adds those counts to the base text's counts. That is your engine's version of training on more data: the change stays after the request ends.</p></>,
+      terms: [{ id: "continued-training", role: "new counts added to old." }, { id: "forgetting", role: "what can happen to the old material's score." }] },
+    { target: "ct-dist", tab: "continued", missing: "This view appears after you press Continue training in the panel above.", title: "Before and after, for one character", plain: <><p>The row for the watched character, before and after. Its probabilities shifted toward what follows it in the new text. The held-out losses show the cost: better on the new material, often worse on the old.</p></> },
+    { target: "chunks", tab: "retrieval", title: "Change the prompt instead: retrieval", plain: <><p>Retrieval leaves the model untouched. The documents are cut into short passages, so that the most relevant few can be put into a prompt.</p></>,
+      terms: [{ id: "chunking", role: "cutting documents into passages." }, { id: "rag", role: "retrieval that fills the prompt." }] },
+    { target: "search", tab: "retrieval", title: "Score and rank the passages", plain: <><p>Each passage gets a score for how many of the question's words it shares, weighted so that rare words count more. This is lexical search: it matches words, not meanings.</p></>,
+      terms: [{ id: "lexical-search", role: "word matching with BM25." }, { id: "semantic-search", role: "matching meanings with embeddings: not built here." }] },
+    { target: "prompt", tab: "retrieval", title: "The prompt is where this route ends", plain: <><p>The best passages are written into a prompt with their source ids. A generation model would read this and answer from it. None is connected, so the Lab stops here rather than invent an answer.</p></>,
+      terms: [{ id: "grounding", role: "answering from the passages, citing their ids." }] },
+  ],
+}
+
 export default function Adapt() {
   const [tab, setTab] = useState<Tab>("stages")
   return (
+    <Teach guide={GUIDE} onStep={(where) => where.tab && setTab(where.tab as Tab)}>
     <Workspace
       title="Adaptation and retrieval"
       subtitle="Two ways new information reaches a model: training changes its weights, retrieval puts text in its prompt."
       explain={<AdaptExplain tab={tab} />}
     >
+      <WorkspaceGuide />
       <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
         <TabsList className="h-auto flex-wrap justify-start">
           <TabsTrigger value="stages">Training stages</TabsTrigger>
@@ -41,6 +97,7 @@ export default function Adapt() {
         <TabsContent value="retrieval" className="mt-6 flex flex-col gap-6"><RetrievalTab /></TabsContent>
       </Tabs>
     </Workspace>
+    </Teach>
   )
 }
 
@@ -145,6 +202,8 @@ function ContinuedTab() {
   const [context, setContext] = useState("e")
   const res = useAsync(api.adapt)
   const r = res.data
+  const [ran, setRan] = useState<{ base: string; extra: string; context: string } | null>(null)
+  const changedInputs = ran && r ? [ran.base !== base && "base text", ran.extra !== extra && "new text", ran.context !== context && "watched character"].filter(Boolean) as string[] : []
   const valid = extra.length >= 10 && Array.from(context).length === 1
   const change = (x?: { before: number | null; after: number | null }) => x && x.before !== null && x.after !== null ? x.after - x.before : null
   const baseChange = change(r?.baseHeldOutNll)
@@ -152,7 +211,16 @@ function ContinuedTab() {
 
   return (
     <>
-      <Panel id="ct" title="Add a second text to your engine's counts" source={<Source kind="model" detail="nextword/lab/service.py adapt()" />}>
+      <Panel id="ct" title="Add a second text to your engine's counts" source={<Source kind="model" detail="nextword/lab/service.py adapt()" />}
+        teach={{
+          calc: r && ran ? <Symbols rows={[
+            ["base pairs", "pairs counted from the first 80% of the base text", fmt.n(r.basePairs)],
+            ["new pairs", "pairs counted from the first 80% of the new text", fmt.n(r.extraPairs)],
+            ["after", "count(a → b) = base count + new count, for every pair", fmt.n(r.basePairs + r.extraPairs)],
+            ["watched", "the row shown below", `“${r.context}”`],
+          ]} /> : <p>Press Continue training; the counts of that run appear here.</p>,
+          code: <EngineCode path="nextword/lab/service.py" symbol="adapt" />,
+        }}>
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
@@ -173,15 +241,22 @@ function ContinuedTab() {
             <p className="text-[13px] text-muted-foreground">The first 80% of each text is counted; the last 20% of each is held out to measure the effect.</p>
           </div>
         </div>
-        <Button className="mt-4" disabled={!valid || res.loading} onClick={async () => { const out = await res.run({ base, extraText: extra, context }); if (out) actions.logRun({ route: "adapt", title: "Continued training", summary: `watched “${visible(context)}”`, source: "model" }, ["continued-training", "forgetting"]) }}>
+        <Button className="mt-4" disabled={!valid || res.loading} onClick={async () => { const cfg = { base, extra, context }; const out = await res.run({ base, extraText: extra, context }); if (out) { setRan(cfg); actions.logRun({ route: "adapt", title: "Continued training", summary: `watched “${visible(context)}”`, source: "model" }, ["continued-training", "forgetting"]) } }}>
           {res.loading ? "Counting…" : "Continue training"}
         </Button>
+        {changedInputs.length > 0 && <div className="mt-3"><Note tone="warning">You changed the {changedInputs.join(", ")} since this run. The results below still belong to the earlier inputs. Press Continue training to recount.</Note></div>}
       </Panel>
       {res.error && <ErrorNote error={res.error} />}
       {res.loading && !r && <LoadingRows rows={4} />}
       {r && (
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-          <Panel id="ct-dist" title={`Row for “${r.context}”, before and after`} source={<Source kind="model" />}>
+          <Panel id="ct-dist" title={`Row for “${r.context}”, before and after`} source={<Source kind="model" />}
+            teach={{
+              calc: r.before && r.after ? <Symbols rows={r.after.candidates.slice(0, 5).map((c) => {
+                const b = r.before!.candidates.find((x) => x.token === c.token)
+                return [`P(${c.label} | ${r.context})`, `before ${b ? `${b.count} ÷ ${r.before!.total}` : "never seen"}; after ${c.count} ÷ ${r.after!.total}`, `${b ? b.p.toFixed(3) : "0"} → ${c.p.toFixed(3)}`] as [string, string, string]
+              })} /> : <p>The watched character has no counts in one of the texts.</p>,
+            }}>
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <DistRow d={r.before} other={null} label="Base only" />
               <DistRow d={r.after} other={r.before} label="Base + new text" />
@@ -272,7 +347,16 @@ function RetrievalTab() {
         </ul>
       </Panel>
 
-      <Panel id="chunks" title="Chunks" source={<Source kind="simulation" detail={`${chunks.length} chunks`} />}>
+      <Panel id="chunks" title="Chunks" source={<Source kind="simulation" detail={`${chunks.length} chunks`} />}
+        teach={{
+          calc: <Symbols rows={[
+            ["size", "words per chunk", String(size)],
+            ["overlap", "words repeated from the previous chunk", String(ov)],
+            ["step", "size − overlap: how far each new chunk moves", String(size - ov)],
+            ["chunks", `from ${docs.length} documents`, String(chunks.length)],
+          ]} />,
+          code: <SimCode path="web/src/sim/rag.ts" symbol="chunkDoc" text={ragSource} />,
+        }}>
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
           <SliderField id="csize" label="Chunk size" value={size} min={6} max={80} step={1} onChange={setSize} format={(v) => `${v} words`} />
           <SliderField id="cover" label="Overlap" value={ov} min={0} max={Math.max(0, size - 1)} step={1} onChange={setOverlap} format={(v) => `${v} words`} hint="Words repeated at the start of the next chunk, so a fact on a boundary survives." />
@@ -289,7 +373,15 @@ function RetrievalTab() {
       </Panel>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <Panel id="search" title="Search" source={<Source kind="simulation" detail="lexical search (BM25), not embeddings" />}>
+        <Panel id="search" title="Search" source={<Source kind="simulation" detail="lexical search (BM25), not embeddings" />}
+          teach={{
+            calc: <><Symbols rows={[
+              ["question words", "after dropping common words", qTerms.join(", ") || "none"],
+              ...ranked.slice(0, 3).map((x) => [x.chunk.id, `matched ${x.matched.join(", ") || "nothing"}`, x.score.toFixed(3)] as [string, string, string]),
+              ["kept", `the top ${topK} with a score above 0`, hits.map((h) => h.chunk.id).join(", ") || "none"],
+            ]} /><p>Each matched word adds more when it is rare across the chunks and less each further time it repeats inside one chunk; longer chunks are scored down slightly.</p></>,
+            code: <SimCode path="web/src/sim/rag.ts" symbol="bm25" text={ragSource} />,
+          }}>
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
               <label htmlFor="q" className="text-sm font-medium">Question</label>
@@ -314,6 +406,10 @@ function RetrievalTab() {
           </div>
         </Panel>
         <Panel id="prompt" title="Assembled prompt" source={<Source kind="simulation" />}
+          teach={{
+            calc: <p>The prompt holds the question and {hits.length} {hits.length === 1 ? "passage" : "passages"} ({hits.map((h) => h.chunk.id).join(", ") || "none"}), {prompt.length.toLocaleString("en-US")} characters in all. This is where the route ends here: no model reads it.</p>,
+            code: <SimCode path="web/src/sim/rag.ts" symbol="assemblePrompt" text={ragSource} />,
+          }}
           aside={<Button variant="outline" size="sm" onClick={async () => { await navigator.clipboard?.writeText(prompt); setCopied(true); setTimeout(() => setCopied(false), 1500); actions.logRun({ route: "adapt", title: "Assembled a RAG prompt", summary: `${hits.length} passages`, source: "simulation" }, ["rag", "lexical-search", "grounding"]) }}>{copied ? <CheckIcon className="size-4" /> : <CopyIcon className="size-4" />} {copied ? "Copied" : "Copy"}</Button>}>
           <pre className="tok max-h-96 overflow-auto whitespace-pre-wrap rounded-md bg-raised p-3 text-[12.5px] leading-relaxed">{prompt}</pre>
           <p className="mt-3 text-[13px] text-muted-foreground">Each passage carries its source id, so an answer can cite it and a reader can check it. A citation still has to be checked: the model may cite a passage that doesn&apos;t support the claim.</p>

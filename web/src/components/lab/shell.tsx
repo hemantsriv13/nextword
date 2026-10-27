@@ -1,7 +1,7 @@
 import { useEffect, useState, type ComponentType, type ReactNode, type SVGProps } from "react"
 import {
   BookIcon, CollapseIcon, DatabaseIcon, DiceThreeIcon, EditPencilIcon, ExpandIcon, EyeIcon, GitForkIcon, GraphUpIcon,
-  HalfMoonIcon, HomeIcon, JournalIcon, MenuIcon, NetworkIcon, SearchIcon, ServerIcon, SidebarCollapseIcon, SidebarExpandIcon, SunLightIcon, TableIcon, WarningTriangleIcon,
+  HalfMoonIcon, HomeIcon, PathArrowIcon, JournalIcon, MenuIcon, NetworkIcon, SearchIcon, ServerIcon, SidebarCollapseIcon, SidebarExpandIcon, SunLightIcon, TableIcon, WarningTriangleIcon,
 } from "@/components/icons"
 import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
@@ -22,12 +22,12 @@ import { useFocusMode } from "./shell-state"
 type IconType = ComponentType<SVGProps<SVGSVGElement>>
 
 const ICONS: Record<Route, IconType> = {
-  home: HomeIcon, playground: EditPencilIcon, data: DatabaseIcon, counts: TableIcon, neural: NetworkIcon, attention: EyeIcon,
+  home: HomeIcon, journey: PathArrowIcon, playground: EditPencilIcon, data: DatabaseIcon, counts: TableIcon, neural: NetworkIcon, attention: EyeIcon,
   decoding: DiceThreeIcon, evaluation: GraphUpIcon, serving: ServerIcon, adapt: GitForkIcon, glossary: BookIcon, notebook: JournalIcon,
 }
 
 const GROUPS: { id: string; label: string; routes: Route[] }[] = [
-  { id: "write", label: "Write", routes: ["home", "playground"] },
+  { id: "write", label: "Write", routes: ["home", "journey", "playground"] },
   { id: "engine", label: "Text and counts", routes: ["data", "counts"] },
   { id: "neural", label: "Neural models", routes: ["neural", "attention", "decoding"] },
   { id: "measure", label: "Measure and apply", routes: ["evaluation", "serving", "adapt"] },

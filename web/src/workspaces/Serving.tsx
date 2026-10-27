@@ -7,18 +7,74 @@ import { EvidenceRecorder } from "@/components/lab/evidence"
 import { Term } from "@/components/lab/glossary"
 import { EmptyNote, ErrorNote, Explain, ExplainSection, LoadingRows, Note, NumberField, Panel, SliderField, Workspace } from "@/components/lab/layout"
 import { Source } from "@/components/lab/source"
+import { Symbols, Teach, WorkspaceGuide, type Guide } from "@/components/lab/teach"
 import { api, type Benchmark, type Generation } from "@/lib/api"
 import { fmt, useAsync, usePrefersReducedMotion } from "@/lib/hooks"
 import { actions } from "@/lib/store"
 import { cn } from "@/lib/utils"
 
+const GUIDE: Guide = {
+  question: "What happens between pressing a button and seeing a suggestion, and where does the time go?",
+  scope: "The request lifecycle and the benchmark are real requests to your Python engine, timed on your machine. Batching, streaming, the KV cache and quantization are separate demonstrations: batching uses stated, made-up costs, streaming replays a real trace, and the last two are worked examples.",
+  sources: ["model", "simulation", "example"],
+  nodes: [
+    { id: "input", label: "Browser input", kind: "input", target: "life", carries: "JSON request",
+      goesIn: "Your prompt, plus a fixed length (40) and seed (1).",
+      happens: "The page sends them to the local backend as a JSON request, and starts a timer.",
+      why: "The engine runs in Python; the page can only ask it over HTTP.",
+      comesOut: "One HTTP request to /api/generate.",
+      next: "The backend checks it." },
+    { id: "validate", label: "Validation", kind: "operation", target: "life", carries: "checked settings",
+      goesIn: "The parsed request.",
+      happens: "The prompt, length and seed are checked; a bad value is refused with a message.",
+      why: "A clear refusal is better than a crash or a silent wrong answer.",
+      comesOut: "Settings the engine can use. Timed separately.",
+      next: "The count table is fetched." },
+    { id: "counts", label: "Count table", kind: "operation", target: "life", carries: "counts",
+      goesIn: "The training text's id.",
+      happens: "The first request counts the text; later ones reuse the table from a cache, checked by the text's fingerprint.",
+      why: "Counting is the slowest part, and its result doesn't change unless the text does.",
+      comesOut: "The count table. Timed separately.",
+      next: "Generation uses it.",
+      tryIt: "Send two requests: the second one's counting time drops to almost nothing." },
+    { id: "generate", label: "Generation", kind: "operation", target: "life", carries: "a trace",
+      goesIn: "The counts, the prompt's last character, the length and the seeded generator.",
+      happens: "40 times: look up a row, divide, draw, append.",
+      why: "This is the model itself running, called inference.",
+      comesOut: "The suggestion and one step record per character. Lookups and draws are timed together, as one stage.",
+      next: "The steps are formatted." },
+    { id: "response", label: "Response", kind: "output", target: "life",
+      goesIn: "The steps.",
+      happens: "They are turned into the trace the page shows, then sent back as JSON.",
+      why: "The page needs both the text and the explanation of it.",
+      comesOut: "The response. Formatting is timed; JSON encoding, the network and the browser's decoding are not timed one by one, only as the remainder of the round trip.",
+      next: "The page displays it and stops its timer." },
+  ],
+  tour: [
+    { target: "life", title: "One real request, timed", plain: <><p>Press Send a request. Each box is one stage between your input and the response, with how long it took in milliseconds (ms): thousandths of a second.</p><p>Some stages are timed separately inside Python; generation's lookups and draws are timed as one; the last box is simply the round trip minus everything measured inside the backend.</p></>,
+      terms: [{ id: "api", role: "the request the page sends." }, { id: "latency", role: "the time from request to response." }, { id: "caching", role: "reusing the count table." }] },
+    { target: "bench", title: "Many requests: a spread, not one number", plain: <><p>The benchmark repeats the request many times inside the backend. The median (p50) is a typical time; p95 is the time 95% of requests stay under. One request alone can't tell you either.</p></>,
+      terms: [{ id: "throughput", role: "requests per second." }] },
+    { target: "batch", title: "Batching, as a simulation", plain: <><p>Grouping requests shares a fixed cost per batch but makes early requests wait. The costs here are stated, made-up numbers; your engine does not batch.</p></>,
+      terms: [{ id: "serving-batch", role: "grouping requests to share cost." }] },
+    { target: "stream", title: "Streaming: same total, earlier first character", plain: <><p>Streaming sends each character as soon as it is ready, so the first one appears much sooner, while the whole answer takes as long as before. This replays a real trace at a fixed, made-up speed.</p></>,
+      terms: [{ id: "streaming", role: "sending output as it is produced." }] },
+    { target: "kv", title: "KV cache: counting work saved", plain: <><p>A transformer would recompute keys and values for every earlier position at each step. Caching them turns that repeated work into one new computation per step. The counts here are a worked example; your engine has no attention.</p></>,
+      terms: [{ id: "kv-cache", role: "keeping keys and values from earlier steps." }] },
+    { target: "quant", title: "Quantization: fewer bits per weight", plain: <><p>Storing weights with fewer bits saves memory, at the cost of rounding each weight to a nearby value. The errors are shown on eight example weights.</p></>,
+      terms: [{ id: "quantization", role: "rounding weights to fewer bits." }] },
+  ],
+}
+
 export default function Serving() {
   return (
+    <Teach guide={GUIDE}>
     <Workspace
       title="Serving and performance"
       subtitle="What happens between pressing Suggest and seeing text, measured on your own machine where the Lab can measure it."
       explain={<ServingExplain />}
     >
+      <WorkspaceGuide />
       <Lifecycle />
       <BenchmarkPanel />
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
@@ -30,6 +86,7 @@ export default function Serving() {
         <Quantization />
       </div>
     </Workspace>
+    </Teach>
   )
 }
 
@@ -61,16 +118,25 @@ function Lifecycle() {
 
   const t = last?.gen.timingsMs
   const stages = last && t ? [
-    { name: "Browser input", detail: `“${last.gen.prompt}”, 40 chars, seed 1`, ms: null as number | null },
-    { name: "Request validation", detail: "prompt, length and seed checked", ms: t.validate },
-    { name: "Tokenization and counting", detail: t.countCacheHit ? "count table reused from cache" : "text tokenized and counted", ms: t.count },
-    { name: "Inference and decoding", detail: `${last.gen.steps.length} lookups and draws, measured together`, ms: t.generate },
-    { name: "Response", detail: "trace formatted as JSON", ms: t.format },
-    { name: "Network and browser", detail: "round trip minus time inside the backend", ms: Math.max(0, last.roundTrip - t.total) },
+    { name: "Browser input", detail: `“${last.gen.prompt}”, 40 chars, seed 1`, ms: null as number | null, how: "not timed: the timer starts as the request is sent" },
+    { name: "Request validation", detail: "prompt, length and seed checked", ms: t.validate, how: "timed separately in Python" },
+    { name: "Tokenization and counting", detail: t.countCacheHit ? "count table reused from cache" : "text tokenized and counted", ms: t.count, how: "timed separately in Python" },
+    { name: "Inference and decoding", detail: `${last.gen.steps.length} lookups and draws`, ms: t.generate, how: "lookups and draws timed together" },
+    { name: "Response", detail: "trace built for the page", ms: t.format, how: "timed separately in Python" },
+    { name: "Network and browser", detail: "HTTP, JSON encoding and decoding, the browser", ms: Math.max(0, last.roundTrip - t.total), how: "not timed directly: round trip minus the Python total" },
   ] : []
 
   return (
     <Panel id="life" title="One request, step by step" source={<Source kind="model" detail="measured with perf_counter and performance.now" />}
+      teach={{
+        calc: last && t ? <><Symbols rows={[
+          ["round trip", "browser clock, from sending to receiving", fmt.ms(last.roundTrip)],
+          ["Python total", "from the start of generate() in the backend to its return", fmt.ms(t.total)],
+          ["parts", `${fmt.ms(t.validate)} + ${fmt.ms(t.count)} + ${fmt.ms(t.generate)} + ${fmt.ms(t.format)}`, fmt.ms(t.validate + t.count + t.generate + t.format)],
+          ["remainder", "round trip − Python total: network, HTTP parsing, JSON and the browser", fmt.ms(Math.max(0, last.roundTrip - t.total))],
+        ]} /><p>1 ms is a thousandth of a second. The Python clock starts after the request has been read and parsed, so that work is part of the remainder, not of any Python stage.</p></> : <p>Send a request; its timings appear here.</p>,
+        code: <EngineCode path="nextword/lab/service.py" symbol="generate" />,
+      }}
       aside={<Button onClick={send} disabled={busy || !prompt}><PlayIcon className="size-4" /> {busy ? "Sending…" : "Send a request"}</Button>}>
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-2 sm:max-w-sm">
@@ -87,6 +153,7 @@ function Lifecycle() {
                     <p className="text-sm font-medium">{s.name}</p>
                     <p className="text-[13px] text-muted-foreground">{s.detail}</p>
                     <p className="num mt-1 text-sm">{s.ms === null ? "–" : fmt.ms(s.ms)}</p>
+                    <p className="mt-0.5 text-[12px] text-muted-foreground">{s.how}</p>
                   </div>
                   {i < stages.length - 1 && <NavArrowRightIcon className="mx-0.5 hidden size-4 flex-none text-muted-foreground lg:block" />}
                 </li>

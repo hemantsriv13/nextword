@@ -10,6 +10,7 @@ import { Term } from "@/components/lab/glossary"
 import { GuidedCycle } from "@/components/lab/guide"
 import { EmptyNote, ErrorNote, Explain, ExplainSection, LoadingRows, Note, Panel, Segmented, SliderField, Workspace } from "@/components/lab/layout"
 import { Source } from "@/components/lab/source"
+import { Symbols, Teach, WorkspaceGuide, type Guide } from "@/components/lab/teach"
 import { api, type Evaluation as EvalResult } from "@/lib/api"
 import { useCorpora } from "@/lib/corpora"
 import { changedSettings, describeConfig, rerunVerdict, sameConfig, splitProblem, testShare, useSnapshotRun, type EvalConfig, type Snapshot } from "@/lib/evaluation"
@@ -22,6 +23,64 @@ type Measured = Snapshot<Config, EvalResult>
 
 function summarise(r: EvalResult): SavedExperiment["result"] {
   return { targets: r.targets, meanNll: r.meanNll, meanNllCovered: r.meanNllCovered, perplexity: r.perplexity, unseenContext: r.unseenContext, unseenPair: r.unseenPair, covered: r.covered, modelVersion: r.modelVersion, corpusFingerprint: r.corpusFingerprint }
+}
+
+const MISSING = "This view appears after a measurement. Press Measure on validation in the settings panel (it only reads your engine's counts, nothing random), then press Next or Back to return here."
+
+const GUIDE: Guide = {
+  question: "How good is your engine at predicting text it has never counted, and when is one score really better than another?",
+  scope: "Every number is from your Python engine. The training part is counted by the engine itself; the held-out part is scored with those counts. Smoothing with k above 0 is a Lab-side variant of the engine for scoring only; with k = 0 the scoring is exactly the engine as implemented.",
+  sources: ["model"],
+  nodes: [
+    { id: "split", label: "Split the text", kind: "input", target: "config", carries: "three parts",
+      goesIn: "A training text and the shares for training, validation and test.",
+      happens: "The text is cut into three consecutive parts, in that order.",
+      why: "A model must be scored on text it did not learn from, or the score only measures memory.",
+      comesOut: "A training part, a validation part and a test part.",
+      next: "Only the training part is counted." },
+    { id: "count", label: "Count the training part", kind: "operation", target: "config", carries: "counts",
+      goesIn: "The training part.",
+      happens: "Your engine's count_bigrams, on that part only.",
+      why: "The validation and test parts must stay unseen.",
+      comesOut: "A count table that knows nothing about the held-out text.",
+      next: "Each held-out pair is scored with it." },
+    { id: "score", label: "Score each next character", kind: "operation", target: "examples", carries: "one probability each",
+      goesIn: "Every neighbouring pair in the held-out part: the current character, and the character that really came next.",
+      happens: "The probability the counts give to the character that really came next is looked up.",
+      why: "The prediction being scored is “what comes next?”. The character that actually came next is the right answer, so its probability is the model's credit.",
+      comesOut: "One probability per held-out pair.",
+      next: "Each becomes a loss: −log p." },
+    { id: "loss", label: "−log p, then the average", kind: "operation", target: "summary", carries: "one number",
+      goesIn: "The probabilities.",
+      happens: "Each is turned into −log p (0 when p = 1, large when p is small, infinite when p = 0) and the results are averaged.",
+      why: "Logs turn the product of many probabilities into a sum, and the average makes texts of different lengths comparable.",
+      comesOut: "Mean negative log-likelihood, in nats, and perplexity = e to that power.",
+      next: "It is compared: with the uniform baseline, with other k, with a saved run." },
+    { id: "compare", label: "Compare fairly", kind: "operation", target: "ablation", carries: "a choice of k",
+      goesIn: "Several runs that differ in one setting.",
+      happens: "The smoothing sweep changes only k and scores every run on validation.",
+      why: "Changing one thing at a time is what makes a difference attributable to it.",
+      comesOut: "The k with the lowest validation loss.",
+      next: "One final check on the test part." },
+    { id: "test", label: "Final test check", kind: "output", target: "config",
+      goesIn: "The chosen settings.",
+      happens: "The same scoring, once, on the test part.",
+      why: "Validation was used to choose k, so its score is now slightly optimistic. The untouched test part gives an independent estimate.",
+      comesOut: "The number you report.",
+      next: "Nothing: tuning again after looking at it would use up its independence." },
+  ],
+  tour: [
+    { target: "config", title: "Three parts of one text", plain: <><p>The text is cut into training, validation and test parts, in order. Your engine counts only the training part. The other two are text it has never seen.</p><p>Validation is for trying settings. Test is for one final check, after the settings are chosen.</p></>,
+      terms: [{ id: "split", role: "training, validation and test parts." }] },
+    { target: "examples", missing: MISSING, title: "Score the character that really came next", plain: <><p>For every pair in the held-out part, the engine is asked: after this character, how likely is the character that actually followed? That probability is the model's credit for this one prediction.</p><p>Its loss is −log p: 0 for a certain, correct prediction, larger the less probability it gave. A pair it never saw in training gets p = 0 and an infinite loss unless smoothing is on.</p></>,
+      terms: [{ id: "loss", role: "−log p for one prediction." }, { id: "error-analysis", role: "reading the worst predictions." }] },
+    { target: "summary", missing: MISSING, title: "From many losses to one number", plain: <><p>The losses of all held-out predictions are averaged. That mean is in nats. Perplexity is e raised to it: roughly, how many characters the model is as unsure as if it picked uniformly among that many.</p><p>Compare it with the uniform baseline, a model that knows nothing. Comparisons are only fair on the same text, the same split and the same tokenizer.</p></>,
+      terms: [{ id: "cross-entropy", role: "the mean −log p." }, { id: "perplexity", role: "e to the mean loss." }, { id: "baseline", role: "the uniform guess to beat." }] },
+    { target: "ablation", title: "Change one thing: k", plain: <><p>The sweep changes only the smoothing strength k and scores each run on validation. The lowest validation loss suggests a k.</p><p>Choosing k by looking at validation makes that score a little optimistic, which is why the test part is kept for one final check.</p></>,
+      terms: [{ id: "ablation", role: "only k varies." }, { id: "smoothing", role: "the setting being chosen." }] },
+    { target: "saved", title: "Keep results with their settings", plain: <><p>Saved runs keep the exact settings and text fingerprint they were measured with. Rerun one to check it reproduces: the same text and settings must give the same number.</p></>,
+      terms: [{ id: "reproducibility", role: "same inputs, same result." }] },
+  ],
 }
 
 export default function Evaluation() {
@@ -45,11 +104,13 @@ export default function Evaluation() {
   const runK = measured?.config.k
 
   return (
+    <Teach guide={GUIDE}>
     <Workspace
       title="Evaluation bench"
       subtitle="Measure your engine on text it never counted. Every number comes from your Python engine."
       explain={<EvalExplain />}
     >
+      <WorkspaceGuide />
       <Panel id="config" title="Experiment settings" source={<Source kind="model" detail="nextword/lab/service.py evaluate()" />}
         aside={<Button onClick={() => run()} disabled={!!problem || !!bench.pending}><PlayIcon className="size-4" /> {bench.pending ? "Measuring…" : config.on === "test" ? "Run the final test check" : "Measure on validation"}</Button>}>
         <div className="grid grid-cols-1 gap-x-8 gap-y-5 md:grid-cols-2 xl:grid-cols-3">
@@ -93,6 +154,41 @@ export default function Evaluation() {
         hints={["−log(0) is infinite.", "An average that includes an infinite term is infinite."]}
       />
     </Workspace>
+    </Teach>
+  )
+}
+
+/** The scoring formula for one example, with the formula this run actually used. */
+function ExampleCalc({ run }: { run: Measured }) {
+  const r = run.result
+  const e = r.examples.find((x) => x.nll !== null) ?? r.examples[0]
+  const k = run.config.k
+  if (!e) return <p>No examples were scored.</p>
+  return (
+    <>
+      <Symbols rows={[
+        ["context", "the current character in the held-out text", e.context],
+        ["target", "the character that really came next: the right answer", e.target],
+        ["p", k === 0 ? "count(context → target) ÷ total(context), from the training part only" : `(count + ${k}) ÷ (total + ${k} × ${r.vocabularyWithUnknown}), add-k smoothing`, e.p.toFixed(4)],
+        ["loss", `−log(${e.p.toFixed(4)})`, e.nll === null ? "∞" : e.nll.toFixed(4)],
+      ]} />
+      <p>This is the first scored pair of the run ({describeConfig(run.config)}). {k === 0 ? "With k = 0 the engine's own division is used, so an unseen pair has p = 0." : `With k = ${k} every pair gets at least ${k} ÷ (total + ${k} × ${r.vocabularyWithUnknown}), so no loss is infinite.`}</p>
+    </>
+  )
+}
+
+function SummaryCalc({ run, label }: { run: Measured; label: string }) {
+  const r = run.result
+  return (
+    <>
+      <Symbols rows={[
+        ["N", "held-out predictions scored", fmt.n(r.targets)],
+        ["mean loss", "(1 ÷ N) × the sum of −log p over all of them", r.meanNll === null ? `∞ (${r.targets - r.covered} had p = 0)` : `${r.meanNll.toFixed(4)} nats`],
+        ["perplexity", "e to the mean loss", r.perplexity === null ? "undefined" : r.perplexity.toFixed(3)],
+        ["baseline", `−log(1 ÷ ${r.vocabularyWithUnknown}): a uniform guess over ${r.vocabularyWithUnknown} characters`, `${r.uniformBaselineNll.toFixed(4)} nats`],
+      ]} />
+      <p>For {label}. A lower loss is better, but only against runs on the same text, the same split and the same character tokens; a different tokenizer changes N and the meaning of one prediction.</p>
+    </>
   )
 }
 
@@ -110,7 +206,11 @@ function Results({ run, stale, changed, corpusName }: { run: Measured; stale: bo
   }, [r, sort])
   return (
     <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-      <Panel id="summary" title={`Held-out loss on ${config.on === "val" ? "validation" : "test"}`} source={<Source kind="model" detail={r.modelVersion} />}>
+      <Panel id="summary" title={`Held-out loss on ${config.on === "val" ? "validation" : "test"}`} source={<Source kind="model" detail={r.modelVersion} />}
+        teach={{
+          calc: <SummaryCalc run={run} label={label} />,
+          code: <EngineCode path="nextword/lab/service.py" symbol="evaluate" />,
+        }}>
         <p className="mb-4 text-sm" data-testid="result-settings">For: {label}</p>
         {stale && (
           <div className="mb-4"><Note tone="warning">Settings changed since this run ({changed.join(", ")}). These numbers still belong to the settings above. Measure again to see the new ones.</Note></div>
@@ -140,7 +240,8 @@ function Results({ run, stale, changed, corpusName }: { run: Measured; stale: bo
           <Button className="self-start" variant="outline" onClick={() => { actions.saveExperiment({ name: name || `k ${config.k}, ${config.on}`, config, result: summarise(r), notes }); setName(""); setNotes("") }}>Save run</Button>
         </div>
       </Panel>
-      <Panel id="examples" title="Per-example loss" source={<Source kind="model" />} aside={<Segmented label="Order" value={sort} onChange={setSort} options={[{ value: "worst", label: "Worst first" }, { value: "order", label: "Text order" }]} />}>
+      <Panel id="examples" title="Per-example loss" source={<Source kind="model" />}
+        teach={{ calc: <ExampleCalc run={run} />, code: <EngineCode path="nextword/lab/service.py" symbol="evaluate" /> }} aside={<Segmented label="Order" value={sort} onChange={setSort} options={[{ value: "worst", label: "Worst first" }, { value: "order", label: "Text order" }]} />}>
         <p className="mb-3 text-sm text-muted-foreground"><Term id="error-analysis">Error analysis</Term> starts here: which characters surprised the engine most, and why.</p>
         <div className="max-h-[480px] overflow-auto rounded-md border border-border">
           <table className="w-full text-sm">
@@ -206,7 +307,14 @@ function Ablation({ config, corpusName }: { config: Config; corpusName: (id: str
   }
   const moved = !!sweep && (sweep.config.corpus !== config.corpus || sweep.config.train !== config.train || sweep.config.val !== config.val)
   return (
-    <Panel id="ablation" title="Controlled ablation: only k changes" source={<Source kind="model" detail={`${SWEEP.length} runs of your engine, on validation`} />}
+    <Panel id="ablation" title="Controlled ablation: only k changes"
+      teach={{
+        calc: sweep && best && sweep.done ? <Symbols rows={[
+          ["held fixed", "everything except k", fixed(sweep.config)],
+          ...sweep.points.map((pt) => [`k = ${pt.k}`, "mean validation loss", pt.nll === null ? "∞" : pt.nll.toFixed(4)] as [string, string, string]),
+          ["lowest", "the k this sweep suggests", `k = ${best.k}`],
+        ]} /> : <p>Run the sweep; its numbers and the settings it held fixed appear here.</p>,
+      }} source={<Source kind="model" detail={`${SWEEP.length} runs of your engine, on validation`} />}
       aside={<Button variant="outline" onClick={start} disabled={running || !!problem}><RefreshDoubleIcon className="size-4" /> {running ? `Running ${sweep!.points.length} of ${SWEEP.length}…` : "Run the k sweep on validation"}</Button>}>
       <p className="text-sm">Varies smoothing k over {SWEEP.join(", ")} and keeps everything else fixed. It always scores on the validation part, whatever “Measure on” is set to, because choosing k with test results would make the test part of tuning.</p>
       {problem && <p role="alert" className="mt-2 text-sm text-negative">{problem}</p>}

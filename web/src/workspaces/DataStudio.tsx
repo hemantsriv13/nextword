@@ -11,6 +11,7 @@ import { Term } from "@/components/lab/glossary"
 import { GuidedCycle } from "@/components/lab/guide"
 import { EmptyNote, ErrorNote, Explain, ExplainSection, LoadingRows, Note, Panel, Segmented, SliderField, Workspace } from "@/components/lab/layout"
 import { Source } from "@/components/lab/source"
+import { Symbols, Teach, WorkspaceGuide, type Guide } from "@/components/lab/teach"
 import { api } from "@/lib/api"
 import { useCorpora } from "@/lib/corpora"
 import { fmt, useAsync, useLoad } from "@/lib/hooks"
@@ -23,14 +24,73 @@ import { makeWindows, splitWindows } from "@/sim/windows"
 
 type Tab = "corpus" | "tokens" | "windows" | "splits"
 
+const GUIDE: Guide = {
+  question: "What does a model actually receive as input, and how is training data prepared so that its scores can be trusted?",
+  scope: "The corpus list, preview and statistics are your Python engine's. The tokenizer, window and split views are browser demonstrations: the character tokens follow the engine's rule exactly, while the word splitter and BPE are small teaching versions. Your bigram engine uses only the first two boxes; IDs and longer windows are what a neural model (Stage 2) needs.",
+  sources: ["model", "simulation"],
+  nodes: [
+    { id: "text", label: "Training text", kind: "input", target: "corpora", tab: "corpus", carries: "raw text",
+      goesIn: "A plain text file: the bundled sample, the short example, or one you add.",
+      happens: "The backend stores it and reports its size and characters.",
+      why: "Everything a model can learn is in this text. Nothing else goes in.",
+      comesOut: "A string of characters.",
+      next: "A tokenizer cuts it into units.",
+      tryIt: "Preview the sample with spaces and newlines shown." },
+    { id: "tokens", label: "Split into tokens", kind: "operation", target: "tok-char", tab: "tokens", carries: "tokens",
+      goesIn: "The text.",
+      happens: "A tokenizer cuts it into units: single characters for your engine; words or learned chunks for other tokenizers.",
+      why: "A model predicts one unit at a time, so the units have to be decided first.",
+      comesOut: "A list of tokens.",
+      next: "Each distinct token gets an ID number.",
+      tryIt: "Compare how many tokens each tokenizer makes from the same sentence." },
+    { id: "ids", label: "Give each token an ID", kind: "operation", target: "tok-char", tab: "tokens", carries: "ID numbers",
+      goesIn: "The tokens.",
+      happens: "Each distinct token is listed once in a table and numbered.",
+      why: "A neural network works with numbers, and an ID is how it looks up the row that belongs to a token.",
+      comesOut: "One ID per token. An ID is a label, like a locker number: 7 is not “more” than 3, and nearby IDs are not similar tokens.",
+      next: "IDs are grouped into context and target examples.",
+      tryIt: "Type IDs into the box to turn them back into tokens; try one that doesn't exist." },
+    { id: "windows", label: "Make context → target pairs", kind: "operation", target: "win", tab: "windows", carries: "training pairs",
+      goesIn: "The token sequence (or its IDs).",
+      happens: "A window of fixed size slides along; the tokens inside are the context, the one right after is the target.",
+      why: "Each pair is one question the model is trained on: given this context, what comes next?",
+      comesOut: "A list of (context, target) pairs. A bigram uses context size 1.",
+      next: "The pairs are divided into training and validation sets.",
+      tryIt: "Raise the context size: fewer pairs, and neighbouring pairs overlap more." },
+    { id: "split", label: "Split for honest scores", kind: "output", target: "split", tab: "splits",
+      goesIn: "The text and its windows.",
+      happens: "Either the windows are made first and assigned at random, or the text is cut first and windows are made inside each part.",
+      why: "Overlapping windows on both sides let a model be tested on text it partly trained on, so the score looks better than it is.",
+      comesOut: "A training set and a validation set, with or without shared characters.",
+      next: "The Evaluation bench scores your engine on a split made by cutting the text first.",
+      tryIt: "Switch the strategy and look for the red, underlined characters." },
+  ],
+  tour: [
+    { target: "corpora", tab: "corpus", title: "The text everything is learned from", plain: <><p>These are the training texts the backend knows. The preview shows one exactly as the engine reads it, with spaces and line breaks made visible.</p></>,
+      terms: [{ id: "corpus", role: "the text a model learns from." }] },
+    { target: "tok-in", tab: "tokens", title: "One sentence, three ways to cut it", plain: <><p>Type a sentence. The table counts how many units each tokenizer makes from it. Fewer, longer units mean shorter sequences but a bigger vocabulary to learn.</p></>,
+      terms: [{ id: "tokenization", role: "cutting text into units." }, { id: "token", role: "one unit after cutting." }] },
+    { target: "tok-char", tab: "tokens", title: "Tokens get ID numbers", plain: <><p>Your engine's units are single characters. Each distinct character is given a number here, in order of first appearance.</p><p>An ID is only a label for looking things up. Character 5 is not bigger, more important or more similar to 6 than to 1.</p></>,
+      terms: [{ id: "token-id", role: "the label used to look a token up." }, { id: "vocabulary", role: "the table of all distinct tokens and their IDs." }] },
+    { target: "tok-bpe", tab: "tokens", title: "Learned chunks: a toy BPE", plain: <><p>Byte-pair encoding starts from characters and repeatedly glues the most frequent neighbouring pair into a new token. Move the slider to learn more merges and watch your sentence get fewer, longer tokens.</p><p>This is a teaching version learned on the sample text. It is not the tokenizer of any commercial model.</p></>,
+      terms: [{ id: "bpe", role: "merge frequent pairs into new tokens." }] },
+    { target: "win", tab: "windows", title: "Context and target pairs", plain: <><p>A window slides along the text. The characters inside it are the context; the character right after is the target the model should predict.</p><p>Every position gives one pair, and the IDs column shows the same pair as the numbers a neural model would receive.</p></>,
+      terms: [{ id: "context-window", role: "how many tokens the model sees." }, { id: "training-pair", role: "one (context, target) question." }] },
+    { target: "split", tab: "splits", title: "Where leakage happens", plain: <><p>With windows made first and assigned at random, neighbouring windows land on both sides. The characters read by both a training and a validation window are red and underlined: that is the leak.</p><p>Cutting the text first, then making windows inside each part, leaves nothing shared.</p></>,
+      terms: [{ id: "split", role: "training versus validation text." }, { id: "leakage", role: "validation text the model also trained on." }] },
+  ],
+}
+
 export default function DataStudio() {
   const [tab, setTab] = useState<Tab>("corpus")
   return (
+    <Teach guide={GUIDE} onStep={(where) => where.tab && setTab(where.tab as Tab)}>
     <Workspace
       title="Data and tokens"
       subtitle="What your engine learns from, how text becomes tokens, and how training pairs and splits are made."
       explain={<DataExplain tab={tab} />}
     >
+      <WorkspaceGuide />
       <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
         <TabsList className="h-auto flex-wrap justify-start">
           <TabsTrigger value="corpus">Corpus</TabsTrigger>
@@ -44,6 +104,7 @@ export default function DataStudio() {
         <TabsContent value="splits" className="mt-6 flex flex-col gap-6"><SplitsTab /></TabsContent>
       </Tabs>
     </Workspace>
+    </Teach>
   )
 }
 
@@ -247,7 +308,15 @@ function TokensTab() {
       </Panel>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <Panel id="tok-char" title="Character tokens and IDs" source={<Source kind="simulation" detail="same rule as tokenize()" />}>
+        <Panel id="tok-char" title="Character tokens and IDs" source={<Source kind="simulation" detail="same rule as tokenize()" />}
+          teach={{
+            calc: <Symbols rows={[
+              ["tokens", "characters in your sentence, one per code point", String(chars.length)],
+              ["vocabulary", "distinct characters, so distinct IDs", String(toToken.length)],
+              ...chars.slice(0, 5).map((c, i) => [`token ${i + 1}`, `“${visible(c)}”`, `ID ${toId.get(c)}`] as [string, string, string]),
+            ]} />,
+            code: <SimCode path="web/src/sim/tokenize.ts" symbol="idTable" text={tokenizeSource} />,
+          }}>
           <TokenList tokens={chars} ids={toId} label="Character tokens with IDs" />
           <p className="mt-3 text-[13px] text-muted-foreground">IDs are numbered by first appearance in this sentence, a Lab convention for display. Your bigram engine works on the characters directly and has no ID table yet; neural models need one.</p>
           <div className="mt-4 flex flex-col gap-2 border-t border-border pt-4">
@@ -264,7 +333,11 @@ function TokensTab() {
         </Panel>
       </div>
 
-      <Panel id="tok-bpe" title="Byte-pair encoding, step by step" source={<Source kind="simulation" detail="teaching version, learned on the sample" />}>
+      <Panel id="tok-bpe" title="Byte-pair encoding, step by step" source={<Source kind="simulation" detail="teaching version, learned on the sample" />}
+        teach={{
+          calc: bpe && bpe.steps.length > 0 ? <p>Merge 1 glued <span className="tok">{visible(bpe.steps[0].left)}</span> + <span className="tok">{visible(bpe.steps[0].right)}</span>, the most frequent neighbouring pair in the sample ({bpe.steps[0].count} times). After {bpe.steps.length} merges the sample is {fmt.n(bpe.steps.at(-1)!.tokenCount)} tokens long and your sentence is {bpeTokens.length} tokens instead of {chars.length} characters.</p> : <p>With 0 merges every character is its own token, exactly like your engine.</p>,
+          code: <><SimCode path="web/src/sim/tokenize.ts" symbol="learnBpe" text={tokenizeSource} /><p className="text-sm">Input: the sample text and a number of merges. Operation: count neighbouring pairs, merge the most frequent, repeat. Returns: the merge list, which encodeBpe replays on your sentence.</p></>,
+        }}>
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
           <div className="flex flex-col gap-4">
             <SliderField id="merges" label="Merges learned" value={merges} min={0} max={40} step={1} onChange={setMerges} hint="Each merge glues the most frequent neighbouring pair in the sample into one new token." />
@@ -308,9 +381,20 @@ function WindowsTab() {
   const windows = makeWindows(text, size)
   const at = Math.min(pos, Math.max(0, windows.length - 1))
   const w = windows[at]
+  const { toId } = idTable(chars)
+  const idsOf = (t: string) => charTokens(t).map((c) => toId.get(c)).join(" ")
   return (
     <>
-      <Panel id="win" title="Sliding context window" source={<Source kind="simulation" />}>
+      <Panel id="win" title="Sliding context window" source={<Source kind="simulation" />}
+        teach={{
+          calc: w ? <Symbols rows={[
+            ["N", "characters in the text", String(chars.length)],
+            ["n", "context size", String(size)],
+            ["pairs", "N − n: every position that has n characters before a target", String(windows.length)],
+            [`pair ${at + 1}`, `context “${visible(w.context)}” → target “${visible(w.target)}”`, `IDs ${idsOf(w.context)} → ${toId.get(w.target)}`],
+          ]} /> : undefined,
+          code: <SimCode path="web/src/sim/windows.ts" symbol="makeWindows" text={windowsSource} />,
+        }}>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
           <div className="flex flex-col gap-2">
             <label htmlFor="win-text" className="text-sm font-medium">Text</label>
@@ -334,13 +418,14 @@ function WindowsTab() {
         {windows.length === 0 ? <EmptyNote>No pairs yet.</EmptyNote> : (
           <div className="max-h-80 overflow-auto">
             <table className="w-full text-sm">
-              <thead className="sticky top-0 bg-card"><tr className="text-[12px] text-muted-foreground"><th className="py-1 text-right font-normal">#</th><th className="px-3 py-1 text-left font-normal">Input ({size} tokens)</th><th className="py-1 text-left font-normal">Target</th></tr></thead>
+              <thead className="sticky top-0 bg-card"><tr className="text-[12px] text-muted-foreground"><th className="py-1 text-right font-normal">#</th><th className="px-3 py-1 text-left font-normal">Input ({size} tokens)</th><th className="py-1 text-left font-normal">Target</th><th className="px-3 py-1 text-left font-normal">As IDs</th></tr></thead>
               <tbody>
                 {windows.slice(0, 60).map((p, i) => (
                   <tr key={i} className={cn("border-t border-rule", i === at && "bg-active")}>
                     <td className="num py-1 text-right">{i + 1}</td>
                     <td className="px-3 py-1"><Tok tone="context">{visible(p.context)}</Tok></td>
                     <td className="py-1"><Tok tone="chosen">{visible(p.target)}</Tok></td>
+                    <td className="num px-3 py-1 text-muted-foreground">[{idsOf(p.context)}] → {toId.get(p.target)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -348,7 +433,7 @@ function WindowsTab() {
             {windows.length > 60 && <p className="mt-2 text-[13px] text-muted-foreground">Showing 60 of {windows.length}.</p>}
           </div>
         )}
-        <p className="mt-3 text-[13px] text-muted-foreground">Neighbouring pairs share {size - 1 > 0 ? `${size - 1} of their ${size}` : "none of their"} input characters. That overlap is why the next tab matters. A bigram is the case context = 1.</p>
+        <p className="mt-3 text-[13px] text-muted-foreground">Neighbouring pairs share {size - 1 > 0 ? `${size - 1} of their ${size}` : "none of their"} input characters. That overlap is why the next tab matters. A bigram is the case context = 1. The IDs are the same pairs as a neural model receives them; they are labels for looking up rows, not amounts.</p>
       </Panel>
     </>
   )
@@ -365,6 +450,7 @@ function SplitsTab() {
   const [ran, setRan] = useState<{ strategy: string; leaked: number; total: number } | null>(null)
   const text = sample.data ? firstChars(sample.data.text, length) : ""
   const result = useMemo(() => (text ? splitWindows(text, size, val, strategy, 7) : null), [text, size, val, strategy])
+  const other = useMemo(() => (text ? splitWindows(text, size, val, strategy === "split-first" ? "windows-first" : "split-first", 7) : null), [text, size, val, strategy])
   const chars = charTokens(text)
 
   const outcome = ran ? (ran.leaked === 0 ? "none" : ran.leaked / ran.total < 0.5 ? "some" : "most") : undefined
@@ -372,6 +458,15 @@ function SplitsTab() {
   return (
     <>
       <Panel id="split" title="Make windows, then split?" source={<Source kind="simulation" detail="on the first characters of the sample" />}
+        teach={{
+          calc: result && other ? <Symbols rows={[
+            ["window", `${size} context characters + 1 target, so ${size + 1} characters`, undefined],
+            ["validation windows", strategy === "windows-first" ? "windows sent to validation at random" : "windows made inside the validation part", String(result.valCount)],
+            ["leaked", "validation windows that share at least one character with a training window", String(result.leakedVal)],
+            ["other strategy", strategy === "windows-first" ? "split the text first" : "windows first, random split", `${other.leakedVal} of ${other.valCount} leaked`],
+          ]} /> : undefined,
+          code: <SimCode path="web/src/sim/windows.ts" symbol="splitWindows" text={windowsSource} />,
+        }}
         aside={<Segmented label="Strategy" value={strategy} onChange={setStrategy} options={[{ value: "windows-first", label: "Windows first, random split" }, { value: "split-first", label: "Split text first" }]} />}>
         {!result ? <LoadingRows /> : (
           <div className="flex flex-col gap-5">
@@ -397,6 +492,11 @@ function SplitsTab() {
                 })}
               </div>
             </div>
+            {other && (
+              <p className="text-sm" data-testid="split-contrast">
+                Same text, same window size: <span className="font-medium">{strategy === "windows-first" ? "windows first" : "split first"}</span> leaks {result.leakedVal} of {result.valCount} validation windows; <span className="font-medium">{strategy === "windows-first" ? "split first" : "windows first"}</span> would leak {other.leakedVal} of {other.valCount}.
+              </p>
+            )}
             <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
               <div><dt className="text-[13px] text-muted-foreground">Validation windows</dt><dd className="num text-2xl">{result.valCount}</dd></div>
               <div><dt className="text-[13px] text-muted-foreground">Share text with a training window</dt><dd className={cn("num text-2xl", result.leakedVal > 0 && "text-negative")}>{result.leakedVal}</dd></div>

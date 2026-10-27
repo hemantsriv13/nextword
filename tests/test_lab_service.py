@@ -117,6 +117,41 @@ class GenerationTests(unittest.TestCase):
         accent_prompt = service.generate(self.store, info["id"], "café", 3, 1)
         self.assertEqual(accent_prompt["contextUsed"], "́")
 
+    def test_journey_is_one_consistent_snapshot(self):
+        result = service.journey(self.store, "example", "a cat sat on th", 10, 2)
+        text = result["text"]
+        self.assertEqual(text, service.EXAMPLE_PATH.read_text(encoding="utf-8"))
+        self.assertEqual(result["corpus"]["fingerprint"], service._fingerprint(text))
+        self.assertEqual(result["generation"]["corpus"]["fingerprint"], result["corpus"]["fingerprint"])
+        self.assertEqual(result["table"]["pairs"], len(text) - 1)
+        # The table is the engine's own count of exactly this text.
+        counts = bigram.count_bigrams(bigram.tokenize(text))
+        self.assertEqual(result["table"]["rows"], {c: dict(r) for c, r in counts.items()})
+        # The run is the same as an ordinary generation with the same settings.
+        plain = service.generate(self.store, "example", "a cat sat on th", 10, 2)
+        self.assertEqual(result["generation"]["suggestion"], plain["suggestion"])
+        self.assertEqual(result["generation"]["steps"], plain["steps"])
+        self.assertEqual(result["generation"]["suggestion"], bigram.complete(counts, "a cat sat on th", 10, random.Random(2)))
+        # Every step's probabilities are its row's counts divided by the row total.
+        for step in result["generation"]["steps"]:
+            row = counts[step["context"]]
+            total = sum(row.values())
+            for c in step["candidates"]:
+                self.assertAlmostEqual(c["p"], row[c["token"]] / total)
+
+    def test_example_text_is_built_in_and_protected(self):
+        ids = [c["id"] for c in self.store.list()]
+        self.assertIn("example", ids)
+        self.assertEqual(self.store.describe("example")["name"], "Example passage")
+        with self.assertRaises(LabError):
+            self.store.delete("example")
+
+    def test_journey_refuses_texts_too_long_to_show(self):
+        info = self.store.add("Long", "ab" * 15_000)
+        with self.assertRaises(LabError) as err:
+            service.journey(self.store, info["id"], "a", 5, 1)
+        self.assertEqual(err.exception.code, "too_large_for_journey")
+
     def test_upload_round_trip(self):
         info = self.store.add("My notes", "abab abba\nbaab")
         self.assertTrue(info["id"].startswith("upload-c"))
@@ -141,7 +176,7 @@ class GenerationTests(unittest.TestCase):
         self.assertEqual(self.store.text(second["id"]), "second text")
         self.assertEqual(self.store.text(third["id"]), "third text, same name as the first")
         self.assertEqual(first["fingerprint"], service._fingerprint("first text, kept"))
-        self.assertEqual(len(self.store.list()), 4)  # the sample plus three uploads
+        self.assertEqual(len(self.store.list()), 5)  # the sample, the example and three uploads
 
     def test_repeated_identical_uploads_stay_separate(self):
         a = self.store.add("Same", "identical text")

@@ -9,6 +9,7 @@ import { Term } from "@/components/lab/glossary"
 import { GuidedCycle } from "@/components/lab/guide"
 import { EmptyNote, Explain, ExplainSection, Note, Panel, Segmented, Workspace } from "@/components/lab/layout"
 import { Source } from "@/components/lab/source"
+import { Symbols, Teach, WorkspaceGuide, type Guide } from "@/components/lab/teach"
 import { actions } from "@/lib/store"
 import { cn } from "@/lib/utils"
 import { attentionHead, inputMatrix, multiHead, shape, toyHeadWeights, transformerBlock, type Matrix } from "@/sim/attention"
@@ -17,12 +18,69 @@ import { mulberry32, randomMatrix } from "@/sim/rng"
 
 const D = 4
 
+const GUIDE: Guide = {
+  question: "How does one position in a sequence build its new vector from the other positions, and why must it not see the future?",
+  scope: "An interactive simulation with made-up toy numbers: the vectors and weights are seeded random values, not learned, and your bigram engine has no attention. The arithmetic is the real attention computation, at a size where every number fits on screen.",
+  sources: ["simulation"],
+  nodes: [
+    { id: "x", label: "Token vectors + positions", kind: "input", target: "inputs", carries: "X, n × 4",
+      goesIn: "The tokens you typed, as toy embedding rows, plus a position vector for each place.",
+      happens: "Each token's vector and its position's vector are added.",
+      why: "Without positions, the same word in two places would look identical.",
+      comesOut: "X: one row of 4 numbers per position.",
+      next: "Three projections of X give queries, keys and values." },
+    { id: "qkv", label: "Queries, keys, values", kind: "operation", target: "qkv", tab: "one", carries: "Q, K, V",
+      goesIn: "X and three weight matrices W_Q, W_K, W_V (each 4 × dₖ).",
+      happens: "X is multiplied by each of them.",
+      why: "A query is what a position looks for, a key is what a position offers to be matched on, a value is what it passes on if chosen. Keeping them separate lets matching and passing on differ.",
+      comesOut: "Three matrices, one row per position.",
+      next: "Each query is compared with every key." },
+    { id: "scores", label: "Scores and scaling", kind: "operation", target: "scores", tab: "one", carries: "scores, n × n",
+      goesIn: "Q and K.",
+      happens: "Q·Kᵀ: the dot product of each query row with each key row, then divided by √dₖ.",
+      why: "A dot product is large when two vectors point the same way, so it measures match. Dividing by √dₖ keeps the scores from growing with the vector size.",
+      comesOut: "A score for every (query, key) pair.",
+      next: "The causal mask removes future positions." },
+    { id: "mask", label: "Causal mask", kind: "operation", target: "scores", tab: "one", carries: "allowed scores",
+      goesIn: "The scaled scores.",
+      happens: "Every score for a later position is set to −∞.",
+      why: "In next-token training, position i must predict token i + 1. If it could read later positions, it could copy the answer instead of learning to predict it.",
+      comesOut: "Scores where only the past and the present remain.",
+      next: "Softmax turns each row into weights.",
+      tryIt: "Turn the mask off and watch the upper-right cells fill in." },
+    { id: "weights", label: "Normalized weights", kind: "operation", target: "scores", tab: "one", carries: "weights, n × n",
+      goesIn: "The masked scores.",
+      happens: "Softmax along each row: e to the power of each score, divided by the row's sum. −∞ becomes exactly 0.",
+      why: "Weights that are positive and sum to one say how much of each value to take.",
+      comesOut: "The attention weights: each row adds up to 1.",
+      next: "They weight the value rows." },
+    { id: "out", label: "Weighted values", kind: "output", target: "out", tab: "one",
+      goesIn: "The weights and V.",
+      happens: "For each position, the value rows are added up, each multiplied by its weight.",
+      why: "This is how information moves between positions: a position's new vector is a blend of the values it attended to.",
+      comesOut: "One new vector per position.",
+      next: "In a transformer block it is added back to X and passed through a feed-forward layer (shown at the bottom)." },
+  ],
+  tour: [
+    { target: "seq", title: "Pick a position to follow", plain: <><p>Every view below can follow one position: the query. It is the position whose new vector is being built. Position 3 is selected to start; pick any other.</p><p>The highlighted positions are the ones it may look at. With the causal mask on, that is itself and everything before it.</p></>,
+      terms: [{ id: "attention", role: "how a position takes information from others." }] },
+    { target: "inputs", title: "Vectors in, one row per position", plain: <><p>Each token starts as a row of 4 toy numbers, and a position vector is added so that order is visible. The result X has one row per position: shape n × 4.</p></>,
+      terms: [{ id: "positional-encoding", role: "the P matrix added to E." }, { id: "embedding", role: "the toy row for each token." }] },
+    { target: "qkv", tab: "one", title: "Three views of each position", plain: <><p>Q, K and V are X multiplied by three different weight matrices. They hold the same information, re-arranged three ways: what a position looks for (query), what it can be found by (key), and what it hands over (value).</p></>,
+      terms: [{ id: "qkv", role: "three projections of X." }] },
+    { target: "scores", tab: "one", title: "Match, scale, mask, normalize", plain: <><p>The selected query is compared with every key by a dot product: a bigger number means a better match. The scores are divided by √dₖ, future positions are set to −∞, and softmax turns each row into weights that add up to 1.</p><p>The breakdown under the matrices shows these numbers for the selected position only.</p></>,
+      terms: [{ id: "causal-mask", role: "blocks every later position." }, { id: "softmax", role: "row of scores to row of weights." }] },
+    { target: "out", tab: "one", title: "The new vector is a weighted blend", plain: <><p>The selected position's output is each value row multiplied by its weight, all added up. That is the only way information moves from one position to another here.</p><p>These weights show where the numbers came from in this one toy layer. They are not an explanation of a model's reasoning.</p></> },
+    { target: "check", title: "Proof that the future can't leak", plain: <><p>Change the last token and watch which output rows change. With the mask on, earlier positions' outputs stay identical, because they never read the last position.</p></> },
+  ],
+}
+
 export default function Attention() {
   const [text, setText] = useState("the cat sat on the mat")
   const [causal, setCausal] = useState(true)
   const [positions, setPositions] = useState(true)
   const [heads, setHeads] = useState<"one" | "two">("one")
-  const [query, setQuery] = useState<number | null>(null)
+  const [query, setQuery] = useState<number | null>(2)
   const tokens = text.trim().split(/\s+/).filter(Boolean).slice(0, 8)
   const valid = tokens.length >= 2
 
@@ -41,11 +99,13 @@ export default function Attention() {
   const q = query !== null && query < tokens.length ? query : null
 
   return (
+    <Teach guide={GUIDE} onStep={(where) => where.tab === "one" && setHeads("one")}>
     <Workspace
       title="Attention explorer"
       subtitle="How each position builds its new vector from the others. The arithmetic is real; the vectors and weights are made-up toy numbers, not learned."
       explain={<AttentionExplain />}
     >
+      <WorkspaceGuide />
       <Panel id="seq" title="Sequence" source={<Source kind="simulation" detail="toy, seeded random weights" />}>
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
@@ -73,6 +133,12 @@ export default function Attention() {
                 })}
               </div>
               {q !== null && <p className="text-sm">Position {q + 1} (“{tokens[q]}”) can attend to {causal ? `positions 1–${q + 1}` : "every position"}{causal && q < tokens.length - 1 ? `; positions ${q + 2}–${tokens.length} are masked out.` : "."}</p>}
+              {q !== null && !causal && q < tokens.length - 1 && model && (
+                <Note tone="warning">
+                  With the mask off, position {q + 1} can read the future: {tokens.slice(q + 1).map((t, k) => `“${t}” (position ${q + 2 + k}, weight ${model.single.weights[q][q + 1 + k].toFixed(2)})`).join(", ")}.
+                  In next-token training, position {q + 1} has to predict “{tokens[q + 1]}”, which it can now read directly, so it could copy the answer instead of learning to predict it. At prediction time the future doesn&apos;t exist yet, so a model trained like this would fail.
+                </Note>
+              )}
             </div>
           )}
         </div>
@@ -80,7 +146,19 @@ export default function Attention() {
 
       {model && (
         <>
-          <Panel id="inputs" title="Step 1: token vectors plus positions" source={<Source kind="simulation" />}>
+          <Panel id="inputs" title="Step 1: token vectors plus positions" source={<Source kind="simulation" />}
+            teach={{
+              calc: <Symbols rows={[
+                ["n", "positions (tokens)", String(tokens.length)],
+                ["d", "numbers per vector", String(D)],
+                ...(q !== null ? [
+                  [`E[${q + 1}]`, `toy embedding of “${tokens[q]}”`, model.input.embeddings[q].map((v) => v.toFixed(2)).join(", ")],
+                  [`P[${q + 1}]`, `position ${q + 1}'s vector`, model.input.positions[q].map((v) => v.toFixed(2)).join(", ")],
+                  [`X[${q + 1}]`, "their sum, element by element", model.input.x[q].map((v) => v.toFixed(2)).join(", ")],
+                ] as [string, string, string][] : []),
+              ]} />,
+              code: <SimCode path="web/src/sim/attention.ts" symbol="inputMatrix" text={attentionSource} />,
+            }}>
             <div className="flex flex-wrap items-start gap-6">
               <MatrixView name="E (toy embeddings)" m={model.input.embeddings} rowLabels={tokens} highlightRows={q !== null ? [q] : undefined} />
               <span className="self-center text-lg" aria-hidden="true">+</span>
@@ -115,6 +193,7 @@ export default function Attention() {
         hints={["Pick position 1 with the mask on to see its row.", "When predicting token 2, the model must not already be shown token 2."]}
       />
     </Workspace>
+    </Teach>
   )
 }
 
@@ -147,11 +226,47 @@ function WeightsGrid({ tokens, weights, masked, q }: { tokens: string[]; weights
   )
 }
 
+/** The selected query's row, number by number: score, scaling, mask and weight for every key. */
+function QueryRow({ tokens, r, q, dk }: { tokens: string[]; r: ReturnType<typeof attentionHead>; q: number; dk: number }) {
+  return (
+    <div className="mt-5 overflow-x-auto" data-testid="query-row">
+      <table className="w-full min-w-[34rem] text-sm">
+        <caption className="mb-1 text-left text-sm"><span className="font-medium">Row for position {q + 1} (“{tokens[q]}”)</span> <span className="text-muted-foreground">one line per key position</span></caption>
+        <thead><tr className="text-left text-[12px] text-muted-foreground"><th scope="col" className="font-normal">Key</th><th scope="col" className="text-right font-normal">Q·K score</th><th scope="col" className="text-right font-normal">÷ √{dk}</th><th scope="col" className="pl-4 font-normal">Allowed?</th><th scope="col" className="text-right font-normal">Weight</th></tr></thead>
+        <tbody>
+          {tokens.map((t, j) => {
+            const masked = r.masked[q][j] === -Infinity
+            return (
+              <tr key={j} className={cn("border-t border-rule", masked && "text-muted-foreground")}>
+                <th scope="row" className="py-1 text-left font-normal"><span className="tok">{t}</span> <span className="num text-[12px] text-muted-foreground">pos {j + 1}</span></th>
+                <td className="num text-right">{r.scores[q][j].toFixed(3)}</td>
+                <td className="num text-right">{r.scaled[q][j].toFixed(3)}</td>
+                <td className="pl-4">{masked ? "no: future position, set to −∞" : j === q ? "yes: itself" : "yes: earlier position"}</td>
+                <td className="num text-right font-medium">{r.weights[q][j].toFixed(3)}</td>
+              </tr>
+            )
+          })}
+          <tr className="border-t border-border"><th scope="row" className="py-1 text-left font-normal">Sum of weights</th><td /><td /><td /><td className="num text-right font-medium">{r.weights[q].reduce((a, b) => a + b, 0).toFixed(3)}</td></tr>
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 function SingleHead({ tokens, r, q, causal }: { tokens: string[]; r: ReturnType<typeof attentionHead>; q: number | null; causal: boolean }) {
   const dk = shape(r.q)[1]
   return (
     <>
-      <Panel id="qkv" title="Step 2: queries, keys and values" source={<Source kind="simulation" />}>
+      <Panel id="qkv" title="Step 2: queries, keys and values" source={<Source kind="simulation" />}
+        teach={{
+          calc: q !== null ? <Symbols rows={[
+            [`Q[${q + 1}]`, `what “${tokens[q]}” looks for: its row of X times W_Q`, r.q[q].map((v) => v.toFixed(2)).join(", ")],
+            [`K[${q + 1}]`, "what it can be matched on", r.k[q].map((v) => v.toFixed(2)).join(", ")],
+            [`V[${q + 1}]`, "what it passes on when attended to", r.v[q].map((v) => v.toFixed(2)).join(", ")],
+            ["shapes", `X is ${tokens.length} × ${D}; each W is ${D} × ${dk}; Q, K, V are ${tokens.length} × ${dk}`, undefined],
+          ]} /> : <p>Pick a position to see its query, key and value.</p>,
+          code: <SimCode path="web/src/sim/attention.ts" symbol="attentionHead" text={attentionSource} />,
+        }}>
         <p className="mb-4 text-sm">Q = X·W<sub>Q</sub>, K = X·W<sub>K</sub>, V = X·W<sub>V</sub>, each W of shape {D} × {dk}. A query asks “what am I looking for?”, a key says “what I contain”, a value is “what I pass on”. Concretely they are just three different linear projections of X.</p>
         <div className="flex flex-wrap items-start gap-6">
           <MatrixView name="Q" m={r.q} rowLabels={tokens} highlightRows={q !== null ? [q] : undefined} />
@@ -159,16 +274,29 @@ function SingleHead({ tokens, r, q, causal }: { tokens: string[]; r: ReturnType<
           <MatrixView name="V" m={r.v} rowLabels={tokens} />
         </div>
       </Panel>
-      <Panel id="scores" title="Step 3: scores, scaling, mask, softmax" source={<Source kind="simulation" />}>
+      <Panel id="scores" title="Step 3: scores, scaling, mask, softmax" source={<Source kind="simulation" />}
+        teach={{
+          calc: q !== null ? <><p>For query position {q + 1}, each key j gives: score = Q[{q + 1}]·K[j], then ÷ √{dk} = ÷ {Math.sqrt(dk).toFixed(2)}, then −∞ if j is in the future, then softmax over the row. The breakdown table under the matrices lists every number.</p>
+            <p>weight[j] = e^(scaled[j]) ÷ Σ e^(scaled[allowed]). Masked positions contribute e^(−∞) = 0 to both the top and the sum.</p></> : <p>Pick a position to see its row.</p>,
+          code: <SimCode path="web/src/sim/attention.ts" symbol="attentionHead" text={attentionSource} />,
+        }}>
         <div className="flex flex-wrap items-start gap-6">
           <MatrixView name="Q·Kᵀ" m={r.scores} rowLabels={tokens} colLabels={tokens} highlightRows={q !== null ? [q] : undefined} caption={`(${tokens.length} × ${dk}) · (${dk} × ${tokens.length})`} />
           <MatrixView name={`÷ √${dk} = ÷ ${Math.sqrt(dk).toFixed(2)}`} m={r.scaled} rowLabels={tokens} colLabels={tokens} />
           <MatrixView name={causal ? "masked: future → −∞" : "no mask"} m={r.masked} rowLabels={tokens} colLabels={tokens} mask={r.masked.map((row) => row.map((v) => v === -Infinity))} />
         </div>
         <div className="mt-6"><WeightsGrid tokens={tokens} weights={r.weights} masked={r.masked} q={q} /></div>
+        {q !== null && <QueryRow tokens={tokens} r={r} q={q} dk={dk} />}
         <p className="mt-3 text-sm">Softmax runs along each row over the allowed positions only, so every row sums to 1. Scaling by √dₖ keeps scores from growing with the vector size, which would make softmax too peaked.</p>
       </Panel>
-      <Panel id="out" title="Step 4: weighted sum of values" source={<Source kind="simulation" />}>
+      <Panel id="out" title="Step 4: weighted sum of values" source={<Source kind="simulation" />}
+        teach={{
+          calc: q !== null ? <Symbols rows={[
+            ...r.weights[q].map((w, j) => [`${w.toFixed(3)} × V[${j + 1}]`, `“${tokens[j]}”${w === 0 ? " (masked, adds nothing)" : ""}`, r.v[j].map((v) => (w * v).toFixed(3)).join(", ")] as [string, string, string]),
+            [`out[${q + 1}]`, "the sum of the rows above", r.out[q].map((v) => v.toFixed(3)).join(", ")],
+          ]} /> : <p>Pick a position to see its weighted sum.</p>,
+          code: <SimCode path="web/src/sim/attention.ts" symbol="attentionHead" text={attentionSource} />,
+        }}>
         {q === null ? <EmptyNote>Pick a position above to see its weighted sum.</EmptyNote> : (
           <div className="flex flex-col gap-3 text-sm">
             <p>Output for position {q + 1} = Σⱼ weight[{q + 1}, j] × V[j]:</p>
@@ -178,6 +306,7 @@ function SingleHead({ tokens, r, q, causal }: { tokens: string[]; r: ReturnType<
               ))}
             </ul>
             <p>= <span className="tok">[{r.out[q].map((v) => v.toFixed(3)).join(", ")}]</span>, a new vector of {dk} numbers for position {q + 1}.</p>
+            <p className="text-[13px] text-muted-foreground">The weights show which values were mixed into this vector, in this toy layer. They are not a full account of why a real model produces an answer: real models stack many layers and heads, and the values themselves carry information.</p>
           </div>
         )}
         <div className="mt-4"><MatrixView name="Output = weights · V" m={r.out} rowLabels={tokens} highlightRows={q !== null ? [q] : undefined} /></div>

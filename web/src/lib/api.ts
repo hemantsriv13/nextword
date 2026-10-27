@@ -49,7 +49,7 @@ async function request<T>(path: string, body?: unknown, timeoutMs = 20000): Prom
 export interface Corpus {
   id: string
   name: string
-  origin: "sample" | "upload"
+  origin: "sample" | "example" | "upload"
   file: string
   chars: number
   distinct: number
@@ -119,6 +119,14 @@ export interface Generation {
   stopped: string | null
   steps: Step[]
   timingsMs: { validate: number; count: number; countCacheHit: boolean; countOnlyMs: number; generate: number; format: number; total: number }
+}
+
+/** One snapshot for the guided journey: the text, its counts and a run, all from one reading. */
+export interface Journey {
+  corpus: Corpus
+  text: string
+  table: CountTable
+  generation: Generation
 }
 
 export interface Benchmark {
@@ -194,6 +202,7 @@ export const api = {
   tableFromText: (corpusText: string) => request<CountTable>("/api/bigram/table", { corpusText }),
   row: (corpus: string, context: string) => request<Distribution>("/api/bigram/row", { corpus, context }),
   generate: (b: { corpus: string; prompt: string; length: number; seed: number | null }) => request<Generation>("/api/generate", { engine: "char-bigram", ...b }),
+  journey: (b: { corpus: string; prompt: string; length: number; seed: number }) => request<Journey>("/api/journey", b),
   benchmark: (b: { corpus: string; prompt: string; length: number; runs: number }) => request<Benchmark>("/api/benchmark", b, 60000),
   evaluate: (b: { corpus?: string; corpusText?: string; train: number; val: number; on: "val" | "test"; k: number }) => request<Evaluation>("/api/evaluate", b, 60000),
   adapt: (b: { base?: string; baseText?: string; extraText: string; context: string }) => request<Adaptation>("/api/adapt", b),

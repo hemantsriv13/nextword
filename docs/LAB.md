@@ -25,11 +25,35 @@ backend is stopped; the engine-backed panels say so and show the start command.
 
 For frontend development, run the backend as above and `npm --prefix web run dev` (Vite proxies `/api`).
 
+## Where to begin
+
+Open **Bigram journey** (second item in the sidebar, or *Start here* on Home). It follows one short
+example through your engine and needs nothing from you. Every workspace starts with **How this workspace
+works**: the question it answers, a flow diagram, and **Read and watch**.
+
+## How the explanations work
+
+- **Flow diagram.** Boxes in order: square dashed boxes are inputs, pills are operations, heavy-edged
+  boxes are outputs. Each arrow is labelled with what it carries (counts, probabilities, IDs, …).
+  Selecting a box highlights its panel and says what goes in, what happens, why, what comes out, where
+  it goes next, and what to change. Diagrams describe one workspace; they don't claim the workspaces form
+  one pipeline (only the bigram pages run your engine end to end).
+- **Read and watch.** A walkthrough that moves through the panels one step at a time. The card appears
+  inside the panel it explains, with three levels: *Walk me through it* (plain words, with the terms used
+  and their role in this step), *Show the calculation* (the current run's actual values, every symbol
+  named), and *Show the code* (the real function, read from disk or bundled; pseudocode is labelled).
+  Back, Next (it names the next step), Replay, Exit, and Esc. It never advances by itself, never asks a
+  question, and never records anything as understood. Exiting leaves your settings and results as they were.
+- **Kept in sync.** Results, comparisons and walkthrough calculations belong to the run that produced
+  them. Changing a control marks them stale instead of reinterpreting them; you recompute explicitly.
+  Replaying or inspecting never draws new random numbers.
+
 ## Feature map
 
 | Workspace | Your model (Python engine) | Interactive simulation (browser) | Worked example |
 |---|---|---|---|
 | Home | Engine version | | |
+| Bigram journey | One snapshot from `/api/journey`: the example text (or one of yours), its count table and one traced run. Pairs highlighted in the text, counts, normalization, the prompt's last character, the draw and its interval, append-and-repeat with trace-back for any generated character | | |
 | Writing playground | Suggestions, seeded generation, the step trace (context, distribution, draw, chosen character), accept and regenerate, A/B comparison, request timings | | |
 | Data and tokens | Corpus list, upload and paste (saved to `data/lab/`), preview, statistics, character frequency | Character tokens and IDs (same rule as `tokenize()`), word splitter, BPE merges, sliding windows, training pairs, split and leakage demo | |
 | Counts and probability | Count table heatmap, one row normalized with real counts, a seeded draw, unseen-context refusal, recounting an edited text | 1,000 repeated draws (browser generator), add-k smoothing | |
@@ -63,11 +87,15 @@ browser (web/)                          Python (nextword/)
 
 ## Checks
 
-- `python -m unittest` (27): engine baseline, sampling = `rng.choices`, rows sum to 1, counts match
+- `python -m unittest` (30): the journey is one consistent snapshot (its table, its run and plain
+  generation agree), the example text is built in and protected; engine baseline, sampling = `rng.choices`, rows sum to 1, counts match
   the corpus, step = full generation, splits contiguous with no straddling pair, loss formula,
   smoothing sums to 1, validation errors, uploads (unique IDs, no overwrites, legacy files, cache
   follows content), emoji and combining marks as single characters, adaptation without leakage.
-- `npm --prefix web test` (82): softmax/temperature/top-k/top-p, draws follow the distribution, causal
+- `npm --prefix web test` (125): walkthrough Back/Next/Replay/Exit/Esc, focus, levels and tabs; the
+  journey's numbers checked against two real engine responses (`web/src/test/journey-*.json`), selected
+  step and trace-back, stale inputs, replay without new requests, a run that stops early; every guide
+  target exists; comparisons keep their mode; an older evaluation request resolving last can't win; softmax/temperature/top-k/top-p, draws follow the distribution, causal
   mask zeroes the future and blocks leaks, weights normalize, gradients match finite differences, the
   update equals −lr × gradient, the overfitting experiment overfits, split-first never leaks, BPE and
   chunking, persistence export/import/reset, glossary links, code-point windows and trace layout.
@@ -96,6 +124,21 @@ their file name.
   skin tones, families joined with U+200D) are several, each shown as its own token.
 - Evaluation results, saved runs and sweeps keep the settings they were measured with. Changing a
   control marks them stale rather than relabelling them; measure again to replace them.
+
+## A gentle first walkthrough (about 15 minutes, nothing to answer)
+
+1. **Bigram journey, 6 min.** Press *Read and watch* and use *Next* through the seven steps. At
+   *Sample a character*, switch to *Show the calculation*: the draw u = 0.956 lands in the stretch of
+   ‘a’ (0.8 to 1), though ‘e’ was more likely. At the last step press *Next step* a few times, then
+   select any generated character to see where it came from.
+2. **Counts, 3 min.** Press *Read and watch*. The same division you saw in the journey, on the
+   1,167-character sample.
+3. **Data and tokens, 3 min.** Press *Read and watch*. It opens each tab for you; the last step shows
+   leaked characters in red when windows are made first.
+4. **Neural training, 3 min.** Press *Read and watch* and read the table of arrays, then press
+   *Apply one update* once and look at the before-and-after table. This page is a simulation.
+
+Exit any walkthrough with *Exit* or Esc whenever you like. Nothing is marked as learned.
 
 ## First guided session (about 30 minutes)
 

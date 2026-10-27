@@ -10,6 +10,7 @@ import { Term } from "@/components/lab/glossary"
 import { GuidedCycle } from "@/components/lab/guide"
 import { EmptyNote, ErrorNote, Explain, ExplainSection, LoadingRows, Note, NumberField, Panel, Segmented, SliderField, Workspace } from "@/components/lab/layout"
 import { Source } from "@/components/lab/source"
+import { Symbols, Teach, WorkspaceGuide, type Guide } from "@/components/lab/teach"
 import { api, type CountTable } from "@/lib/api"
 import { useCorpora } from "@/lib/corpora"
 import { fmt, useAsync, useLoad } from "@/lib/hooks"
@@ -18,6 +19,61 @@ import { cn } from "@/lib/utils"
 import { pickByDraw } from "@/sim/decoding"
 import { mulberry32 } from "@/sim/rng"
 import { charCount, visible } from "@/sim/tokenize"
+
+const GUIDE: Guide = {
+  question: "What exactly has your engine learned from its training text, and how does that become a probability?",
+  scope: "The count table, the rows and the single draws are your Python engine's. The 1,000 repeated draws and the smoothing panel are browser simulations on the engine's numbers: your engine itself never smooths.",
+  sources: ["model", "simulation"],
+  nodes: [
+    { id: "table", label: "Count table", kind: "input", target: "matrix", carries: "one row of counts",
+      goesIn: "The training text chosen at the top right.",
+      happens: "The engine counts every pair of neighbouring characters into one table: rows are the current character, columns the next.",
+      why: "This table is the whole model. There is nothing else stored.",
+      comesOut: "A grid of counts. Most cells are zero: those pairs never happened.",
+      next: "Selecting a row picks the counts for one context character.",
+      tryIt: "Switch between Counts and Row probabilities shading: the same cells, a different scale." },
+    { id: "row", label: "Normalize one row", kind: "operation", target: "row", carries: "probabilities",
+      goesIn: "The counts in the selected row.",
+      happens: "Each count is divided by the row total.",
+      why: "Raw counts depend on how common the context is. Dividing by the total gives shares that add up to one.",
+      comesOut: "The conditional probability of each next character, given the context.",
+      next: "A random draw uses these probabilities.",
+      tryIt: "Pick a rare character's row: its probabilities rest on very few counts." },
+    { id: "draw", label: "One draw", kind: "operation", target: "sample", carries: "a character",
+      goesIn: "The row's probabilities and a seed.",
+      happens: "Your engine lays the probabilities end to end and draws one random number.",
+      why: "This is the single step generation repeats for every character it writes.",
+      comesOut: "One character, and the draw that picked it.",
+      next: "In generation, the chosen character becomes the next context; here the demonstration stops after one draw.",
+      tryIt: "Change the seed and draw again; then run 1,000 draws and compare observed with expected." },
+    { id: "unseen", label: "An unseen character", kind: "operation", target: "unseen", carries: "a refusal",
+      goesIn: "Any single character.",
+      happens: "The engine looks for its row; if the character never had a successor, there is none.",
+      why: "Without counts there is nothing to divide. The engine refuses instead of inventing probabilities.",
+      comesOut: "Either a row, or an error message from the engine.",
+      next: "Smoothing is one way to avoid zeros; it is shown as a separate simulation.",
+      tryIt: "Ask about “!”, which never appears in the sample." },
+    { id: "smooth", label: "Smoothing (simulation)", kind: "output", target: "smooth",
+      goesIn: "The same row's counts and a strength k.",
+      happens: "k is added to every count, including the zeros and one slot for unknown characters, before dividing.",
+      why: "Unseen pairs get a small probability instead of zero, which matters when scoring held-out text.",
+      comesOut: "A smoothed distribution, for comparison only.",
+      next: "The Evaluation bench measures what this does to held-out loss.",
+      tryIt: "Slide k from 0 to 5 and watch the share given to unseen characters." },
+  ],
+  tour: [
+    { target: "matrix", title: "The table is the whole model", plain: <><p>Each cell counts how often the row's character was followed by the column's character in the training text. Select a row button on the left to inspect one row.</p><p>Most cells are empty: those pairs never happened, so the engine will never produce them.</p></>,
+      terms: [{ id: "bigram", role: "each cell counts one bigram." }] },
+    { target: "row", title: "Counts become probabilities", plain: <><p>The selected row lists what followed its character and how often. Each count is divided by the row total, so the column of results adds up to one.</p><p>Dividing by the total is called normalization. The result is a conditional probability: how likely each next character is, given this one.</p></>,
+      terms: [{ id: "normalization", role: "count ÷ row total." }, { id: "conditional-probability", role: "P(next | current), read from one row." }] },
+    { target: "sample", title: "From a draw to a character", plain: <><p>The probabilities are laid end to end between 0 and 1. Draw with your engine picks one random number and shows which stretch it landed in.</p><p>The repeated draws below it use the same rule in the browser, so you can see the shares settle near the probabilities.</p></>,
+      terms: [{ id: "sampling", role: "the draw that picks a character." }, { id: "seed", role: "makes a draw repeatable." }] },
+    { target: "unseen", title: "When there is no row", plain: <><p>If a character never had a following character in the training text, the engine has no row for it. Ask the engine about one: it refuses with an error rather than guessing.</p></>,
+      terms: [{ id: "unseen-context", role: "a context with no counts." }] },
+    { target: "smooth", title: "Smoothing, as a separate simulation", plain: <><p>Smoothing adds a small amount k to every count before dividing, so nothing gets probability zero. Your engine does not do this; the panel computes it in the browser from your engine's counts.</p></>,
+      terms: [{ id: "smoothing", role: "add k to every count, then divide by the new total." }] },
+  ],
+}
 
 function rowOf(table: CountTable, context: string) {
   const row = table.rows[context] ?? {}
@@ -42,6 +98,7 @@ export default function Counts() {
   const row = t ? rowOf(t, context) : undefined
 
   return (
+    <Teach guide={GUIDE}>
     <Workspace
       title="Counts and probability"
       subtitle="Your engine's whole model is one table of counts. Pick a row to see how counts become probabilities and how one draw picks a character."
@@ -56,21 +113,44 @@ export default function Counts() {
       }
       explain={<CountsExplain context={context} row={row} />}
     >
-      <Panel id="matrix" title="Count table" source={<Source kind="model" detail={t ? `${fmt.n(t.pairs)} pairs counted` : undefined} />}>
+      <WorkspaceGuide />
+      <Panel id="matrix" title="Count table" source={<Source kind="model" detail={t ? `${fmt.n(t.pairs)} pairs counted` : undefined} />}
+        teach={{
+          calc: t ? <Symbols rows={[
+            ["pairs", "neighbouring pairs in the training text (characters − 1)", fmt.n(t.pairs)],
+            ["V", "distinct characters, so rows and columns", String(t.vocab.length)],
+            ["cells", "V × V possible pairs", fmt.n(t.vocab.length ** 2)],
+            [`row ${visible(context)}`, "the selected row's total", row ? String(row.total) : "0"],
+          ]} /> : undefined,
+          code: <EngineCode path="nextword/bigram.py" symbol="count_bigrams" />,
+        }}>
         {table.error ? <ErrorNote error={table.error} onRetry={table.retry} /> : !t ? <LoadingRows rows={8} label="Loading count table" /> : (
           <Heatmap table={t} selected={context} onSelect={setContext} />
         )}
       </Panel>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <Panel id="row" title="One row, normalized" source={<Source kind="model" />}>
+        <Panel id="row" title="One row, normalized" source={<Source kind="model" />}
+          teach={{
+            calc: row && row.total > 0 ? <>
+              <Symbols rows={[
+                [`total(${visible(context)})`, "the sum of the row's counts", String(row.total)],
+                ...row.items.slice(0, 6).map((i) => [`P(${visible(i.token)} | ${visible(context)})`, `${i.count} ÷ ${row.total}`, i.p.toFixed(4)] as [string, string, string]),
+              ]} />
+              <p>P(b | a) is read “the probability that the next character is b, given that the current one is a”. No smoothing: a character that never followed {visible(context)} has probability exactly 0.</p></> : <p>This row has no counts, so there is nothing to divide.</p>,
+            code: <EngineCode path="nextword/bigram.py" symbol="next_token_probabilities" />,
+          }}>
           {!t || !row ? <LoadingRows /> : row.total === 0 ? (
             <Note tone="warning">No pair in the training text starts with <Tok>{visible(context)}</Tok>. This is an <Term id="unseen-context">unseen context</Term>: the engine refuses to predict here.</Note>
           ) : (
             <NormalizationTable context={context} total={row.total} items={row.items} />
           )}
         </Panel>
-        <Panel id="sample" title="From a draw to a character" source={<Source kind="model" detail="draw from your engine" />}>
+        <Panel id="sample" title="From a draw to a character" source={<Source kind="model" detail="draw from your engine" />}
+          teach={{
+            calc: <p>The stretches run from 0 to 1 in the engine&apos;s order. With probabilities p₁, p₂, … the first stretch is [0, p₁), the second [p₁, p₁ + p₂), and so on. The engine draws u and picks the first stretch whose end is past u. The draw and the stretch it landed in are shown under the strip after you press Draw with your engine.</p>,
+            code: <EngineCode path="nextword/bigram.py" symbol="sample_next" />,
+          }}>
           {t && row && row.total > 0 ? <SamplingDemo key={`${corpus}:${context}`} corpus={corpus} context={context} items={row.items} /> : <EmptyNote>Pick a row that has counts.</EmptyNote>}
         </Panel>
       </div>
@@ -81,13 +161,25 @@ export default function Counts() {
         <Panel id="change" title="Change the training text" source={<Source kind="model" detail="both tables counted by your engine" />}>
           {sample.data && t ? <BeforeAfter baseText={sample.data.text} baseTable={t} context={context} /> : <LoadingRows />}
         </Panel>
-        <Panel id="smooth" title="Smoothing" source={<Source kind="simulation" detail="your engine does not smooth" />}>
+        <Panel id="smooth" title="Smoothing" source={<Source kind="simulation" detail="your engine does not smooth" />}
+          teach={{
+            calc: t ? <>
+              <Symbols rows={[
+                ["count", "how often the next character followed the context", undefined],
+                ["k", "the smoothing strength set by the slider", undefined],
+                ["V", `${t.vocab.length} known characters + 1 slot for an unknown one`, String(t.vocab.length + 1)],
+                ["P", "(count + k) ÷ (row total + k × V)", undefined],
+              ]} />
+              <p>With k = 0 this is exactly the unsmoothed division above. Any k above 0 gives every unseen character the same small share, and the shares still add up to one.</p></> : undefined,
+            code: <p className="text-sm text-muted-foreground">This panel&apos;s arithmetic is the formula above, computed inline in <code className="tok">web/src/workspaces/Counts.tsx</code> (function Smoothing). The Evaluation bench uses the same formula in <code className="tok">nextword/lab/service.py</code>.</p>,
+          }}>
           {t ? <Smoothing table={t} context={context} /> : <LoadingRows />}
         </Panel>
       </div>
 
       {t && <CountsCycle table={t} />}
     </Workspace>
+    </Teach>
   )
 }
 
@@ -214,7 +306,8 @@ function SamplingDemo({ corpus, context, items }: { corpus: string; context: str
   const [seed, setSeed] = useState(7)
   const draw = useAsync(api.generate)
   const [repeat, setRepeat] = useState<number[] | null>(null)
-  const real = draw.data && draw.data.prompt === context ? draw.data.steps[0] : undefined
+  // Show the engine's draw only while it matches the text, context and seed it was made with.
+  const real = draw.data && draw.data.prompt === context && draw.data.corpus.id === corpus && draw.data.seed === seed ? draw.data.steps[0] : undefined
   const engineOrder = real ? real.intervalOrder : items.map((i) => i.token)
   const byToken = new Map(items.map((i) => [i.token, i.p]))
   const segments = engineOrder.map((t) => ({ key: t, label: visible(t), p: byToken.get(t) ?? 0 }))
@@ -269,7 +362,8 @@ function TryAnyCharacter({ corpus, onPick }: { corpus: string; onPick: (c: strin
   const [ch, setCh] = useState("!")
   const res = useAsync(api.row)
   return (
-    <Panel id="unseen" title="Ask about any character" source={<Source kind="model" detail="answer from next_token_probabilities" />}>
+    <Panel id="unseen" title="Ask about any character" source={<Source kind="model" detail="answer from next_token_probabilities" />}
+      teach={{ code: <EngineCode path="nextword/bigram.py" symbol="next_token_probabilities" /> }}>
       <form className="flex flex-wrap items-end gap-3" onSubmit={(e) => { e.preventDefault(); void res.run(corpus, ch) }}>
         <div className="flex flex-col gap-2">
           <label htmlFor="anych" className="text-sm font-medium">Context character</label>

@@ -36,6 +36,7 @@ export interface Workspace {
 
 export const WORKSPACES: Workspace[] = [
   { route: "home", title: "Home", short: "Home", description: "Your learning map and next step", group: "start" },
+  { route: "journey", title: "Bigram journey", short: "Bigram journey", description: "One example from text to generated characters, step by step", group: "start" },
   { route: "playground", title: "Writing playground", short: "Playground", description: "Write with your bigram engine and trace each step", group: "start" },
   { route: "data", title: "Data and tokens", short: "Data and tokens", description: "Corpus, tokenizers, windows and splits", group: "build" },
   { route: "counts", title: "Counts and probability", short: "Counts", description: "Your engine's count table, normalization and sampling", group: "build" },

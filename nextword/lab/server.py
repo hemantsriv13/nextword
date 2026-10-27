@@ -109,6 +109,10 @@ def r_generate(data):
     return service.generate(store, data.get("corpus") or "sample", data.get("prompt", ""), data.get("length", 40), data.get("seed"))
 
 
+def r_journey(data):
+    return service.journey(store, data.get("corpus") or "example", data.get("prompt", ""), data.get("length", 12), data.get("seed"))
+
+
 def r_benchmark(data):
     return service.benchmark(store, data.get("corpus") or "sample", data.get("prompt", "The rain"), data.get("length", 40), data.get("runs", 50))
 
@@ -128,7 +132,7 @@ def r_source(data):
 GET_ROUTES = {"/api/health": r_health, "/api/engines": r_engines, "/api/corpora": r_corpora,
               "/api/corpus": r_corpus, "/api/source": r_source}
 POST_ROUTES = {"/api/corpora": r_corpus_add, "/api/corpora/delete": r_corpus_delete, "/api/stats": r_stats,
-               "/api/bigram/table": r_table, "/api/bigram/row": r_row, "/api/generate": r_generate,
+               "/api/bigram/table": r_table, "/api/bigram/row": r_row, "/api/generate": r_generate, "/api/journey": r_journey,
                "/api/benchmark": r_benchmark, "/api/evaluate": r_evaluate, "/api/adapt": r_adapt}
 
 

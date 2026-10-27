@@ -10,6 +10,7 @@ import { useMediaQuery } from "@/lib/hooks"
 import { actions, useLab } from "@/lib/store"
 import { cn } from "@/lib/utils"
 import { useFocusMode } from "./shell-state"
+import { TeachInPanel, useTeachTarget, type PanelTeach } from "./teach"
 
 // ----------------------------------------------------------------------------- workspace frame
 
@@ -79,9 +80,15 @@ export function Workspace({ title, subtitle, actions: headerActions, explain, ch
 // ----------------------------------------------------------------------------- panels
 
 /** A section of the experiment area: a heading, an optional source label and right-side controls. */
-export function Panel({ title, source, aside, children, className, id }: { title: string; source?: ReactNode; aside?: ReactNode; children: ReactNode; className?: string; id?: string }) {
+export function Panel({ title, source, aside, children, className, id, teach }: { title: string; source?: ReactNode; aside?: ReactNode; children: ReactNode; className?: string; id?: string; teach?: PanelTeach }) {
+  const { highlighted } = useTeachTarget(id)
   return (
-    <section aria-labelledby={id ? `${id}-h` : undefined} className={cn("min-w-0 rounded-lg border border-border bg-card p-5", className)}>
+    <section
+      aria-labelledby={id ? `${id}-h` : undefined}
+      data-teach={id}
+      data-highlighted={highlighted || undefined}
+      className={cn("min-w-0 scroll-mt-16 rounded-lg border border-border bg-card p-5", highlighted && "outline-2 outline-offset-2 outline-data", className)}
+    >
       <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <div className="flex min-w-0 max-w-full flex-wrap items-center gap-x-3 gap-y-1">
           <h2 id={id ? `${id}-h` : undefined} className="text-base font-semibold">{title}</h2>
@@ -89,6 +96,7 @@ export function Panel({ title, source, aside, children, className, id }: { title
         </div>
         {aside && <div className="flex flex-wrap items-center gap-2">{aside}</div>}
       </div>
+      {id && <TeachInPanel id={id} teach={teach} />}
       {children}
     </section>
   )

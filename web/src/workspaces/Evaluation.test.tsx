@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, renderHook, screen, within } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import userEvent from "@testing-library/user-event"
 import { deferred } from "@/test/setup-dom"
@@ -16,6 +16,8 @@ vi.mock("@/lib/corpora", () => ({
 
 const { default: Evaluation } = await import("./Evaluation")
 const { actions, getState } = await import("@/lib/store")
+const { useSnapshotRun } = await import("@/lib/evaluation")
+const result_ = (k: number, nll: number | null) => result(k, nll)
 
 function result(k: number, nll: number | null, fingerprint = "aaaa1111"): EvalResult {
   return { split: { train: 933, val: 117, test: 117, bounds: [933, 1050] }, on: "val", k, targets: 116, unseenContext: 2, unseenPair: 9, meanNll: nll, meanNllCovered: 2.1, covered: 105, perplexity: nll === null ? null : Math.exp(nll), uniformBaselineNll: 3.66, vocabularyWithUnknown: 39, examples: [], truncated: false, modelVersion: "char-bigram@test", corpusFingerprint: fingerprint }
@@ -65,19 +67,23 @@ describe("Evaluation bench keeps results with the settings that produced them", 
     expect(getState().experiments[0].config).toEqual({ corpus: "sample", train: 0.8, val: 0.1, on: "val", k: 0 })
   })
 
-  it("a slower, older request can't overwrite a newer result", async () => {
-    const first = deferred<EvalResult>()
-    const second = deferred<EvalResult>()
-    evaluate.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise)
-    render(<Evaluation />)
-    await act(async () => clickButton(/measure on validation/i))
-    setSlider(2, 1)
-    // The button is disabled while measuring, so start the second request through a rerun-like path:
-    await act(async () => first.resolve(result(0, null)))
-    await act(async () => clickButton(/measure on validation/i))
-    await act(async () => second.resolve(result(1, 2.68)))
-    expect(screen.getByTestId("result-settings").textContent).toContain("k 1")
-    expect(screen.queryByText(/settings changed since this run/i)).toBeNull()
+  it("a slower, older request can't overwrite a newer result, even when it resolves last", async () => {
+    // The button is disabled while measuring, so two requests can only overlap through the hook
+    // itself; test it there with two requests in flight at once.
+    const older = deferred<EvalResult>()
+    const newer = deferred<EvalResult>()
+    const request = vi.fn<(c: { corpus: string; train: number; val: number; on: "val" | "test"; k: number }) => Promise<EvalResult>>().mockReturnValueOnce(older.promise).mockReturnValueOnce(newer.promise)
+    const { result } = renderHook(() => useSnapshotRun(request))
+    let a: Promise<unknown>, b: Promise<unknown>
+    act(() => { a = result.current.start({ corpus: "sample", train: 0.8, val: 0.1, on: "val", k: 0 }) })
+    act(() => { b = result.current.start({ corpus: "sample", train: 0.8, val: 0.1, on: "val", k: 1 }) })
+    expect(request).toHaveBeenCalledTimes(2)
+    await act(async () => { newer.resolve(result_(1, 2.68)); await b })
+    expect(result.current.run?.config.k).toBe(1)
+    await act(async () => { older.resolve(result_(0, null)); await a })
+    expect(result.current.run?.config.k).toBe(1)
+    expect(result.current.run?.result.meanNll).toBe(2.68)
+    expect(result.current.pending).toBeNull()
   })
 
   it("changing the training text after measuring is reported, and the save keeps the measured text", async () => {

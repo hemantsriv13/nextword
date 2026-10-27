@@ -1,0 +1,138 @@
+{
+ "corpus": {
+  "id": "upload-c551b9df9bb",
+  "name": "Stops early",
+  "created": "2026-10-27T13:49:15+00:00",
+  "origin": "upload",
+  "file": "C:/Users/Hemant/AppData/Local/Temp/tmpy7373pts/c551b9df9bb.txt",
+  "chars": 8,
+  "distinct": 5,
+  "fingerprint": "5e3a2a91"
+ },
+ "text": "abcab c!",
+ "table": {
+  "vocab": [
+   {
+    "token": "b",
+    "label": "b"
+   },
+   {
+    "token": "c",
+    "label": "c"
+   },
+   {
+    "token": "a",
+    "label": "a"
+   },
+   {
+    "token": " ",
+    "label": "␣"
+   },
+   {
+    "token": "!",
+    "label": "!"
+   }
+  ],
+  "rows": {
+   "a": {
+    "b": 2
+   },
+   "b": {
+    "c": 1,
+    " ": 1
+   },
+   "c": {
+    "a": 1,
+    "!": 1
+   },
+   " ": {
+    "c": 1
+   }
+  },
+  "totals": {
+   "a": 2,
+   "b": 2,
+   "c": 2,
+   " ": 1
+  },
+  "pairs": 7
+ },
+ "generation": {
+  "engine": "char-bigram",
+  "modelVersion": "char-bigram@cfdad253",
+  "corpus": {
+   "id": "upload-c551b9df9bb",
+   "name": "Stops early",
+   "created": "2026-10-27T13:49:15+00:00",
+   "origin": "upload",
+   "file": "C:/Users/Hemant/AppData/Local/Temp/tmpy7373pts/c551b9df9bb.txt",
+   "chars": 8,
+   "distinct": 5,
+   "fingerprint": "5e3a2a91"
+  },
+  "prompt": "ab",
+  "contextUsed": "b",
+  "contextUsedLabel": "b",
+  "seed": 3,
+  "length": 8,
+  "suggestion": "c!",
+  "stopped": "stopped after 2 characters: '!' never had a successor in the training text",
+  "steps": [
+   {
+    "context": "b",
+    "contextLabel": "b",
+    "draw": 0.23796462709189137,
+    "token": "c",
+    "tokenLabel": "c",
+    "candidates": [
+     {
+      "token": " ",
+      "label": "␣",
+      "p": 0.5
+     },
+     {
+      "token": "c",
+      "label": "c",
+      "p": 0.5
+     }
+    ],
+    "intervalOrder": [
+     "c",
+     " "
+    ]
+   },
+   {
+    "context": "c",
+    "contextLabel": "c",
+    "draw": 0.5442292252959519,
+    "token": "!",
+    "tokenLabel": "!",
+    "candidates": [
+     {
+      "token": "!",
+      "label": "!",
+      "p": 0.5
+     },
+     {
+      "token": "a",
+      "label": "a",
+      "p": 0.5
+     }
+    ],
+    "intervalOrder": [
+     "a",
+     "!"
+    ]
+   }
+  ],
+  "timingsMs": {
+   "validate": 0.001600012183189392,
+   "count": 0.000400003045797348,
+   "countCacheHit": true,
+   "countOnlyMs": 0.0,
+   "generate": 0.029199989512562752,
+   "format": 0.011499971151351929,
+   "total": 0.04269997589290142
+  }
+ }
+}

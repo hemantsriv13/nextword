@@ -63,6 +63,12 @@ export default function Home() {
         </>
       }
     >
+      <Panel id="start" title="Start here if the words are new" source={<Source kind="model" />}
+        aside={<Button asChild><a href={hrefFor("journey")}>Open the Bigram journey<NavArrowRightIcon className="size-4" /></a></Button>}>
+        <p className="max-w-3xl text-[15px] leading-relaxed">The Bigram journey follows one short example through your engine: the training text, the pair counts, the probabilities, the prompt, the random draw and the next character. It needs no answers from you. Read it, or press <span className="font-medium">Read and watch</span> there to go one step at a time.</p>
+        <p className="mt-2 max-w-3xl text-sm text-muted-foreground">Every other workspace starts with the same kind of guide: the question it answers, a flow of what goes in and what comes out, and a walkthrough you can leave at any point.</p>
+      </Panel>
+
       <section aria-labelledby="map-h" className="flex flex-col gap-3">
         <h2 id="map-h" className="text-base font-semibold">From text to retrieval</h2>
         <ol className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
