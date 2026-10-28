@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils"
 import { pickByDraw } from "@/sim/decoding"
 import { mulberry32 } from "@/sim/rng"
 import { charCount, visible } from "@/sim/tokenize"
+import { InfoTip } from "@/components/lab/info-tip"
 
 const GUIDE: Guide = {
   question: "What exactly has your engine learned from its training text, and how does that become a probability?",
@@ -104,7 +105,7 @@ export default function Counts() {
       subtitle="Your engine's whole model is one table of counts. Pick a row to see how counts become probabilities and how one draw picks a character."
       actions={
         <div className="flex items-center gap-2">
-          <span id="cc-label" className="text-sm text-muted-foreground">Training text</span>
+          <span className="flex items-center gap-0.5"><span id="cc-label" className="text-sm text-muted-foreground">Training text</span><InfoTip id="counts.corpus" /></span>
           <Select value={corpus} onValueChange={(v) => setCorpus(String(v))} items={(corpora ?? []).map((c) => ({ value: c.id, label: c.name }))}>
             <SelectTrigger aria-labelledby="cc-label" data-help-id="counts.corpus" className="w-48"><SelectValue /></SelectTrigger>
             <SelectContent>{(corpora ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
@@ -202,7 +203,7 @@ function Heatmap({ table, selected, onSelect }: { table: CountTable; selected: s
           <caption className="sr-only">Bigram counts. Use the row buttons to inspect a row.</caption>
           <thead className="sticky top-0 z-10 bg-card">
             <tr>
-              <th scope="col" className="sticky left-0 z-20 bg-card px-1 text-[11px] font-normal text-muted-foreground">now ↓ next →</th>
+              <th scope="col" className="sticky left-0 z-20 bg-card px-1 text-[11px] font-normal text-muted-foreground">now ↓ next →<InfoTip id="counts.row" /></th>
               {vocab.map((v) => <th key={v.token} scope="col" className="tok min-w-[22px] px-0.5 py-1 text-center font-normal">{v.label}</th>)}
             </tr>
           </thead>

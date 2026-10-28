@@ -148,7 +148,7 @@ function TourCard({ tour, index, onGo, onStop }: { tour: ToolkitTour; index: num
       )}
       {step.action && (
         <Button variant="outline" size="sm" className="self-start bg-card" onClick={() => {
-          if (step.action!.help) { const el = document.querySelector<HTMLElement>(selectorFor(step.action!.help)); help?.open(step.action!.help, el, document.activeElement as HTMLElement) }
+          if (step.action!.help) help?.open(step.action!.help)
           else if (step.action!.open) navigate(step.action!.open)
         }}>{step.action.label}</Button>
       )}

@@ -17,6 +17,8 @@ import { changedSettings, describeConfig, rerunVerdict, sameConfig, splitProblem
 import { fmt } from "@/lib/hooks"
 import { actions, download, useLab, type SavedExperiment } from "@/lib/store"
 import { cn } from "@/lib/utils"
+import { InfoTip } from "@/components/lab/info-tip"
+import { MathHelp, TermHelp } from "@/components/lab/term-help"
 
 type Config = EvalConfig
 type Measured = Snapshot<Config, EvalResult>
@@ -115,7 +117,7 @@ export default function Evaluation() {
         aside={<Button data-help-id="evaluation.measure" onClick={() => run()} disabled={!!problem || !!bench.pending}><PlayIcon className="size-4" /> {bench.pending ? "Measuring…" : config.on === "test" ? "Run the final test check" : "Measure on validation"}</Button>}>
         <div className="grid grid-cols-1 gap-x-8 gap-y-5 md:grid-cols-2 xl:grid-cols-3">
           <div className="flex flex-col gap-2">
-            <span id="ev-corpus" className="text-sm font-medium">Training text</span>
+            <span className="flex items-center gap-0.5"><span id="ev-corpus" className="text-sm font-medium">Training text</span><InfoTip id="evaluation.corpus" /></span>
             <Select value={config.corpus} onValueChange={(v) => set("corpus", String(v))} items={(corpora ?? []).map((c) => ({ value: c.id, label: c.name }))}>
               <SelectTrigger aria-labelledby="ev-corpus" data-help-id="evaluation.corpus"><SelectValue /></SelectTrigger>
               <SelectContent>{(corpora ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
@@ -184,7 +186,7 @@ function SummaryCalc({ run, label }: { run: Measured; label: string }) {
       <Symbols rows={[
         ["N", "held-out predictions scored", fmt.n(r.targets)],
         ["mean loss", "(1 ÷ N) × the sum of −log p over all of them", r.meanNll === null ? `∞ (${r.targets - r.covered} had p = 0)` : `${r.meanNll.toFixed(4)} nats`],
-        ["perplexity", "e to the mean loss", r.perplexity === null ? "undefined" : r.perplexity.toFixed(3)],
+        ["perplexity", "exp(mean loss): e to the mean loss", r.perplexity === null ? "∞ (the mean loss is infinite)" : r.perplexity.toFixed(3)],
         ["baseline", `−log(1 ÷ ${r.vocabularyWithUnknown}): a uniform guess over ${r.vocabularyWithUnknown} characters`, `${r.uniformBaselineNll.toFixed(4)} nats`],
       ]} />
       <p>For {label}. A lower loss is better, but only against runs on the same text, the same split and the same character tokens; a different tokenizer changes N and the meaning of one prediction.</p>
@@ -217,12 +219,16 @@ function Results({ run, stale, changed, corpusName }: { run: Measured; stale: bo
         )}
         <dl className="flex flex-col gap-4">
           <div>
-            <dt className="text-sm text-muted-foreground">Mean <Term id="cross-entropy">negative log-likelihood</Term> per character</dt>
-            <dd className="num text-[28px] leading-tight">{r.meanNll === null ? "∞" : r.meanNll.toFixed(3)} <span className="text-base text-muted-foreground">nats</span></dd>
+            <dt className="text-sm text-muted-foreground">Mean <TermHelp id="nll" here={<>Each of the {fmt.n(r.targets)} held-out characters is scored by −ln of the probability your engine gave it. The big number is their average.</>} example={<NllExample r={r} />}>negative log-likelihood (NLL)</TermHelp> per character</dt>
+            <dd className="num text-[28px] leading-tight">{r.meanNll === null ? "∞" : r.meanNll.toFixed(3)} <TermHelp id="nats" className="text-base text-muted-foreground" here="Each score is −ln p, computed with Python's math.log, which uses base e. So the loss is in nats." example={<>A uniform guess over the {r.vocabularyWithUnknown} possible characters gives every one p = 1/{r.vocabularyWithUnknown}, which costs ln {r.vocabularyWithUnknown} = <span className="num">{r.uniformBaselineNll.toFixed(3)}</span> nats per character. {r.meanNll === null ? "This run's mean is infinite, so it cannot be compared with that yet." : <>This run averages <span className="num">{r.meanNll.toFixed(3)}</span> nats.</>}</>}>nats</TermHelp></dd>
             {r.meanNll === null && r.meanNllCovered !== null && <dd className="text-sm">Infinite because {r.targets - r.covered} targets had probability 0. On the {r.covered} that didn&apos;t: <span className="num">{r.meanNllCovered.toFixed(3)}</span> nats, which is not a fair score on its own (it ignores the failures).</dd>}
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div><dt className="text-label text-muted-foreground"><Term id="perplexity">Perplexity</Term></dt><dd className="num text-xl">{r.perplexity === null ? "undefined" : r.perplexity.toFixed(2)}</dd></div>
+            <div>
+              <dt className="text-label text-muted-foreground"><TermHelp id="perplexity" here="The same measurement as the mean NLL above, put on a scale of choices. It compares fairly only with runs on the same text, split and character tokens." example={<PerplexityExample r={r} />}>Perplexity</TermHelp></dt>
+              <dd className="num text-xl">{r.perplexity === null ? "∞" : r.perplexity.toFixed(2)}</dd>
+              <dd className="text-label text-muted-foreground">= <MathHelp id="exp" here="It undoes the ln inside each NLL score, turning the average loss back into a number of effective choices.">exp</MathHelp>(mean <MathHelp id="nll" here="The mean negative log-likelihood above, in nats." example={<NllExample r={r} />}>NLL</MathHelp>)</dd>
+            </div>
             <div><dt className="text-label text-muted-foreground">Uniform guess (<Term id="baseline">baseline</Term>)</dt><dd className="num text-xl">{r.uniformBaselineNll.toFixed(3)} <span className="text-sm text-muted-foreground">nats</span></dd></div>
             <div><dt className="text-label text-muted-foreground">Targets scored</dt><dd className="num text-xl">{fmt.n(r.targets)}</dd></div>
             <div><dt className="text-label text-muted-foreground">Unseen context / pair</dt><dd className="num text-xl">{r.unseenContext} / {r.unseenPair}</dd></div>
@@ -246,7 +252,7 @@ function Results({ run, stale, changed, corpusName }: { run: Measured; stale: bo
         <div className="max-h-[480px] overflow-auto rounded-md border border-border">
           <table className="w-full text-sm">
             <caption className="sr-only">Loss for each held-out pair</caption>
-            <thead className="sticky top-0 bg-card"><tr className="text-label text-muted-foreground"><th className="px-3 py-2 text-right font-normal">#</th><th className="px-3 py-2 text-left font-normal">Context → target</th><th className="px-3 py-2 text-right font-normal">p(target)</th><th className="px-3 py-2 text-right font-normal">−log p</th><th className="px-3 py-2 text-left font-normal">Why</th></tr></thead>
+            <thead className="sticky top-0 bg-card"><tr className="text-label text-muted-foreground"><th className="px-3 py-2 text-right font-normal">#</th><th className="px-3 py-2 text-left font-normal">Context → target</th><th className="px-3 py-2 text-right font-normal">p(target)</th><th className="px-3 py-2 text-right font-normal">−<MathHelp id="ln" here="Here log is the natural log, ln: your engine uses Python's math.log, base e. So −log p is the target's NLL, in nats." example={<NllExample r={r} />}>log</MathHelp> p</th><th className="px-3 py-2 text-left font-normal">Why</th></tr></thead>
             <tbody>
               {rows.map((e) => (
                 <tr key={e.i} className="border-t border-rule">
@@ -264,6 +270,28 @@ function Results({ run, stale, changed, corpusName }: { run: Measured; stale: bo
       </Panel>
     </div>
   )
+}
+
+/** One held-out target from the displayed run, worked through, then the mean. */
+function NllExample({ r }: { r: EvalResult }) {
+  const e = r.examples.find((x) => x.nll !== null)
+  const zeros = r.targets - r.covered
+  return (
+    <>
+      {e && <p>After <Tok tone="context">{e.context}</Tok>, the actual next character <Tok>{e.target}</Tok> got p = <span className="num">{e.p.toFixed(4)}</span>, so its NLL is −ln({e.p.toFixed(4)}) = <span className="num">{e.nll!.toFixed(3)}</span> nats.</p>}
+      {r.meanNll !== null
+        ? <p className="mt-1">Averaging all {fmt.n(r.targets)} targets gives <span className="num">{r.meanNll.toFixed(3)}</span> nats.</p>
+        : <p className="mt-1">{zeros} {zeros === 1 ? "target" : "targets"} got p = 0, and −ln(0) is infinite, so the mean is ∞ too. The engine reports it as null, which here means infinite, not missing.</p>}
+    </>
+  )
+}
+
+function PerplexityExample({ r }: { r: EvalResult }) {
+  const v = r.vocabularyWithUnknown
+  if (r.meanNll === null || r.perplexity === null) {
+    return <p>Mean NLL is infinite in this run, so perplexity is too: exp(∞) = ∞. Raise smoothing k above 0 to give unseen pairs some probability, and both become finite.</p>
+  }
+  return <p>exp(<span className="num">{r.meanNll.toFixed(3)}</span>) = <span className="num">{r.perplexity.toFixed(2)}</span>. A uniform guess over {v} characters would score exactly {v}. That does not mean {r.perplexity.toFixed(1)} candidates at every step, or any accuracy figure.</p>
 }
 
 const SWEEP = [0, 0.01, 0.05, 0.1, 0.25, 0.5, 1, 2]
@@ -361,8 +389,8 @@ function SavedRuns({ onRerun }: { onRerun: (c: Config) => Promise<EvalResult | u
   return (
     <Panel id="saved" title="Saved runs" source={experiments.length ? <Source kind="model" detail="results stored in this browser" /> : undefined}
       aside={experiments.length > 0 && (
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" data-help-id="evaluation.export" onClick={exportJson}><DownloadIcon className="size-4" /> Export runs (JSON file)</Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" data-help-info="off" data-help-id="evaluation.export" onClick={exportJson}><DownloadIcon className="size-4" /> Export runs (JSON file)</Button>
           <Button variant="outline" size="sm" data-help-id="evaluation.export" onClick={exportCsv}><DownloadIcon className="size-4" /> Export for a spreadsheet (CSV)</Button>
         </div>
       )}>
@@ -373,7 +401,7 @@ function SavedRuns({ onRerun }: { onRerun: (c: Config) => Promise<EvalResult | u
               <caption className="sr-only">Saved evaluation runs</caption>
               <thead><tr className="text-label text-muted-foreground">
                 <th className="py-2 text-left font-normal">Name</th><th className="py-2 text-left font-normal">Settings</th><th className="py-2 text-right font-normal">Loss</th><th className="py-2 text-right font-normal">PPL</th>
-                <th className="py-2 text-center font-normal">Baseline</th><th className="py-2 text-center font-normal">Candidate</th><th className="py-2" />
+                <th className="py-2 text-center font-normal">Baseline <InfoTip id="evaluation.compare" /></th><th className="py-2 text-center font-normal">Candidate</th><th className="py-2 text-right font-normal"><InfoTip id="evaluation.rerun" /></th>
               </tr></thead>
               <tbody>
                 {experiments.map((e) => (
@@ -385,7 +413,7 @@ function SavedRuns({ onRerun }: { onRerun: (c: Config) => Promise<EvalResult | u
                     <td className="py-2 text-center"><input type="radio" name="baseline" data-help-id="evaluation.compare" aria-label={`Use ${e.name} as baseline`} checked={baseline === e.id} onChange={() => setBaseline(e.id)} className="accent-[var(--foreground)]" /></td>
                     <td className="py-2 text-center"><input type="radio" name="candidate" data-help-id="evaluation.compare" aria-label={`Use ${e.name} as candidate`} checked={candidate === e.id} onChange={() => setCandidate(e.id)} className="accent-[var(--foreground)]" /></td>
                     <td className="py-2 text-right whitespace-nowrap">
-                      <Button data-help-id="evaluation.rerun" variant="ghost" size="sm" onClick={async () => {
+                      <Button data-help-info="off" data-help-id="evaluation.rerun" variant="ghost" size="sm" onClick={async () => {
                         const res = await onRerun(e.config)
                         setRepro((prev) => ({ ...prev, [e.id]: res ? rerunVerdict(e.result, res) : { kind: "error", message: "Couldn't rerun; see the error above. The training text may have been deleted." } }))
                       }}>Rerun</Button>

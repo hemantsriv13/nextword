@@ -10,6 +10,7 @@ import { useMediaQuery } from "@/lib/hooks"
 import { actions, useLab } from "@/lib/store"
 import { cn } from "@/lib/utils"
 import { ExplanationPanel } from "./explanation"
+import { InfoTip } from "./info-tip"
 import { useFocusMode } from "./shell-state"
 import { TeachInPanel, useTeachTarget, type PanelTeach } from "./teach"
 
@@ -211,7 +212,7 @@ export function SliderField({ label, value, min, max, step, onChange, format = (
   return (
     <div className="flex min-w-0 flex-col gap-2" data-help-id={helpId}>
       <div className="flex items-baseline justify-between gap-3">
-        <label id={`${id}-label`} className="text-sm font-medium">{label}</label>
+        <span className="flex items-center gap-0.5"><label id={`${id}-label`} className="text-sm font-medium">{label}</label>{helpId && <InfoTip id={helpId} />}</span>
         <output htmlFor={id} className="num text-sm">{format(value)}</output>
       </div>
       <Slider
@@ -240,7 +241,7 @@ export function NumberField({ label, value, onChange, min, max, id, hint, width 
   const invalid = text.trim() === "" || !Number.isInteger(n) || n < min || n > max
   return (
     <div className="flex flex-col gap-2" data-help-id={helpId}>
-      <label htmlFor={id} className="text-sm font-medium">{label}</label>
+      <span className="flex items-center gap-0.5"><label htmlFor={id} className="text-sm font-medium">{label}</label>{helpId && <InfoTip id={helpId} />}</span>
       <input
         id={id}
         inputMode="numeric"
@@ -261,6 +262,7 @@ export function NumberField({ label, value, onChange, min, max, id, hint, width 
 
 export function Segmented<T extends string>({ value, options, onChange, label, helpId }: { value: T; options: { value: T; label: string }[]; onChange: (v: T) => void; label: string; helpId?: string }) {
   return (
+    <span className="inline-flex max-w-full items-center gap-0.5">
     <div role="radiogroup" aria-label={label} data-help-id={helpId} className="inline-flex max-w-full flex-wrap rounded-md bg-secondary p-0.5">
       {options.map((o) => (
         <button
@@ -281,5 +283,7 @@ export function Segmented<T extends string>({ value, options, onChange, label, h
         </button>
       ))}
     </div>
+    {helpId && <InfoTip id={helpId} />}
+    </span>
   )
 }

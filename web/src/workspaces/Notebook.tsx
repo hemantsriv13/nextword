@@ -12,6 +12,7 @@ import { hrefFor } from "@/lib/hooks"
 import { actions, download, EVIDENCE_LEVELS, storageAvailable, useLab, type NoteKind } from "@/lib/store"
 import { cn } from "@/lib/utils"
 import type { Route } from "@/content/glossary"
+import { InfoTip } from "@/components/lab/info-tip"
 
 const KIND_LABEL: Record<NoteKind, string> = { note: "Note", question: "Question", prediction: "Prediction", explanation: "Explanation" }
 
@@ -44,7 +45,7 @@ function NotesPanel() {
         </div>
         <label htmlFor="nb-text" className="sr-only">{kind === "question" ? "Your question" : "Your note"}</label>
         <Textarea id="nb-text" rows={3} value={text} onChange={(e) => setText(e.target.value)} placeholder={kind === "question" ? "What are you unsure about?" : "What did you notice?"} />
-        <Button type="submit" className="self-start" data-help-id="notebook.add" disabled={!text.trim()}>Save {kind}</Button>
+        <Button type="submit" className="self-start" data-help-info="off" data-help-id="notebook.add" disabled={!text.trim()}>Save {kind}</Button>
       </form>
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
         <h3 className="text-sm font-medium">{notes.length} saved</h3>
@@ -113,7 +114,7 @@ function CheckpointsPanel() {
   const [confirm, setConfirm] = useState(false)
   return (
     <Panel id="checkpoints" title="Learning checkpoints"
-      aside={<label className="flex items-center gap-2 text-sm" data-help-id="notebook.checkpoint-practice"><Switch checked={practice} onCheckedChange={(on) => actions.setPref("checkpointPractice", !!on)} aria-label="Practice mode: ask every checkpoint again, even passed ones" /> Practice mode</label>}>
+      aside={<span className="inline-flex items-center gap-0.5"><label className="flex items-center gap-2 text-sm" data-help-id="notebook.checkpoint-practice"><Switch checked={practice} onCheckedChange={(on) => actions.setPref("checkpointPractice", !!on)} aria-label="Practice mode: ask every checkpoint again, even passed ones" /> Practice mode</label><InfoTip id="notebook.checkpoint-practice" /></span>}>
       <p className="measure mb-4 text-sm text-muted-foreground">Short questions at the end of lesson sections. Each outcome is kept apart: visiting a section, skipping its checkpoint, passing with or without hints, and reviewing the solution. A passed question is evidence about that question, not mastery; your own evidence levels above are separate.</p>
       <table className="w-full text-sm" data-testid="checkpoint-table">
         <caption className="sr-only">Checkpoint outcomes</caption>
@@ -202,8 +203,8 @@ function DataPanel() {
           <li>Clearing site data, or the browser freeing space, deletes it without warning. Browsers usually allow about 5 MB.</li>
           <li>Export now and then to keep a copy you control.</li>
         </ul>
-        <div className="flex flex-wrap gap-2">
-          <Button data-help-id="notebook.export" variant="outline" onClick={() => { download(`nextword-lab-${new Date().toISOString().slice(0, 10)}.json`, actions.exportJson()); setStatus({ ok: true, text: "Exported." }) }}><DownloadIcon className="size-4" /> Export everything</Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button data-help-info="off" data-help-id="notebook.export" variant="outline" onClick={() => { download(`nextword-lab-${new Date().toISOString().slice(0, 10)}.json`, actions.exportJson()); setStatus({ ok: true, text: "Exported." }) }}><DownloadIcon className="size-4" /> Export everything</Button>
           <input ref={file} type="file" accept="application/json,.json" className="sr-only" aria-label="Choose an exported Lab file"
             onChange={(e) => {
               const f = e.target.files?.[0]

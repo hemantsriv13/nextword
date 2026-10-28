@@ -21,7 +21,7 @@ export function GlossaryProvider({ children }: { children: ReactNode }) {
         <SheetContent side="right" className="w-full overflow-y-auto bg-card sm:max-w-md">
           {entry && (
             <>
-              <SheetTitle className="pr-8 text-xl">{entry.term}</SheetTitle>
+              <SheetTitle className="pr-8 text-xl">{entry.abbr && entry.abbr !== entry.term ? `${entry.abbr}: ${entry.term}` : entry.term}</SheetTitle>
               <SheetDescription className="sr-only">Glossary entry for {entry.term}</SheetDescription>
               <EntryBody entry={entry} onNavigate={() => setOpenId(null)} onOpenTerm={setOpenId} />
             </>
@@ -45,7 +45,6 @@ export function Term({ id, children, className }: { id: string; children?: React
     <button
       type="button"
       onClick={() => open(id)}
-      title={entry.plain}
       className={cn("cursor-help rounded-sm text-inherit underline decoration-muted-foreground/60 decoration-dotted underline-offset-[3px] hover:decoration-foreground", className)}
     >
       {children ?? entry.term}
@@ -60,12 +59,35 @@ const WHERE_LABEL: Record<GlossaryEntry["where"], string> = {
   discussed: "Explained here; not built yet",
 }
 
+/** A glossary entry's illustrative values, as a two-column table. */
+export function WorkedTable({ w }: { w: NonNullable<GlossaryEntry["worked"]> }) {
+  return (
+    <table className="w-full max-w-sm text-sm">
+      <caption className="mb-1 text-left text-label text-muted-foreground">{w.caption}</caption>
+      <thead><tr className="text-label text-muted-foreground"><th className="py-0.5 text-left font-normal">{w.head[0]}</th><th className="py-0.5 text-right font-normal">{w.head[1]}</th></tr></thead>
+      <tbody>{w.rows.map(([a, b]) => <tr key={a} className="border-t border-rule"><td className="num py-0.5">{a}</td><td className="num py-0.5 text-right">{b}</td></tr>)}</tbody>
+    </table>
+  )
+}
+
 export function EntryBody({ entry, onNavigate, onOpenTerm }: { entry: GlossaryEntry; onNavigate?: () => void; onOpenTerm?: (id: string) => void }) {
   const bookmarked = useLab((s) => s.bookmarks.includes(entry.id))
   const workspace = WORKSPACE_BY_ROUTE.get(entry.experiment.route)
   return (
     <div className="mt-4 flex flex-col gap-5 text-prose leading-relaxed">
       <p className="text-base">{entry.plain}</p>
+      {entry.say && <p className="-mt-3 text-sm text-muted-foreground">Read {entry.abbr} as “{entry.say}”.</p>}
+      {entry.needs && entry.needs.length > 0 && (
+        <p className="-mt-2 text-sm text-muted-foreground">
+          Builds on:{" "}
+          {entry.needs.map((n, i) => (
+            <span key={n}>
+              {i > 0 && ", "}
+              <button type="button" className="font-medium text-foreground underline decoration-dotted underline-offset-2" onClick={() => onOpenTerm?.(n)}>{findTerm(n)?.abbr ?? findTerm(n)?.term}</button>
+            </span>
+          ))}
+        </p>
+      )}
       <dl className="flex flex-col gap-4">
         <div>
           <dt className="text-sm font-medium text-muted-foreground">Precisely</dt>
@@ -74,6 +96,7 @@ export function EntryBody({ entry, onNavigate, onOpenTerm }: { entry: GlossaryEn
         <div>
           <dt className="text-sm font-medium text-muted-foreground">Small example</dt>
           <dd>{entry.example}</dd>
+          {entry.worked && <dd className="mt-2"><WorkedTable w={entry.worked} /></dd>}
         </div>
         <div>
           <dt className="text-sm font-medium text-muted-foreground">Common misconception</dt>

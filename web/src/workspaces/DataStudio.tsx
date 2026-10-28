@@ -22,6 +22,8 @@ import { charCount, charTokens, encodeBpe, firstChars, idTable, learnBpe, visibl
 import tokenizeSource from "@/sim/tokenize.ts?raw"
 import windowsSource from "@/sim/windows.ts?raw"
 import { makeWindows, splitWindows } from "@/sim/windows"
+import { InfoTip } from "@/components/lab/info-tip"
+import { TermHelp } from "@/components/lab/term-help"
 
 type Tab = "corpus" | "tokens" | "windows" | "splits"
 
@@ -152,7 +154,7 @@ function CorpusTab() {
             <caption className="sr-only">Available training texts</caption>
             <thead>
               <tr className="text-label text-muted-foreground">
-                <th scope="col" className="py-2 text-left font-normal">Name</th>
+                <th scope="col" className="py-2 text-left font-normal">Name <InfoTip id="data.corpus-pick" /></th>
                 <th scope="col" className="py-2 text-left font-normal">File</th>
                 <th scope="col" className="py-2 text-right font-normal">Characters</th>
                 <th scope="col" className="py-2 text-right font-normal">Distinct</th>
@@ -192,7 +194,7 @@ function CorpusTab() {
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <Panel id="preview" variant="canvas" title={d ? `Preview: ${d.name}` : "Preview"} source={<Source kind="model" detail="counted by tokenize()" />}
-          aside={<label className="flex items-center gap-2 text-sm" data-help-id="data.whitespace"><Switch checked={showWs} onCheckedChange={setShowWs} aria-label="Show spaces and newlines" /> Show spaces and newlines</label>}>
+          aside={<span className="inline-flex items-center gap-0.5"><label className="flex items-center gap-2 text-sm" data-help-id="data.whitespace"><Switch checked={showWs} onCheckedChange={setShowWs} aria-label="Show spaces and newlines" /> Show spaces and newlines</label><InfoTip id="data.whitespace" /></span>}>
           {detail.error ? <ErrorNote error={detail.error} onRetry={detail.retry} /> : !d ? <LoadingRows rows={6} /> : (
             <div className="flex flex-col gap-4">
               <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -250,7 +252,7 @@ function CorpusTab() {
           </div>
           {fileError && <p role="alert" className="text-sm text-negative">{fileError}</p>}
           {add.error && <ErrorNote error={add.error} />}
-          <Button data-help-id="data.add" type="submit" className="self-start" disabled={!text.trim() || charCount(text) > MAX_UPLOAD || add.loading}>{add.loading ? "Saving…" : "Save as a training text"}</Button>
+          <div className="flex items-center gap-1"><Button data-help-id="data.add" type="submit" className="self-start" disabled={!text.trim() || charCount(text) > MAX_UPLOAD || add.loading}>{add.loading ? "Saving…" : "Save as a training text"}</Button></div>
         </form>
       </Panel>
     </>
@@ -307,7 +309,7 @@ function TokensTab() {
             </tbody>
           </table>
         </div>
-        <p className="mt-3 text-label text-muted-foreground">The same text becomes different numbers of tokens. That is why <Term id="perplexity">perplexity</Term> can't be compared across tokenizers without care.</p>
+        <p className="mt-3 text-label text-muted-foreground">The same text becomes different numbers of tokens. That is why <TermHelp id="perplexity" here="Perplexity is an average per token. Change what a token is and you change how many predictions there are and how hard each one is, so the numbers stop being comparable." example={<>Your sentence is {chars.length} character tokens but {bpeTokens.length} BPE tokens. A per-token score for each would average over different numbers of predictions.</>}>perplexity</TermHelp> can't be compared across tokenizers without care.</p>
       </Panel>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
@@ -323,7 +325,7 @@ function TokensTab() {
           <TokenList tokens={chars} ids={toId} label="Character tokens with IDs" />
           <p className="mt-3 text-label text-muted-foreground">IDs are numbered by first appearance in this sentence, a Lab convention for display. Your bigram engine works on the characters directly and has no ID table yet; neural models need one.</p>
           <div className="mt-4 flex flex-col gap-2 border-t border-border pt-4">
-            <label htmlFor="ids" className="text-sm font-medium">IDs back to tokens</label>
+            <span className="flex items-center gap-0.5"><label htmlFor="ids" className="text-sm font-medium">IDs back to tokens</label><InfoTip id="data.ids" /></span>
             <input id="ids" data-help-id="data.ids" value={idsText} onChange={(e) => setIdsText(e.target.value)} className="num h-9 rounded-md border border-input bg-card px-3 text-sm" />
             <p className="text-sm">
               {decoded.length === 0 ? <span className="text-muted-foreground">Type IDs separated by spaces.</span> : decoded.map((t, i) => t === null ? <span key={i} className="mr-1 text-negative">[no ID {idsText.trim().split(/[\s,]+/)[i]}]</span> : <Tok key={i} className="mr-1">{visible(t)}</Tok>)}
@@ -341,6 +343,7 @@ function TokensTab() {
           calc: bpe && bpe.steps.length > 0 ? <p>Merge 1 glued <span className="tok">{visible(bpe.steps[0].left)}</span> + <span className="tok">{visible(bpe.steps[0].right)}</span>, the most frequent neighbouring pair in the sample ({bpe.steps[0].count} times). After {bpe.steps.length} merges the sample is {fmt.n(bpe.steps.at(-1)!.tokenCount)} tokens long and your sentence is {bpeTokens.length} tokens instead of {chars.length} characters.</p> : <p>With 0 merges every character is its own token, exactly like your engine.</p>,
           code: <><SimCode path="web/src/sim/tokenize.ts" symbol="learnBpe" text={tokenizeSource} /><p className="text-sm">Input: the sample text and a number of merges. Operation: count neighbouring pairs, merge the most frequent, repeat. Returns: the merge list, which encodeBpe replays on your sentence.</p></>,
         }}>
+        <p className="mb-4 text-sm"><TermHelp id="bpe" here="This demo learns merges from the sample text, starting from single characters, not bytes. It then applies the same merges, in the same order, to your sentence. Applying learns nothing new." example={bpe && bpe.steps.length > 0 ? <>Merge 1 learned from the sample: <Tok>{visible(bpe.steps[0].left)}</Tok> + <Tok>{visible(bpe.steps[0].right)}</Tok> → <Tok tone="generated">{visible(bpe.steps[0].merged)}</Tok>, seen {bpe.steps[0].count} times. With {bpe.steps.length} merges your sentence goes from {chars.length} characters to {bpeTokens.length} tokens.</> : undefined}>BPE</TermHelp> learns a vocabulary of reusable pieces from the sample, then applies it to your sentence.</p>
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
           <div className="flex flex-col gap-4">
             <SliderField id="merges" helpId="data.merges" label="Merges learned" value={merges} min={0} max={40} step={1} onChange={setMerges} hint="Each merge glues the most frequent neighbouring pair in the sample into one new token." />

@@ -9,12 +9,14 @@ import { Term } from "@/components/lab/glossary"
 import { GuidedCycle } from "@/components/lab/guide"
 import { Explain, ExplainSection, Note, NumberField, Panel, Segmented, SliderField, Workspace } from "@/components/lab/layout"
 import { Source } from "@/components/lab/source"
+import { MathHelp, TermHelp } from "@/components/lab/term-help"
 import { Symbols, Teach, WorkspaceGuide, type Guide } from "@/components/lab/teach"
 import { fmt } from "@/lib/hooks"
 import { actions } from "@/lib/store"
 import { cn } from "@/lib/utils"
 import { MAX_TEMPERATURE, MIN_TEMPERATURE, pipeline, rankOrder, repeatedDraws } from "@/sim/decoding"
 import decodingSource from "@/sim/decoding.ts?raw"
+import { InfoTip } from "@/components/lab/info-tip"
 
 interface Row { token: string; logit: number }
 
@@ -130,8 +132,8 @@ export default function Decoding() {
           }}
           aside={<Segmented label="Preset" helpId="decoding.presets" value={Object.entries(PRESETS).find(([, v]) => JSON.stringify(v.rows) === JSON.stringify(rows))?.[0] ?? "custom"} onChange={(v) => PRESETS[v] && setRows(PRESETS[v].rows)} options={[...Object.entries(PRESETS).map(([id, v]) => ({ value: id, label: v.label.length > 18 ? "Sentence" : v.label })), ...(Object.values(PRESETS).some((v) => JSON.stringify(v.rows) === JSON.stringify(rows)) ? [] : [{ value: "custom", label: "Custom" }])]} />}>
           <table className="w-full text-sm">
-            <caption className="mb-2 text-left text-label text-muted-foreground"><Term id="logits">Logits</Term> are raw scores: any real number, higher means more likely.</caption>
-            <thead><tr className="text-label text-muted-foreground"><th className="py-1 text-left font-normal">Token</th><th className="py-1 text-right font-normal">Logit</th><th className="py-1 text-right font-normal"><Term id="softmax">softmax</Term> at T = 1</th><th className="w-10" /></tr></thead>
+            <caption className="mb-2 text-left text-label text-muted-foreground"><TermHelp id="logits" here="These are the scores a model would output for each candidate token. You type them in; no trained model is involved." example={stages ? <>{rows[top].token} has the highest logit, {logits[top].toFixed(2)}, so softmax gives it the largest share: {stages.softmax1[top].toFixed(3)}.</> : undefined}>Logits</TermHelp> are raw scores: any real number, higher means more likely.</caption>
+            <thead><tr className="text-label text-muted-foreground"><th className="py-1 text-left font-normal">Token</th><th className="py-1 text-right font-normal">Logit <InfoTip id="decoding.logits" /></th><th className="py-1 text-right font-normal"><TermHelp id="softmax" here="This column is softmax of your logits before temperature or filtering: each one's share of the total." example={stages ? <>For {rows[top].token}: exp({logits[top].toFixed(2)}) ÷ the sum of exp over all {rows.length} logits = {stages.softmax1[top].toFixed(3)}.</> : undefined}>softmax</TermHelp> at T = 1</th><th className="w-10" /></tr></thead>
             <tbody>
               {rows.map((r, i) => (
                 <tr key={i} className="border-t border-rule">
@@ -141,14 +143,14 @@ export default function Decoding() {
                   </td>
                   <td className="num py-1 text-right">{stages ? stages.softmax1[i].toFixed(3) : "–"}</td>
                   <td className="py-1 text-right">
-                    <Button variant="ghost" size="icon" data-help-id="decoding.edit-rows" aria-label={`Remove ${r.token}`} disabled={rows.length <= 2} onClick={() => setRows(rows.filter((_, j) => j !== i))}><TrashIcon className="size-4" /></Button>
+                    <Button variant="ghost" size="icon" data-help-info="off" data-help-id="decoding.edit-rows" aria-label={`Remove ${r.token}`} disabled={rows.length <= 2} onClick={() => setRows(rows.filter((_, j) => j !== i))}><TrashIcon className="size-4" /></Button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" data-help-id="decoding.edit-rows" disabled={rows.length >= 10} onClick={() => setRows([...rows, { token: `token${rows.length + 1}`, logit: 0 }])}><PlusIcon className="size-4" /> Add a token</Button>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Button variant="outline" size="sm" data-help-info="off" data-help-id="decoding.edit-rows" disabled={rows.length >= 10} onClick={() => setRows([...rows, { token: `token${rows.length + 1}`, logit: 0 }])}><PlusIcon className="size-4" /> Add a token</Button>
             <Button variant="ghost" size="sm" data-help-id="decoding.edit-rows" onClick={() => setRows(PRESETS.sentence.rows)}><UndoIcon className="size-4" /> Reset</Button>
           </div>
           {!valid && <p role="alert" className="mt-2 text-sm text-negative">Every logit needs a number, and there must be at least two tokens.</p>}
@@ -157,10 +159,10 @@ export default function Decoding() {
         <Panel id="settings" title="Decoding settings" source={<Source kind="simulation" />}
           teach={{ code: <SimCode path="web/src/sim/decoding.ts" symbol="pipeline" text={decodingSource} /> }}>
           <div className="flex flex-col gap-5">
-            <label data-help-id="decoding.greedy" className="flex items-center justify-between gap-4 text-sm font-medium">
+            <div className="flex items-center gap-1"><label data-help-id="decoding.greedy" className="flex flex-1 items-center justify-between gap-4 text-sm font-medium">
               <span><Term id="greedy">Greedy</Term>: always take the most likely token</span>
               <Switch checked={greedy} onCheckedChange={setGreedy} aria-label="Greedy decoding" />
-            </label>
+            </label><InfoTip id="decoding.greedy" /></div>
             <div className={cn("flex flex-col gap-5", greedy && "opacity-60")} aria-disabled={greedy}>
               <SliderField id="temp" helpId="decoding.temperature" label={<Term id="temperature">Temperature</Term>} value={temperature} min={MIN_TEMPERATURE} max={3} step={0.05} onChange={setTemperature} format={(v) => `T = ${v.toFixed(2)}`} hint={greedy ? "Not used by greedy decoding." : `Must be above 0 (here ${MIN_TEMPERATURE} to 3; the code accepts up to ${MAX_TEMPERATURE}). T → 0 approaches greedy.`} />
               <SliderField id="topk" helpId="decoding.filters" label={<Term id="top-k">Top-k</Term>} value={k} min={0} max={rows.length} step={1} onChange={setK} format={(v) => (v === 0 || v >= rows.length ? "off" : `keep ${v}`)} />
@@ -284,7 +286,7 @@ function DecodingExplain() {
     >
       <ExplainSection title="Show the calculation" defaultOpen>
         <div className="flex flex-col gap-2">
-          <p>softmax(z / T)ᵢ = exp(zᵢ / T) ÷ Σⱼ exp(zⱼ / T)</p>
+          <p>softmax(z / T)ᵢ = <MathHelp id="exp" here="Softmax applies exp to each scaled logit. That makes every score positive while keeping their order; dividing by the sum makes them add up to 1." example={<>exp(2) ≈ 7.39, exp(1) ≈ 2.72, exp(0) = 1, as in the example below.</>}>exp</MathHelp>(zᵢ / T) ÷ Σⱼ exp(zⱼ / T)</p>
           <p>For logits [2, 1, 0]: at T = 1, exp gives [7.39, 2.72, 1.00], sum 11.11, so p = [0.665, 0.245, 0.090]. At T = 2, the logits become [1, 0.5, 0] and p = [0.506, 0.307, 0.186].</p>
           <p>The code subtracts the largest logit before exp. That changes nothing mathematically but keeps exp from overflowing.</p>
         </div>

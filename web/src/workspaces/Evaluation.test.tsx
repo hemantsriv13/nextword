@@ -17,6 +17,7 @@ vi.mock("@/lib/corpora", () => ({
 const { default: Evaluation } = await import("./Evaluation")
 const { actions, getState } = await import("@/lib/store")
 const { useSnapshotRun } = await import("@/lib/evaluation")
+const { closeInfo } = await import("@/components/lab/info-tip")
 const result_ = (k: number, nll: number | null) => result(k, nll)
 
 function result(k: number, nll: number | null, fingerprint = "aaaa1111"): EvalResult {
@@ -106,7 +107,7 @@ describe("the smoothing sweep tunes on validation only", () => {
     render(<Evaluation />)
     fireEvent.click(screen.getByRole("radio", { name: /test \(final check\)/i }))
     expect(screen.getByText(/the sweep still uses validation/i)).toBeTruthy()
-    await act(async () => clickButton(/run the k sweep on validation/i))
+    await act(async () => clickButton(/^run the k sweep on validation/i))
     expect(evaluate).toHaveBeenCalledTimes(8)
     for (const [body] of evaluate.mock.calls) expect(body.on).toBe("val")
     expect(screen.getByTestId("sweep-conclusion").textContent).toMatch(/lowest validation loss at k = 0\.01/i)
@@ -115,7 +116,7 @@ describe("the smoothing sweep tunes on validation only", () => {
   it("its labels keep describing the sweep's own settings after the controls change", async () => {
     evaluate.mockImplementation((b: { k: number }) => Promise.resolve(result(b.k, b.k === 0 ? null : 2.5 + b.k / 10)))
     render(<Evaluation />)
-    await act(async () => clickButton(/run the k sweep on validation/i))
+    await act(async () => clickButton(/^run the k sweep on validation/i))
     const before = screen.getByTestId("sweep-settings").textContent
     setSlider(0, 0.6)
     expect(screen.getByTestId("sweep-settings").textContent).toBe(before)
@@ -129,7 +130,46 @@ describe("the smoothing sweep tunes on validation only", () => {
     setSlider(0, 0.9)
     setSlider(1, 0.1)
     expect(screen.getAllByText(/leave at least 1% of the text for the test split/i).length).toBeGreaterThan(0)
-    expect((screen.getByRole("button", { name: /run the k sweep on validation/i }) as HTMLButtonElement).disabled).toBe(true)
+    expect((screen.getByRole("button", { name: /^run the k sweep on validation/i }) as HTMLButtonElement).disabled).toBe(true)
     expect(evaluate).not.toHaveBeenCalled()
+  })
+})
+
+describe("term help on the results uses the displayed run", () => {
+  const withExamples = (nll: number | null): EvalResult => ({
+    ...result(0, nll),
+    examples: [{ context: "e", target: "q", p: 0, nll: null, reason: "unseen pair" }, { context: "t", target: "h", p: 0.25, nll: -Math.log(0.25), reason: null }],
+  })
+  const openTerm = async (name: string, term: string) => {
+    await act(async () => { closeInfo() })
+    await act(async () => { fireEvent.click(screen.getAllByRole("button", { name })[0]) })
+    return document.querySelector<HTMLElement>(`[data-info-popup="term:${term}"]`)!
+  }
+
+  it("works one held-out target through −ln p, and gives this run's mean and perplexity", async () => {
+    evaluate.mockResolvedValueOnce(withExamples(2.6))
+    render(<Evaluation />)
+    await act(async () => clickButton(/measure on validation/i))
+    const calls = evaluate.mock.calls.length
+    let box = await openTerm("What is NLL?", "nll")
+    const example = within(box).getByTestId("term-example").textContent!
+    expect(example).toContain("got p = 0.2500, so its NLL is −ln(0.2500) = 1.386 nats")
+    expect(example).toContain("Averaging all 116 targets gives 2.600 nats")
+    box = await openTerm("What is Perplexity?", "perplexity")
+    expect(within(box).getByTestId("term-example").textContent).toContain(`exp(2.600) = ${Math.exp(2.6).toFixed(2)}`)
+    expect(evaluate.mock.calls.length).toBe(calls) // opening help measures nothing
+  })
+
+  it("an infinite mean (null from the API) shows as ∞ for both, and help says why", async () => {
+    evaluate.mockResolvedValueOnce(withExamples(null))
+    render(<Evaluation />)
+    await act(async () => clickButton(/measure on validation/i))
+    const summary = screen.getByTestId("result-settings").closest("section")!
+    expect(within(summary).queryByText("undefined")).toBeNull()
+    expect(within(summary).getAllByText("∞").length).toBeGreaterThanOrEqual(2)
+    let box = await openTerm("What is NLL?", "nll")
+    expect(within(box).getByTestId("term-example").textContent).toMatch(/11 targets got p = 0, and −ln\(0\) is infinite, so the mean is ∞ too. The engine reports it as null, which here means infinite, not missing/)
+    box = await openTerm("What is Perplexity?", "perplexity")
+    expect(within(box).getByTestId("term-example").textContent).toContain("exp(∞) = ∞")
   })
 })

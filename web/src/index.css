@@ -377,3 +377,6 @@
   }
   @keyframes pixel-alien-lights { 0% { visibility: visible; } 50% { visibility: hidden; } 100% { visibility: hidden; } }
 }
+
+/* Expanded code may use the whole widened explanation panel; the reading measure is for prose. */
+[data-expanded] .measure:has([data-testid="code-block"][data-expanded]) { max-width: none; }

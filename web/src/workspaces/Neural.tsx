@@ -9,6 +9,7 @@ import { Term } from "@/components/lab/glossary"
 import { GuidedCycle } from "@/components/lab/guide"
 import { EmptyNote, ErrorNote, Explain, ExplainSection, Note, NumberField, Panel, Segmented, SliderField, Workspace } from "@/components/lab/layout"
 import { Source } from "@/components/lab/source"
+import { MathHelp, TermHelp } from "@/components/lab/term-help"
 import { Symbols, Teach, TeachSpot, WorkspaceGuide, type FlowNode, type Guide } from "@/components/lab/teach"
 import { TRAIN_LARGE, TRAIN_SMALL, VALIDATION } from "@/content/neuralTexts"
 import { fmt } from "@/lib/hooks"
@@ -17,6 +18,7 @@ import { cn } from "@/lib/utils"
 import { backward, countParams, forward, initParams, scalarDescent, sgdStep, zerosLike, type CurvePoint, type Params } from "@/sim/neural"
 import neuralSource from "@/sim/neural.ts?raw"
 import type { TrainMessage, TrainRequest } from "@/sim/train.worker"
+import { InfoTip } from "@/components/lab/info-tip"
 
 const node = (id: string, label: string, kind: FlowNode["kind"], target: string, carries: string | undefined, d: Omit<FlowNode, "id" | "label" | "kind" | "target" | "carries">): FlowNode => ({ id, label, kind, target, carries, ...d })
 
@@ -172,9 +174,9 @@ function OneStep() {
     setParams(sgdStep(params, grad, lr))
     if (losses.length === 0) actions.logRun({ route: "neural", title: "Applied one gradient step", summary: `loss ${f.loss.toFixed(3)} before`, source: "simulation" }, ["forward-pass", "cross-entropy", "backpropagation", "gradient"])
   }
-  const pick = (value: number, set: (n: number) => void, label: string, id: string) => (
+  const pick = (value: number, set: (n: number) => void, label: string, id: string, info = false) => (
     <div className="flex flex-col gap-2" data-help-id="neural.example">
-      <span id={id} className="text-sm font-medium">{label}</span>
+      <span className="flex items-center gap-0.5"><span id={id} className="text-sm font-medium">{label}</span>{info && <InfoTip id="neural.example" />}</span>
       <Select value={String(value)} onValueChange={(v) => { set(Number(v)); setPrevious(null) }} items={STEP_VOCAB.map((t, i) => ({ value: String(i), label: `${t}  (ID ${i})` }))}>
         <SelectTrigger aria-labelledby={id} className="w-32"><SelectValue /></SelectTrigger>
         <SelectContent>{STEP_VOCAB.map((t, i) => <SelectItem key={i} value={String(i)}>{t} (ID {i})</SelectItem>)}</SelectContent>
@@ -191,7 +193,7 @@ function OneStep() {
         </div>
       }>
       <div className="flex flex-wrap items-end gap-4">
-        {pick(c0, setC0, "Context token 1", "c0")}
+        {pick(c0, setC0, "Context token 1", "c0", true)}
         {pick(c1, setC1, "Context token 2", "c1")}
         {pick(target, setTarget, "Correct next token", "tg")}
         <NumberField id="ws" helpId="neural.weight-seed" label="Weight seed" value={seed} min={0} max={9999} onChange={(v) => { setSeed(v); reset(v) }} />
@@ -203,7 +205,7 @@ function OneStep() {
         <TensorTable />
       </TeachSpot>
 
-      <p className="mt-6 text-sm font-medium">Prediction (also called inference): parts 1 to 3 run every time the network predicts.</p>
+      <p className="mt-6 text-sm font-medium">Prediction (also called <TermHelp id="training-vs-inference" here="Parts 1 to 3 are inference: the network uses its current numbers to predict, and nothing changes. Training adds parts 4 and 5: the gradients and the update.">inference</TermHelp>): parts 1 to 3 run every time the network predicts.</p>
       <ol className="mt-3 flex flex-col gap-6">
         <li className="flex flex-col gap-3">
         <TeachSpot id="ns-embed" className="flex flex-col gap-3" teach={{
@@ -254,13 +256,13 @@ function OneStep() {
           })(),
           code: <><SimCode path="web/src/sim/neural.ts" symbol="softmax" text={neuralSource} /><SimCode path="web/src/sim/neural.ts" symbol="forward" text={neuralSource} /></>,
         }}>
-          <h3 className="text-sm font-semibold">3. <Term id="logits">Logits</Term>, <Term id="softmax">softmax</Term> and <Term id="cross-entropy">loss</Term></h3>
+          <h3 className="text-sm font-semibold">3. <TermHelp id="logits" here={`One score per token in this ${STEP_VOCAB.length}-token vocabulary, computed as h·W2 + b2.`} example={<>Right now the scores are {f.logits.map((z) => z.toFixed(2)).join(", ")} for {STEP_VOCAB.join(", ")}.</>}>Logits</TermHelp>, <TermHelp id="softmax" here="Turns the five logits into the probabilities p that the loss and sampling use." example={<>Token {STEP_VOCAB[target]}: exp({f.logits[target].toFixed(3)}) ÷ the sum of exp over all five scores = <span className="num">{f.probs[target].toFixed(4)}</span>.</>}>softmax</TermHelp> and <Term id="cross-entropy">loss</Term></h3>
           <div className="flex flex-wrap items-start gap-6">
             <MatrixView name="W2" m={params.W2} before={previous?.W2} colLabels={STEP_VOCAB} caption="3 hidden units × 5 tokens" />
             <VectorView name="logits = h·W2 + b2" v={f.logits} labels={STEP_VOCAB} />
             <VectorView name="p = softmax(logits)" v={f.probs} labels={STEP_VOCAB} digits={3} highlight={[target]} caption={`Sums to ${f.probs.reduce((a, b2) => a + b2, 0).toFixed(3)}.`} />
           </div>
-          <p className="text-sm">The correct token is <Tok tone="chosen">{STEP_VOCAB[target]}</Tok> with p = <span className="num">{f.probs[target].toFixed(4)}</span>, so the loss is −log({f.probs[target].toFixed(4)}) = <span className="num font-semibold">{f.loss.toFixed(4)}</span>.</p>
+          <p className="text-sm">The correct token is <Tok tone="chosen">{STEP_VOCAB[target]}</Tok> with p = <span className="num">{f.probs[target].toFixed(4)}</span>, so the loss, its <TermHelp id="nll" here="The training loss for this one example: the penalty for the probability the network gave the correct next token." example={<>p = {f.probs[target].toFixed(4)} for the correct token {STEP_VOCAB[target]}, so NLL = −ln({f.probs[target].toFixed(4)}) = <span className="num">{f.loss.toFixed(4)}</span> nats. Change the correct token and this changes without any weight changing.</>}>NLL</TermHelp>, is −<MathHelp id="ln" here="log here is the natural log, ln: the simulation uses JavaScript's Math.log, base e.">log</MathHelp>({f.probs[target].toFixed(4)}) = <span className="num font-semibold">{f.loss.toFixed(4)}</span> <TermHelp id="nats" here="The loss uses the natural log, so it is measured in nats." example={<>Guessing uniformly over {STEP_VOCAB.length} tokens would cost ln {STEP_VOCAB.length} = {Math.log(STEP_VOCAB.length).toFixed(3)} nats; this example costs {f.loss.toFixed(3)}.</>}>nats</TermHelp>.</p>
         </TeachSpot>
         </li>
         <li className="flex flex-col gap-1 rounded-md bg-raised px-4 py-3 text-sm">
@@ -460,7 +462,7 @@ function TrainingRun() {
             <div className="flex flex-col gap-2">
               <span className="text-sm font-medium">Training text</span>
               <Segmented label="Training text" value={text} onChange={setText} options={[{ value: "small", label: `Small (${TRAIN_SMALL.length} chars)` }, { value: "large", label: `Larger (${TRAIN_LARGE.length} chars)` }]} />
-              <p className="text-label text-muted-foreground">Validation is always the same separate text ({VALIDATION.length} chars), never trained on.</p>
+              <p className="text-label text-muted-foreground"><TermHelp id="split" here="Validation text is held out: the network never trains on it, so its loss shows whether learning carries over to new text.">Validation</TermHelp> is always the same separate text ({VALIDATION.length} chars), never trained on.</p>
             </div>
             <SliderField id="hid" helpId="neural.run-settings" label="Hidden units" value={hidden} min={4} max={64} step={4} onChange={setHidden} />
             <SliderField id="lr2" helpId="neural.lr" label="Learning rate" value={lr} min={0.01} max={1} step={0.01} onChange={setLr} format={(v) => v.toFixed(2)} />
@@ -480,7 +482,7 @@ function TrainingRun() {
                 <div><dt className="text-label text-muted-foreground">Parameters</dt><dd className="num">{fmt.n(run.meta.params)}</dd></div>
                 <div><dt className="text-label text-muted-foreground">Training pairs</dt><dd className="num">{run.meta.trainPairs}</dd></div>
                 <div><dt className="text-label text-muted-foreground">Validation pairs</dt><dd className="num">{run.meta.valPairs}</dd></div>
-                <div><dt className="text-label text-muted-foreground">Uniform-guess loss</dt><dd className="num">{uniform?.toFixed(3)}</dd></div>
+                <div><dt className="text-label text-muted-foreground">Uniform-guess loss, <TermHelp id="nats" here="Both curves are mean −ln p over pairs, so they are in nats." example={run.meta ? <>A uniform guess over {run.meta.vocabSize} characters costs ln {run.meta.vocabSize} = {uniform?.toFixed(3)} nats. The curves should end below it.</> : undefined}>nats</TermHelp></dt><dd className="num">{uniform?.toFixed(3)}</dd></div>
               </dl>
             )}
             {last && !running && best && (

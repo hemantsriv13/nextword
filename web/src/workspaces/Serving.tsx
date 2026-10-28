@@ -12,6 +12,8 @@ import { api, type Benchmark, type Generation } from "@/lib/api"
 import { fmt, useAsync, usePrefersReducedMotion } from "@/lib/hooks"
 import { actions } from "@/lib/store"
 import { cn } from "@/lib/utils"
+import { InfoTip } from "@/components/lab/info-tip"
+import { TermHelp } from "@/components/lab/term-help"
 
 const GUIDE: Guide = {
   question: "What happens between pressing a button and seeing a suggestion, and where does the time go?",
@@ -121,7 +123,7 @@ function Lifecycle() {
     { name: "Browser input", detail: `“${last.gen.prompt}”, 40 chars, seed 1`, ms: null as number | null, how: "not timed: the timer starts as the request is sent" },
     { name: "Request validation", detail: "prompt, length and seed checked", ms: t.validate, how: "timed separately in Python" },
     { name: "Tokenization and counting", detail: t.countCacheHit ? "count table reused from cache" : "text tokenized and counted", ms: t.count, how: "timed separately in Python" },
-    { name: "Inference and decoding", detail: `${last.gen.steps.length} lookups and draws`, ms: t.generate, how: "lookups and draws timed together" },
+    { name: "Inference and decoding", label: <><TermHelp id="training-vs-inference" here="Using your engine's fixed counts to predict: look up the row for the last character, then draw. Nothing is learned during the request." example={<>This request made {last.gen.steps.length} lookups and draws in {t.generate.toFixed(2)} ms.</>}>Inference</TermHelp> and decoding</>, detail: `${last.gen.steps.length} lookups and draws`, ms: t.generate, how: "lookups and draws timed together" },
     { name: "Response", detail: "trace built for the page", ms: t.format, how: "timed separately in Python" },
     { name: "Network and browser", detail: "HTTP, JSON encoding and decoding, the browser", ms: Math.max(0, last.roundTrip - t.total), how: "not timed directly: round trip minus the Python total" },
   ] : []
@@ -140,7 +142,7 @@ function Lifecycle() {
       aside={<Button data-help-id="serving.send" onClick={send} disabled={busy || !prompt}><PlayIcon className="size-4" /> {busy ? "Sending…" : "Send a request"}</Button>}>
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-2 sm:max-w-sm">
-          <label htmlFor="life-prompt" className="text-sm font-medium">Prompt</label>
+          <span className="flex items-center gap-0.5"><label htmlFor="life-prompt" className="text-sm font-medium">Prompt</label><InfoTip id="serving.prompt" /></span>
           <input id="life-prompt" data-help-id="serving.prompt" value={prompt} onChange={(e) => setPrompt(e.target.value)} className="tok h-9 rounded-md border border-input bg-card px-3 text-sm" />
         </div>
         {error && <ErrorNote error={error} onRetry={send} />}
@@ -150,7 +152,7 @@ function Lifecycle() {
               {stages.map((s, i) => (
                 <li key={s.name} className="flex items-center lg:flex-1">
                   <div className="flex-1 rounded-md bg-raised p-3">
-                    <p className="text-sm font-medium">{s.name}</p>
+                    <p className="text-sm font-medium">{"label" in s ? s.label : s.name}</p>
                     <p className="text-label text-muted-foreground">{s.detail}</p>
                     <p className="num mt-1 text-sm">{s.ms === null ? "–" : fmt.ms(s.ms)}</p>
                     <p className="mt-0.5 text-label text-muted-foreground">{s.how}</p>
@@ -277,8 +279,8 @@ function Streaming() {
   return (
     <Panel id="stream" title="Streaming" source={<Source kind="simulation" detail={`replays a real trace at ${delay} ms per character`} />}>
       <p className="text-sm">Pretend each character takes {delay} ms to generate. <Term id="streaming">Streaming</Term> sends each one as it is ready; without it, you wait for the whole answer.</p>
-      <div className="mt-3 flex gap-2">
-        <Button variant="outline" size="sm" data-help-id="serving.stream" onClick={() => run("stream")}>Stream it</Button>
+      <div className="mt-3 flex items-center gap-2">
+        <Button variant="outline" size="sm" data-help-info="off" data-help-id="serving.stream" onClick={() => run("stream")}>Stream it</Button>
         <Button variant="outline" size="sm" data-help-id="serving.stream" onClick={() => run("whole")}>Send it whole</Button>
       </div>
       <p className="tok mt-3 min-h-12 whitespace-pre-wrap rounded-md bg-raised p-3 text-sm" aria-live="polite">{mode === "idle" ? <span className="text-muted-foreground">Nothing yet.</span> : <>{text.slice(0, shown).join("")}{shown < text.length && <span className="text-muted-foreground">▏</span>}</>}</p>

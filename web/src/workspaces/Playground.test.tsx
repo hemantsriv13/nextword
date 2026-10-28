@@ -81,7 +81,7 @@ describe("Playground context highlight follows the trace", () => {
     expect(seen()).toBe("abz")
     expect(screen.getByText(/trace hidden: it came from earlier settings/i)).toBeTruthy()
     expect(screen.queryByRole("button", { name: /show step 1/i })).toBeNull()
-    expect((screen.getByRole("button", { name: /accept/i }) as HTMLButtonElement).disabled).toBe(true)
+    expect((screen.getByRole("button", { name: /^accept/i }) as HTMLButtonElement).disabled).toBe(true)
   })
 })
 

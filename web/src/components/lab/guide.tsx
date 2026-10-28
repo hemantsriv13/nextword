@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { actions } from "@/lib/store"
 import { cn } from "@/lib/utils"
+import { InfoTip } from "./info-tip"
 
 export interface Choice {
   id: string
@@ -39,7 +40,7 @@ export function GuidedCycle({ id, conceptId, route, question, choices, correct, 
       <h2 id={`${id}-cycle`} className="text-section font-semibold">Try it</h2>
       <ol className="flex flex-col gap-4 text-sm">
         <li className="flex flex-col gap-2">
-          <p><span className="font-medium">Predict.</span> {question} <span className="text-muted-foreground">(optional)</span></p>
+          <p><span className="font-medium">Predict.</span> {question} <span className="text-muted-foreground">(optional)</span>{choices && <InfoTip id="cycle.predict" className="ml-0.5 align-middle" />}</p>
           {choices ? (
             <div role="radiogroup" aria-label="Your prediction" data-help-id="cycle.predict" className="flex flex-col gap-1.5">
               {choices.map((c) => (

@@ -20,6 +20,7 @@ import { fmt, useMediaQuery, usePrefersReducedMotion } from "@/lib/hooks"
 import { contextBefore, engineRow, intervals, JOURNEY_DEFAULTS, journeyChanges, landing, pairOccurrences, stepAgrees, topPairs, type JourneyConfig } from "@/lib/journey"
 import { cn } from "@/lib/utils"
 import { charTokens, visible } from "@/sim/tokenize"
+import { InfoTip } from "@/components/lab/info-tip"
 
 const MAX_JOURNEY_CHARS = 20_000
 type Step = Generation["steps"][number]
@@ -93,7 +94,7 @@ export default function Journey() {
                 </Select>
               </div>
               <div className="flex flex-col gap-2">
-                <label htmlFor="j-prompt-in" className="text-sm font-medium">Prompt</label>
+                <span className="flex items-center gap-0.5"><label htmlFor="j-prompt-in" className="text-sm font-medium">Prompt</label><InfoTip id="journey.prompt" /></span>
                 <input id="j-prompt-in" data-help-id="journey.prompt" value={form.prompt} onChange={(e) => setForm({ ...form, prompt: e.target.value })} className="tok h-9 rounded-md border border-input bg-card px-3 text-sm" />
               </div>
               <NumberField id="j-len" label="Characters" value={form.length} min={1} max={40} onChange={(v) => setForm({ ...form, length: v })} width="w-20" />
@@ -572,7 +573,7 @@ function PairPicker({ run, s }: { run: Run; s: Selection }) {
           })}
         </div>
       </div>
-    </div>
+    <InfoTip id="journey.pair" /></div>
   )
 }
 
@@ -730,7 +731,7 @@ function ProbsCanvas({ run, s }: { run: Run; s: Selection }) {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
         <div className="flex flex-col gap-1.5" data-help-id="journey.context">
-          <span id="norm-ctx" className="text-label text-muted-foreground">Context character</span>
+          <span className="flex items-center gap-0.5"><span id="norm-ctx" className="text-label text-muted-foreground">Context character</span><InfoTip id="journey.context" /></span>
           <Select value={s.context} onValueChange={(v) => s.setContext(String(v))} items={vocab.map((t) => ({ value: t, label: visible(t) }))}>
             <SelectTrigger aria-labelledby="norm-ctx" className="w-20"><SelectValue /></SelectTrigger>
             <SelectContent>{vocab.map((t) => <SelectItem key={t} value={t}>{visible(t)}</SelectItem>)}</SelectContent>
@@ -774,7 +775,7 @@ function SampleCanvas({ run, s }: { run: Run; s: Selection }) {
         <div className="flex items-center gap-1.5" role="group" aria-label="Which step to sample" data-help-id="journey.sample-step">
           <Button variant="outline" size="sm" disabled={i === 0} onClick={() => s.setSel(i - 1)} aria-label="Previous step's draw"><NavArrowLeftIcon className="size-4" /></Button>
           <Button variant="outline" size="sm" disabled={i >= g.steps.length - 1} onClick={() => { s.setSel(i + 1); if (s.revealed < i + 2) s.setRevealed(i + 2) }} aria-label="Next step's draw"><NavArrowRightIcon className="size-4" /></Button>
-        </div>
+        <InfoTip id="journey.sample-step" /></div>
       </div>
       <div className="flex flex-col gap-2">
         <p className="text-label text-muted-foreground">The probabilities laid end to end, in the engine's order</p>

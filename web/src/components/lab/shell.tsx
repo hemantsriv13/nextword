@@ -17,7 +17,7 @@ import { actions, useLab } from "@/lib/store"
 import { cn } from "@/lib/utils"
 import { useGlossary } from "./glossary"
 import { useFocusMode } from "./shell-state"
-import { HelpModeSwitch, useHelp } from "./help"
+import { InfoIconsSwitch, useHelp } from "./help"
 import { PixelPet } from "./pixel-pet"
 import { CONCEPTS, CONTROLS } from "@/content/help"
 
@@ -182,7 +182,7 @@ function ThemeButton() {
   const { theme, setTheme } = useTheme()
   const dark = theme === "dark" || (theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches)
   return (
-    <Button variant="ghost" size="icon" data-help-id="shell.theme" aria-label={dark ? "Switch to light theme" : "Switch to dark theme"} onClick={() => setTheme(dark ? "light" : "dark")}>
+    <Button variant="ghost" size="icon" data-help-info="off" data-help-id="shell.theme" aria-label={dark ? "Switch to light theme" : "Switch to dark theme"} onClick={() => setTheme(dark ? "light" : "dark")}>
       {dark ? <SunLightIcon className="size-[18px]" /> : <HalfMoonIcon className="size-[18px]" />}
     </Button>
   )
@@ -214,7 +214,7 @@ export function Shell({ children }: { children: ReactNode }) {
   }, [route])
 
   const focusButton = (
-    <Button variant="ghost" size="icon" data-help-id="shell.focus" aria-label={focus ? "Leave focus mode" : "Focus mode: hide navigation and explanations"} aria-pressed={focus} onClick={() => setFocus(!focus)}>
+    <Button variant="ghost" size="icon" data-help-info="off" data-help-id="shell.focus" aria-label={focus ? "Leave focus mode" : "Focus mode: hide navigation and explanations"} aria-pressed={focus} onClick={() => setFocus(!focus)}>
       {focus ? <CollapseIcon className="size-[18px]" /> : <ExpandIcon className="size-[18px]" />}
     </Button>
   )
@@ -222,7 +222,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const searchButton = (
     <button
       type="button"
-      data-help-id="shell.search"
+      data-help-info="off" data-help-id="shell.search"
       onClick={() => setSearchOpen(true)}
       className="flex h-8 w-full max-w-[548px] items-center gap-2 rounded-md border border-input bg-card px-3 text-sm text-muted-foreground hover:border-foreground/30"
     >
@@ -236,7 +236,7 @@ export function Shell({ children }: { children: ReactNode }) {
     return (
       <div className="min-h-dvh bg-card">
         <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded focus:bg-card focus:px-3 focus:py-2">Skip to content</a>
-        <div className="fixed right-3 top-3 z-40 flex items-center gap-1 rounded-md border border-border bg-card p-0.5"><PixelPet size={28} className="mx-1" /><HelpModeSwitch />{focusButton}</div>
+        <div className="fixed right-3 top-3 z-40 flex items-center gap-1 rounded-md border border-border bg-card p-0.5"><PixelPet size={28} className="mx-1" /><InfoIconsSwitch />{focusButton}</div>
         <main id="main" className="mx-auto max-w-[1400px]">{children}</main>
         <SearchPalette open={searchOpen} onOpenChange={setSearchOpen} />
       </div>
@@ -267,7 +267,7 @@ export function Shell({ children }: { children: ReactNode }) {
               label="Collapse sidebar"
               collapsed={collapsed}
               aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-              data-help-id="shell.collapse"
+              data-help-info="off" data-help-id="shell.collapse"
               aria-expanded={!collapsed}
               onClick={() => actions.setPref("sidebarCollapsed", !collapsed)}
               className="h-8 py-0"
@@ -279,7 +279,7 @@ export function Shell({ children }: { children: ReactNode }) {
         <header className="sticky top-0 z-30 flex h-12 flex-none items-center gap-2 bg-background px-3">
           {!desktop && (
             <div className="flex min-w-0 flex-1 items-center gap-1">
-              <Button variant="ghost" size="icon" aria-label="Open navigation" data-help-id="shell.menu" onClick={() => setMenuOpen(true)}>
+              <Button variant="ghost" size="icon" aria-label="Open navigation" data-help-info="off" data-help-id="shell.menu" onClick={() => setMenuOpen(true)}>
                 <MenuIcon className="size-5" />
               </Button>
               <span className="truncate text-sm font-semibold">{WORKSPACE_BY_ROUTE.get(route)?.short}</span>
@@ -289,12 +289,12 @@ export function Shell({ children }: { children: ReactNode }) {
           {desktop && <div className="flex flex-1 justify-center">{searchButton}</div>}
           <div className="flex items-center gap-0.5">
             {!desktop && (
-              <Button variant="ghost" size="icon" aria-label="Search" data-help-id="shell.search" onClick={() => setSearchOpen(true)}>
+              <Button variant="ghost" size="icon" aria-label="Search" data-help-info="off" data-help-id="shell.search" onClick={() => setSearchOpen(true)}>
                 <SearchIcon className="size-[18px]" />
               </Button>
             )}
             <EngineStatus compact={!desktop} />
-            <HelpModeSwitch />
+            <InfoIconsSwitch />
             <ThemeButton />
             {focusButton}
           </div>

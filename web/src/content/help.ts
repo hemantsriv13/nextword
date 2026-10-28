@@ -1,5 +1,5 @@
-// What every page and control in the Lab is for. One inventory, read by the hover hints, the
-// "Learn this control" popovers, Help mode, the Toolkit Guide, its search and the toolkit tours.
+// What every page and control in the Lab is for. One inventory, read by the Info icons beside
+// controls (components/lab/info-tip.tsx), the Toolkit Guide, its search and the toolkit tours.
 //
 // Each control is found on the page by its stable `data-help-id`, never by its visible text.
 // Every description here was written against what the control actually does in the code: whether
@@ -7,6 +7,7 @@
 // browser simulation. Anything that sounds like more than that is a bug in this file.
 
 import type { Route } from "./glossary"
+import { WORKSPACE_BY_ROUTE } from "./journey"
 
 export type Effect = "view" | "setting" | "engine" | "simulation" | "reads" | "saves" | "deletes" | "navigates"
 
@@ -39,7 +40,7 @@ export interface ControlHelp {
   route: Route | "any"
   /** Where it is, in words someone could follow. */
   where: string
-  /** Regions are tour and "show me" targets only: no hover hint, no Help-mode marker. */
+  /** Regions are tour and "show me" targets only: they get no Info icon. */
   region?: boolean
   does: string
   when: string
@@ -70,7 +71,7 @@ export const CONTROLS: ControlHelp[] = [
   c({ id: "shell.search", label: "Search", route: "any", where: "Top bar (Ctrl K or /)", does: "Finds workspaces, terms, controls, experiments and your notes.", when: "You know a word but not where it lives.", effect: "view", questions: ["where is", "find a page", "search"] }),
   c({ id: "shell.theme", label: "Light or dark theme", route: "any", where: "Top bar, sun or moon icon (D)", does: "Switches between the light and dark theme. Your choice is remembered.", when: "The screen is too bright or too dim.", effect: "setting" }),
   c({ id: "shell.focus", label: "Focus mode", route: "any", where: "Top bar, expand icon", does: "Hides the navigation and the explanation column so the experiment fills the screen. Esc leaves it.", when: "You want more room for one experiment.", effect: "view" }),
-  c({ id: "shell.help-mode", label: "Help mode", route: "any", where: "Top bar, the Help switch", does: "Shows a small help marker beside every control that has help. Press a marker to learn that control. Turn it off to hide the markers; everything works the same either way.", when: "You want to find out what things do, especially on a touch screen where there is no hover.", effect: "view", questions: ["what does this button do", "help", "explain the controls"] }),
+  c({ id: "shell.help-mode", label: "Info icons", route: "any", where: "Top bar, the Info switch", does: "Shows or hides the small Info icons beside controls. Hover, focus or tap an icon to see what its control does. Icons that explain why a control is unavailable always stay.", when: "You want a calmer screen, or the icons back.", effect: "view", questions: ["what does this button do", "help", "explain the controls"] }),
   c({ id: "shell.collapse", label: "Collapse sidebar", route: "any", where: "Bottom of the sidebar", does: "Narrows the sidebar to icons, or widens it again.", when: "You want more width for the page.", effect: "view" }),
   c({ id: "shell.menu", label: "Open navigation", route: "any", where: "Top left on narrow screens", does: "Opens the list of pages on a phone or narrow window.", when: "The sidebar is hidden because the window is narrow.", effect: "view" }),
   c({ id: "shell.engine", label: "Engine status", route: "any", where: "Top bar, the coloured dot", does: "Says whether the local Python engine is reachable. It checks every 15 seconds.", when: "Engine panels show errors.", effect: "reads", learn: { purpose: "Pages marked Your model need the Python backend; simulations do not.", input: "A small health request to the local server.", changes: "Nothing: it only reports.", lookFor: "Green: engine connected. A warning sign: start it with .venv\\Scripts\\python -m nextword.lab.", visual: "sources" } }),
@@ -257,6 +258,19 @@ export const CONTROLS: ControlHelp[] = [
 
 export const CONTROL_BY_ID = new Map(CONTROLS.map((x) => [x.id, x]))
 
+/** The help for an id: the inventory entry, or a sidebar link described from its workspace. */
+export function helpFor(id: string): ControlHelp | undefined {
+  const entry = CONTROL_BY_ID.get(id)
+  if (entry) return entry
+  if (id.startsWith("nav.")) {
+    const route = id.slice(4) as Route
+    const w = WORKSPACE_BY_ROUTE.get(route)
+    const h = WORKSPACE_HELP.find((x) => x.route === route)
+    if (w && h) return { id, label: w.title, route: "any", where: "Sidebar", does: `${h.practical} ${h.question}`, when: h.when, effect: "navigates" }
+  }
+  return undefined
+}
+
 // ----------------------------------------------------------------------------- workspaces
 
 export interface WorkspaceHelp {
@@ -344,7 +358,7 @@ export const TOURS: ToolkitTour[] = [
       { id: "source", route: "counts", target: "layout.source", title: "Where numbers come from", body: "Every panel carries a label. Your model means your Python engine computed it; Interactive simulation means browser code; Worked example means fixed values.", more: "Only Your model results come from nextword/bigram.py. The neural, attention and decoding pages are simulations: useful to see the mechanism, but not results of a model you trained." },
       { id: "explain", route: "counts", target: "layout.explanation", title: "The explanation beside the experiment", body: "The tinted panel explains the experiment in plain words, with the calculation and the code a click away.", more: "On narrow screens it is below the experiment. Hide explanation in the page header gives the experiment more room." },
       { id: "guide", route: "counts", target: "teach.read-and-watch", title: "Each page can walk you through itself", body: "Read and watch goes through this page's panels one at a time. Show the flow opens a diagram of what goes in and what comes out." },
-      { id: "help", route: "counts", target: "shell.help-mode", title: "Help for any control", body: "Hover or focus a control for a short hint. Help mode puts a marker beside every control; press one to learn that control, with a small example." },
+      { id: "help", route: "counts", target: "shell.help-mode", title: "Help for any control", body: "The small Info icon beside a control says what it does. Hover or focus the icon for a moment, or tap it to keep the help open; More details adds a small example. The Info switch hides or shows the icons." },
       { id: "glossary", route: "glossary", target: "glossary.search", title: "Every term, with an experiment", body: "The glossary explains 75 terms in plain words, with a precise definition, an example, a common misconception and a link to try it." },
       { id: "notebook", route: "notebook", target: "notebook.add", title: "Your notes and evidence", body: "Questions, notes, predictions and your own explanations are kept here, in this browser. Nothing is graded, and a finished tour is not counted as understanding." },
     ],

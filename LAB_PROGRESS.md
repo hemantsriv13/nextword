@@ -31,6 +31,24 @@ Working notes for building the Lab, so the work can resume if a session ends. Ne
 - Comprehension check flags the workspaces as dense (130–170 words). Accepted for a working tool the
   user asked to be deep; copy was trimmed where it didn't carry meaning.
 
+## Done (2026-10-28): term help and expandable code (not committed, not pushed)
+- `TermHelp` / `MathHelp` reuse the Info-icon popover (`HelpPopover` in info-tip.tsx). New glossary
+  entries: exp, ln, NLL, nats; BPE, perplexity and cross-entropy rewritten. Examples bound to the
+  displayed run in Evaluation, Neural, Decoding, Data studio and Adapt. Perplexity shows ∞ (not
+  "undefined") when the API returns null for an infinite mean NLL.
+- Placed on Evaluation, Neural, Decoding, Data studio, Attention, Adapt, Serving, Playground.
+- Tests: glossary examples checked against −ln p, exp and `learnBpe`; term-help behaviour; Evaluation
+  examples for finite and infinite runs. 212 tests, build OK, browser-checked (both themes).
+- Known: Evaluation and Neural scroll sideways at 390 px (Export button, saved-runs and shapes tables);
+  not caused by term help.
+
+## Done (2026-10-28): Info icons replace hover help (not committed, not pushed)
+- [x] `components/lab/info-tip.tsx`: Info icon + anchored Base UI popover (500 ms hover, click pins, Esc,
+  outside click, one at a time, More details). Buttons with a help id get one beside them automatically
+  (`components/ui/button.tsx`; `data-help-info="off"` opts out); fields, switches, groups and table
+  columns place one by hand. Removed whole-control hover hints, Help-mode markers and the old popover.
+- [x] Tests 191 OK; build OK; Chrome: hover/pin/Esc/outside/flip/scroll, 390 px via an iframe.
+
 ## Done (2026-10-27): learning checkpoints (not committed, not pushed)
 - [x] `web/src/lib/checkpoints.ts` (11 checkpoints: 5 journey, 6 walkthrough), `components/lab/checkpoint.tsx`
   (shared dialog, revisit/return, hints, solution, success), store `checkpoints` + practice mode, Notebook panel.

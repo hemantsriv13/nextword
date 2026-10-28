@@ -3,6 +3,7 @@ import { Button as ButtonPrimitive } from "@base-ui/react/button";
 import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
+import { InfoTip } from "@/components/lab/info-tip";
 
 // Linear Button: dark developer tool, purple (#5e6ad2) primary
 // Real linear.app treatment: gradient fill, 1px border ring, subtle drop shadow
@@ -93,12 +94,25 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       );
     }
 
-    return (
+    const button = (
       <ButtonPrimitive
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
         {...props}
       />
+    );
+    // NextWord Lab: a button with contextual help gets its Info icon beside it, never inside it.
+    // data-help-info="off" opts out (icon-only toolbar buttons whose label already says it all).
+    const helpId = (props as Record<string, unknown>)["data-help-id"] as string | undefined
+    if (!helpId || (props as Record<string, unknown>)["data-help-info"] === "off") return button
+    // Button and icon travel together, so they stay on one line and centred on each other wherever
+    // the row aligns its items. Placement classes (self-*, margins) move to the pair.
+    const place = (className ?? "").split(/\s+/).filter((c) => /^(self-|m[trblxy]?-|-m[trblxy]?-)/.test(c))
+    return (
+      <span className={cn("inline-flex items-center gap-1", place)}>
+        {React.cloneElement(button, { className: cn(buttonVariants({ variant, size, className: (className ?? "").split(/\s+/).filter((c) => !place.includes(c)).join(" ") })) })}
+        <InfoTip id={helpId} disabled={!!props.disabled} />
+      </span>
     );
   }
 );

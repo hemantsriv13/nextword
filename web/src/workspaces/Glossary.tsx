@@ -24,7 +24,7 @@ export default function Glossary() {
   const list = useMemo(() => {
     const q = query.trim().toLowerCase()
     return GLOSSARY.filter((g) => (stage === "all" ? true : stage === "bookmarked" ? bookmarks.includes(g.id) : g.stage === stage))
-      .filter((g) => !q || [g.term, ...(g.aliases ?? []), g.plain, g.technical].join(" ").toLowerCase().includes(q))
+      .filter((g) => !q || [g.term, g.abbr ?? "", ...(g.aliases ?? []), g.plain, g.technical].join(" ").toLowerCase().includes(q))
   }, [query, stage, bookmarks])
 
   const stageItems = [{ value: "all", label: "All stages" }, { value: "bookmarked", label: `Bookmarked (${bookmarks.length})` }, ...JOURNEY.map((s) => ({ value: s.id, label: s.title }))]
@@ -52,7 +52,7 @@ export default function Glossary() {
                     <button type="button" onClick={() => navigate("glossary", { term: g.id })} aria-current={g.id === selected?.id ? "true" : undefined}
                       className={cn("flex w-full flex-col gap-0.5 px-3 py-2.5 text-left hover:bg-raised", g.id === selected?.id && "bg-active")}>
                       <span className="flex items-center gap-2 text-sm font-medium">
-                        {g.term}
+                        {g.abbr && g.abbr !== g.term ? `${g.abbr}: ${g.term}` : g.term}
                         {bookmarks.includes(g.id) && <BookmarkSolidIcon className="size-3.5 text-muted-foreground" aria-label="Bookmarked" />}
                       </span>
                       <span className="line-clamp-1 text-label text-muted-foreground">{g.plain}</span>
@@ -67,7 +67,7 @@ export default function Glossary() {
         {selected ? (
           <article aria-labelledby="entry-title" className="min-w-0 rounded-2xl border border-canvas-edge bg-canvas p-5 sm:p-7">
             {!wide && <button type="button" className="mb-3 text-sm underline underline-offset-2" onClick={() => navigate("glossary")}>Back to all terms</button>}
-            <h2 id="entry-title" className="text-lesson font-semibold">{selected.term}</h2>
+            <h2 id="entry-title" className="text-lesson font-semibold">{selected.abbr && selected.abbr !== selected.term ? `${selected.abbr}: ${selected.term}` : selected.term}</h2>
             {selected.aliases && <p className="text-sm text-muted-foreground">Also: {selected.aliases.join(", ")}</p>}
             <EntryBody entry={selected} onOpenTerm={(id) => navigate("glossary", { term: id })} />
           </article>

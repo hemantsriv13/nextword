@@ -21,6 +21,14 @@ export interface GlossaryEntry {
   experiment: { route: Route; label: string }
   related: string[]
   code?: { path: string; symbol: string }
+  /** The short form shown on screen, when the term is an abbreviation or symbol (BPE, NLL, exp). */
+  abbr?: string
+  /** How to read it aloud, when the written form doesn't say. */
+  say?: string
+  /** Terms to understand first. Help offers them before relying on them. */
+  needs?: string[]
+  /** A few illustrative values, worked out. Each row is [input, result]. */
+  worked?: { caption: string; head: [string, string]; rows: [string, string][] }
 }
 
 export const GLOSSARY: GlossaryEntry[] = [
@@ -74,13 +82,15 @@ export const GLOSSARY: GlossaryEntry[] = [
     related: ["embedding", "vocabulary"],
   },
   {
-    id: "bpe", term: "Byte-pair encoding", aliases: ["BPE", "subword"], stage: "tokens", where: "simulation",
-    plain: "A tokenizer that starts from characters and repeatedly glues together the most common neighbouring pair.",
-    technical: "Greedy merge learning: count adjacent token pairs, merge the most frequent into a new vocabulary item, repeat for a fixed number of merges.",
-    example: "In \"low lower lowest\", the first merge is l+o → lo, then lo+w → low.",
-    misconception: "The Lab's BPE matches a commercial tokenizer. It is a teaching version on a tiny text; real ones are byte-level with tens of thousands of merges.",
+    id: "bpe", term: "Byte Pair Encoding", abbr: "BPE", aliases: ["byte-pair encoding", "subword", "merges"], stage: "tokens", where: "simulation",
+    plain: "A way to build a vocabulary of reusable pieces: repeatedly find the most frequent pair of neighbouring units and merge it into one new unit.",
+    technical: "Learning: count every adjacent pair, merge the most frequent into a new vocabulary item everywhere it occurs, and repeat. This Lab's version starts from characters (Unicode code points), never merges across spaces or newlines, breaks ties by the pair seen first, and stops early once no pair occurs twice. Applying: to tokenize new text, split it into characters and replay the learned merges in the order they were learned. Nothing new is learned while applying.",
+    example: "Learned on \"low lower lowest\": merge 1 is l + o → lo (3 times), merge 2 is lo + w → low (3 times), merge 3 is low + e → lowe (2 times); then no pair repeats. Applying those merges to \"slow\" gives s + low.",
+    worked: { caption: "Illustrative: learning on \"low lower lowest\" (16 characters)", head: ["Merge", "Text length after it"], rows: [["none yet", "16 tokens"], ["l + o → lo", "13 tokens"], ["lo + w → low", "10 tokens"], ["low + e → lowe", "8 tokens"]] },
+    misconception: "\"Byte\" means this demo starts from bytes, and it reproduces a commercial tokenizer. The name comes from the original compression method. This demo starts from characters and learns at most 40 merges on a tiny text; production tokenizers are usually byte-level and learn tens of thousands.",
     experiment: { route: "data", label: "Step through BPE merges" },
-    related: ["tokenization", "vocabulary"],
+    related: ["tokenization", "vocabulary", "token"],
+    code: { path: "web/src/sim/tokenize.ts", symbol: "learnBpe" },
   },
   {
     id: "context-window", term: "Context window", aliases: ["context"], stage: "tokens", where: "model",
@@ -234,6 +244,28 @@ export const GLOSSARY: GlossaryEntry[] = [
     related: ["logits", "softmax", "backpropagation"],
   },
   {
+    id: "exp", term: "Exponential", abbr: "exp", say: "exponential", aliases: ["e to the power", "eˣ", "e^x"], stage: "training", where: "model",
+    plain: "exp(x) means e raised to the power x, where e is approximately 2.718. It turns any number into a positive one, and each step of 1 in x multiplies the result by about 2.718.",
+    technical: "exp(x) = eˣ with e ≈ 2.71828. It reverses the natural logarithm: exp(ln(x)) = x for positive x, and ln(exp(x)) = x for every x. Because exp(a + b) = exp(a) × exp(b), adding 1 to a logit multiplies that token's softmax weight by e.",
+    example: "exp(0) = 1, exp(1) ≈ 2.718, exp(0.6931) ≈ 2, exp(−2) ≈ 0.135.",
+    worked: { caption: "Illustrative values", head: ["x", "exp(x)"], rows: [["0", "1"], ["0.6931", "≈ 2"], ["1", "≈ 2.718"], ["−2", "≈ 0.135"]] },
+    misconception: "exp means any power, such as 2³. Here it always means e raised to the power, never 2 or 10.",
+    experiment: { route: "decoding", label: "See exp inside softmax" },
+    related: ["ln", "softmax", "perplexity"],
+  },
+  {
+    id: "ln", term: "Natural logarithm", abbr: "ln", aliases: ["log", "logarithm", "natural log"], stage: "training", where: "model",
+    plain: "ln(x) answers: e to what power gives x? It undoes exp, and probabilities below 1 have negative logarithms. Every \"log\" in this Lab is ln: the code uses base e.",
+    technical: "ln is defined for x > 0 as the inverse of exp: if exp(y) = x then ln(x) = y. ln(1) = 0, ln(x) < 0 for 0 < x < 1, and ln(x) falls without limit as x approaches 0. Every \"log\" in this Lab is the natural log: Python's math.log and JavaScript's Math.log both use base e.",
+    example: "ln(1) = 0, ln(0.5) ≈ −0.693, ln(0.1) ≈ −2.303, because exp(−2.303) ≈ 0.1.",
+    worked: { caption: "Illustrative values", head: ["x", "ln(x)"], rows: [["1", "0"], ["0.5", "≈ −0.693"], ["0.1", "≈ −2.303"], ["2.718", "≈ 1"]] },
+    misconception: "\"log\" always means base 10. It depends on where you read it: machine-learning code usually means base e, information theory often base 2, and calculators base 10. The base sets the unit of loss: nats for e, bits for 2.",
+    experiment: { route: "evaluation", label: "See −log p for every held-out character" },
+    related: ["exp", "nll", "nats"],
+    needs: ["exp"],
+    code: { path: "nextword/lab/service.py", symbol: "evaluate" },
+  },
+  {
     id: "logits", term: "Logits", stage: "training", where: "simulation",
     plain: "The model's raw scores for each possible next token, before turning them into probabilities.",
     technical: "Unnormalised log-probabilities z; softmax(z) gives the distribution. Adding a constant to all logits changes nothing.",
@@ -252,13 +284,36 @@ export const GLOSSARY: GlossaryEntry[] = [
     related: ["logits", "temperature", "normalization"],
   },
   {
-    id: "cross-entropy", term: "Cross-entropy loss", aliases: ["negative log-likelihood", "NLL"], stage: "training", where: "simulation",
-    plain: "A penalty that is small when the model gave the right answer high probability and large when it gave it low probability.",
-    technical: "For one example, L = −log p(target). Averaged over examples it is the mean negative log-likelihood, in nats.",
+    id: "cross-entropy", term: "Cross-entropy loss", aliases: ["cross entropy", "loss function"], stage: "training", where: "simulation",
+    plain: "The training loss for next-token prediction: small when the model gave the right answer high probability, large when it gave it low probability.",
+    technical: "For a one-hot target, cross-entropy H(y, p) = −Σᵢ yᵢ ln pᵢ = −ln p(target), which is the negative log-likelihood. Averaged over examples it is the mean NLL, in nats.",
     example: "p(target) = 0.5 → L = 0.69; p = 0.01 → L = 4.61; p = 0 → L = ∞.",
     misconception: "Loss is the error rate. It measures confidence in the right answer, not how often the top guess is right.",
     experiment: { route: "neural", label: "Compute loss for one example" },
-    related: ["loss", "perplexity", "gradient"],
+    related: ["nll", "loss", "perplexity", "gradient"],
+    needs: ["nll"],
+  },
+  {
+    id: "nll", term: "Negative log-likelihood", abbr: "NLL", aliases: ["negative log likelihood", "−log p", "log loss"], stage: "training", where: "model",
+    plain: "How much the model is penalized for assigning a low probability to the correct next token. Probability 1 costs 0; lower probability costs more.",
+    technical: "For one target, NLL = −ln p(actual next token | context). The mean NLL over N targets is (1/N) × Σ −ln pᵢ, the number shown as the loss. Lower is better, but only when comparing the same prediction task: same text, split and tokenization. If any target got p = 0, its NLL is infinite, and so is the mean.",
+    example: "p = 1 → NLL = 0; p = 0.5 → NLL ≈ 0.693; p = 0.1 → NLL ≈ 2.303; p = 0 → NLL = ∞.",
+    worked: { caption: "Illustrative: one target at a time", head: ["p(actual next token)", "NLL = −ln p"], rows: [["1", "0"], ["0.5", "≈ 0.693"], ["0.1", "≈ 2.303"], ["0", "∞ (infinite)"]] },
+    misconception: "The scored token is the one the model picked. NLL always scores the actual next token in the text, whichever token the model sampled or ranked first.",
+    experiment: { route: "evaluation", label: "See the NLL of every held-out character" },
+    related: ["cross-entropy", "nats", "perplexity", "loss"],
+    needs: ["distribution", "ln"],
+    code: { path: "nextword/lab/service.py", symbol: "evaluate" },
+  },
+  {
+    id: "nats", term: "Nats", aliases: ["nat", "natural units of information"], stage: "training", where: "model",
+    plain: "A unit for measuring information or loss when we use the natural logarithm. A loss \"in nats\" is a −ln p value.",
+    technical: "Information measured with ln (base e) is in nats; with log₂ it is in bits. 1 nat = 1 ÷ ln 2 ≈ 1.443 bits. Every loss in this Lab is −ln p, so it is in nats. 0 nats means the actual token got probability 1; there is no upper limit.",
+    example: "A probability of 0.5 costs ln 2 ≈ 0.693 nats (exactly 1 bit). A uniform guess over 39 characters costs ln 39 ≈ 3.664 nats per character.",
+    misconception: "Nats are a percentage, a token count or an accuracy score. They are none of these: 2 nats is not \"2 tokens wrong\" or \"2% off\".",
+    experiment: { route: "evaluation", label: "Compare your loss with the uniform guess" },
+    related: ["nll", "ln", "perplexity"],
+    needs: ["ln"],
   },
   {
     id: "gradient", term: "Gradient", stage: "training", where: "simulation",
@@ -502,12 +557,14 @@ export const GLOSSARY: GlossaryEntry[] = [
   },
   {
     id: "perplexity", term: "Perplexity", stage: "evaluation", where: "model",
-    plain: "Loss turned into \"how many choices the model was effectively unsure between\".",
-    technical: "exp(mean NLL). A uniform guess over |V| tokens has perplexity |V|.",
-    example: "Loss 2.68 nats → perplexity e^2.68 ≈ 14.6.",
-    misconception: "Perplexities compare across any models. Across different tokenizers they measure different things (per character vs. per word piece).",
+    plain: "An effective-uncertainty measure. When loss is mean next-token NLL measured in nats, perplexity is exp(mean NLL). Lower means the model was less surprised by the actual text.",
+    technical: "Perplexity = exp(mean NLL) = exp((1/N) × Σ −ln pᵢ), the inverse geometric mean of the probabilities given to the actual tokens. A uniform guess over |V| tokens has perplexity |V|. If any target got p = 0, mean NLL is infinite and so is perplexity: your engine's API sends both as null (JSON has no infinity) and the Lab shows ∞.",
+    example: "Mean NLL ≈ 0.693 nats → perplexity exp(0.693) ≈ 2. Mean NLL 2.68 → exp(2.68) ≈ 14.6.",
+    worked: { caption: "Illustrative values", head: ["mean NLL (nats)", "perplexity"], rows: [["0", "1"], ["0.693", "≈ 2"], ["2.303", "≈ 10"], ["∞", "∞"]] },
+    misconception: "Perplexity 2 means exactly two candidates at every step, 50% accuracy or factual reliability. It means none of those. And it compares fairly only with the same tokenization and evaluation text: per character and per word piece are different measures.",
     experiment: { route: "evaluation", label: "Compare perplexity with a uniform baseline" },
-    related: ["loss", "tokenization"],
+    related: ["nll", "exp", "loss", "tokenization"],
+    needs: ["nll", "exp"],
   },
   {
     id: "baseline", term: "Baseline", stage: "evaluation", where: "model",
@@ -668,7 +725,7 @@ export const GLOSSARY: GlossaryEntry[] = [
     related: ["rag", "continued-training", "context-window"],
   },
   {
-    id: "rag", term: "Retrieval-augmented generation", aliases: ["RAG"], stage: "adaptation", where: "simulation",
+    id: "rag", term: "Retrieval-augmented generation", abbr: "RAG", aliases: ["RAG", "retrieval"], stage: "adaptation", where: "simulation",
     plain: "Look up relevant passages first, then give them to a model along with the question.",
     technical: "Retrieve top passages from an index, insert them with source references into the prompt, and generate conditioned on them.",
     example: "The Retrieval lab assembles the prompt with [doc#chunk] references; it does not generate an answer.",
@@ -677,7 +734,7 @@ export const GLOSSARY: GlossaryEntry[] = [
     related: ["chunking", "lexical-search", "grounding"],
   },
   {
-    id: "chunking", term: "Chunking", stage: "adaptation", where: "simulation",
+    id: "chunking", term: "Chunking", aliases: ["chunk", "chunks"], stage: "adaptation", where: "simulation",
     plain: "Cutting documents into smaller passages that can be searched and quoted.",
     technical: "Splitting text into units of fixed or structural size; overlap keeps facts that straddle a boundary in at least one chunk.",
     example: "Size 40 words, overlap 10: each chunk repeats the last 10 words of the previous one.",
@@ -686,7 +743,7 @@ export const GLOSSARY: GlossaryEntry[] = [
     related: ["rag", "lexical-search"],
   },
   {
-    id: "lexical-search", term: "Lexical search (BM25)", aliases: ["BM25", "keyword search"], stage: "adaptation", where: "simulation",
+    id: "lexical-search", term: "Lexical search (BM25)", abbr: "BM25", aliases: ["BM25", "Best Matching 25", "keyword search"], stage: "adaptation", where: "simulation",
     plain: "Ranking passages by the words they share with the question, weighting rare words more.",
     technical: "BM25 scores term frequency with saturation (k₁) and length normalisation (b), weighted by inverse document frequency.",
     example: "\"steep tea\" ranks the tea passage first because both words appear in it.",

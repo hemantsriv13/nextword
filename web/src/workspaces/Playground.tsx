@@ -19,6 +19,8 @@ import { useSnapshotRun } from "@/lib/evaluation"
 import { lastChars, traceView, withoutLastChar, type Segment } from "@/lib/trace"
 import { cn } from "@/lib/utils"
 import { charTokens, visible } from "@/sim/tokenize"
+import { InfoTip } from "@/components/lab/info-tip"
+import { TermHelp } from "@/components/lab/term-help"
 
 const ENGINES = [
   { id: "char-bigram", label: "Character bigram", note: "Your model", available: true },
@@ -222,7 +224,7 @@ export default function Playground() {
 
         <div className="mt-5 grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2 2xl:grid-cols-[minmax(11rem,1.2fr)_minmax(11rem,1.2fr)_minmax(10rem,1fr)_auto]">
           <div className="flex flex-col gap-2">
-            <span id="engine-label" className="text-sm font-medium">Engine</span>
+            <span className="flex items-center gap-0.5"><span id="engine-label" className="text-sm font-medium">Engine</span><InfoTip id="playground.engine" /></span>
             <Select value="char-bigram" onValueChange={() => {}} items={ENGINES.map((e) => ({ value: e.id, label: e.label }))}>
               <SelectTrigger aria-labelledby="engine-label" data-help-id="playground.engine"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -235,7 +237,7 @@ export default function Playground() {
             </Select>
           </div>
           <div className="flex flex-col gap-2">
-            <span id="corpus-label" className="text-sm font-medium">Training text</span>
+            <span className="flex items-center gap-0.5"><span id="corpus-label" className="text-sm font-medium">Training text</span><InfoTip id="playground.corpus" /></span>
             <Select value={corpus} onValueChange={(v) => setCorpus(String(v))} items={(corpora ?? []).map((c) => ({ value: c.id, label: c.name }))}>
               <SelectTrigger aria-labelledby="corpus-label" data-help-id="playground.corpus"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -248,9 +250,10 @@ export default function Playground() {
           <SliderField id="length" helpId="playground.length" label="Length" value={length} min={1} max={200} step={1} onChange={setLength} format={(v) => `${v} chars`} />
           <div className="flex items-start gap-2">
             <NumberField id="seed" helpId="playground.seed" label={<Term id="seed">Seed</Term>} value={seed} min={0} max={4294967295} onChange={setSeed} width="w-28" />
-            <Button variant="outline" size="icon" data-help-id="playground.random-seed" aria-label="Random seed" onClick={() => setSeed(newSeed())} className="mt-7">
+            <Button variant="outline" size="icon" data-help-info="off" data-help-id="playground.random-seed" aria-label="Random seed" onClick={() => setSeed(newSeed())} className="mt-7">
               <DiceThreeIcon className="size-4" />
             </Button>
+            <InfoTip id="playground.random-seed" className="mt-[34px]" />
           </div>
         </div>
         <p className="mt-4 text-label text-muted-foreground">
@@ -299,7 +302,7 @@ export default function Playground() {
                 <caption className="sr-only">One row per generated character</caption>
                 <thead className="sticky top-0 bg-card">
                   <tr className="text-left text-label text-muted-foreground">
-                    <th scope="col" className="px-3 py-2 text-right font-normal">Step</th>
+                    <th scope="col" className="px-3 py-2 text-right font-normal"><InfoTip id="playground.trace-row" /> Step</th>
                     <th scope="col" className="px-3 py-2 font-normal">Context</th>
                     <th scope="col" className="px-3 py-2 text-right font-normal">Draw u</th>
                     <th scope="col" className="px-3 py-2 font-normal">Chosen</th>
@@ -555,7 +558,7 @@ function PlaygroundExplain({ current, index, result }: { current?: Generation["s
     <Explain
       plain={
         <>
-          <p>Your engine looks only at the <Term id="context-window">last character</Term> of your text. It looks up which characters followed that one in its training text, turns those counts into a <Term id="distribution">probability distribution</Term>, and <Term id="sampling">samples</Term> one.</p>
+          <p>Your engine looks only at the <Term id="context-window">last character</Term> of your text. It looks up which characters followed that one in its training text, turns those counts into a <TermHelp id="distribution" here="One row of your engine's count table, divided by its total: a share for every character that followed this one in the training text.">probability distribution</TermHelp>, and <Term id="sampling">samples</Term> one.</p>
           <p>Then it repeats from the character it just chose. That is <Term id="autoregressive">autoregressive generation</Term>, one character at a time.</p>
         </>
       }

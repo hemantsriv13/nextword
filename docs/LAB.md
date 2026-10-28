@@ -52,14 +52,26 @@ works**: the question it answers, a flow diagram, and **Read and watch**.
 
 ## Help for every control, and the Toolkit Guide
 
-- **Quick hints.** Rest the pointer on a control for about half a second, or reach it with the keyboard:
-  a short hint says what it does, when to use it, and whether it only changes the view, changes a
-  setting, reads data, or runs your engine or a simulation.
-- **Learn this control.** Turn on **Help** in the top bar: a small marker appears beside every control
-  (the way in on a touch screen). A marker, or Alt+H on a focused control, opens a pinned panel with a
-  small worked picture (illustrative numbers are labelled), what the control uses, what changes, what
-  to look for, and a common misunderstanding. Esc closes it. A disabled control always has a marker that
-  says why it is unavailable.
+- **Info icons.** A small (i) icon sits beside each control that has help. Hovering the control itself
+  opens nothing. Hover the icon for about half a second, or reach it with the keyboard, and a short box
+  appears beside it: what the control does, when to use it, and whether it only changes the view,
+  changes a setting, reads data, or runs your engine or a simulation. Click or tap the icon to keep the
+  box open; Esc or a click elsewhere closes it, and only one box is open at a time. **More details** adds
+  a small worked picture (illustrative numbers are labelled), what the control uses, what changes, what
+  to look for, and a common misunderstanding. Alt+H on a focused control opens its box too.
+- **Unavailable controls** have an amber icon that says why, even with the icons switched off. The
+  **Info** switch in the top bar hides or shows the other icons.
+- **Term help.** Technical terms (BPE, NLL, nats, ln and log, exp, perplexity, logits, softmax and
+  others) get the same kind of icon beside their first meaningful use in a panel, including symbols in
+  equations such as exp(mean NLL). The box gives the full name, a plain explanation, what the term
+  means on this page, an example (from the result on screen when there is one, otherwise labelled
+  illustrative), **Go deeper** for the precise definition, a common misunderstanding, prerequisites you
+  can open in the same box, and a link to the glossary entry. Definitions live only in
+  `web/src/content/glossary.ts`; pages pass just their own role and example to `TermHelp` or `MathHelp`
+  (`web/src/components/lab/term-help.tsx`). Later uses of a term keep the dotted glossary link.
+- **Expand code.** A code block taller than its short view gets **Expand code**: inside the
+  explanation panel the panel widens to the left over the experiment (up to 720 px) and shows every
+  line; elsewhere the block just grows taller. Esc or **Collapse code** returns it.
 - **Toolkit Guide** (sidebar, Reference): a directory of every page, a search for controls and plain
   questions ("Why did I get different text?") with **Show me where** links that open the right page and
   tab and point at the control, and three tours. Ctrl K search finds questions and controls too.

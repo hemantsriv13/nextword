@@ -15,6 +15,8 @@ import { cn } from "@/lib/utils"
 import { attentionHead, inputMatrix, multiHead, shape, toyHeadWeights, transformerBlock, type Matrix } from "@/sim/attention"
 import attentionSource from "@/sim/attention.ts?raw"
 import { mulberry32, randomMatrix } from "@/sim/rng"
+import { InfoTip } from "@/components/lab/info-tip"
+import { TermHelp } from "@/components/lab/term-help"
 
 const D = 4
 
@@ -109,17 +111,17 @@ export default function Attention() {
       <Panel id="seq" title="Sequence" source={<Source kind="simulation" detail="toy, seeded random weights" />}>
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <label htmlFor="seq-in" className="text-sm font-medium">Tokens, separated by spaces (2 to 8)</label>
+            <span className="flex items-center gap-0.5"><label htmlFor="seq-in" className="text-sm font-medium">Tokens, separated by spaces (2 to 8)</label><InfoTip id="attention.tokens" /></span>
             <input id="seq-in" data-help-id="attention.tokens" value={text} onChange={(e) => { setText(e.target.value); setQuery(null) }} className="tok h-9 rounded-md border border-input bg-card px-3 text-sm" />
           </div>
           <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
-            <label className="flex items-center gap-2 text-sm" data-help-id="attention.mask"><Switch checked={causal} onCheckedChange={(v) => { setCausal(v); actions.logRun({ route: "attention", title: `Causal mask ${v ? "on" : "off"}`, summary: tokens.join(" "), source: "simulation" }, ["causal-mask"]) }} aria-label="Causal mask" /> <Term id="causal-mask">Causal mask</Term></label>
-            <label className="flex items-center gap-2 text-sm" data-help-id="attention.positions"><Switch checked={positions} onCheckedChange={setPositions} aria-label="Add positional information" /> <Term id="positional-encoding">Positional information</Term></label>
+            <span className="inline-flex items-center gap-0.5"><label className="flex items-center gap-2 text-sm" data-help-id="attention.mask"><Switch checked={causal} onCheckedChange={(v) => { setCausal(v); actions.logRun({ route: "attention", title: `Causal mask ${v ? "on" : "off"}`, summary: tokens.join(" "), source: "simulation" }, ["causal-mask"]) }} aria-label="Causal mask" /> <Term id="causal-mask">Causal mask</Term></label><InfoTip id="attention.mask" /></span>
+            <span className="inline-flex items-center gap-0.5"><label className="flex items-center gap-2 text-sm" data-help-id="attention.positions"><Switch checked={positions} onCheckedChange={setPositions} aria-label="Add positional information" /> <Term id="positional-encoding">Positional information</Term></label><InfoTip id="attention.positions" /></span>
             <Segmented label="Heads" helpId="attention.heads" value={heads} onChange={setHeads} options={[{ value: "one", label: "One head, dₖ = 4" }, { value: "two", label: "Two heads, dₖ = 2" }]} />
           </div>
           {!valid ? <EmptyNote>Type at least two tokens.</EmptyNote> : (
             <div className="flex flex-col gap-2">
-              <p className="text-sm text-muted-foreground">Pick a position to see what it can attend to:</p>
+              <p className="flex items-center gap-0.5 text-sm text-muted-foreground">Pick a position to see what it can attend to:<InfoTip id="attention.query" /></p>
               <div className="flex flex-wrap gap-2" role="group" aria-label="Choose a query position">
                 {tokens.map((t, i) => {
                   const allowed = q !== null && (!causal || i <= q)
@@ -267,7 +269,7 @@ function SingleHead({ tokens, r, q, causal }: { tokens: string[]; r: ReturnType<
           ]} /> : <p>Pick a position to see its query, key and value.</p>,
           code: <SimCode path="web/src/sim/attention.ts" symbol="attentionHead" text={attentionSource} />,
         }}>
-        <p className="mb-4 text-sm">Q = X·W<sub>Q</sub>, K = X·W<sub>K</sub>, V = X·W<sub>V</sub>, each W of shape {D} × {dk}. A query asks “what am I looking for?”, a key says “what I contain”, a value is “what I pass on”. Concretely they are just three different linear projections of X.</p>
+        <p className="mb-4 text-sm">Q = X·W<sub>Q</sub>, K = X·W<sub>K</sub>, V = X·W<sub>V</sub>, each W of shape {D} × {dk}. A <TermHelp id="qkv" here={`Every one of the ${tokens.length} positions gets a query, a key and a value, each ${dk} numbers long, made from seeded random weights rather than trained ones.`}>query</TermHelp> asks “what am I looking for?”, a key says “what I contain”, a value is “what I pass on”. Concretely they are just three different linear projections of X.</p>
         <div className="flex flex-wrap items-start gap-6">
           <MatrixView name="Q" m={r.q} rowLabels={tokens} highlightRows={q !== null ? [q] : undefined} />
           <MatrixView name="K" m={r.k} rowLabels={tokens} />
@@ -351,7 +353,7 @@ function MaskCheck({ tokens, positions }: { tokens: string[]; positions: boolean
     <Panel id="check" title="Check: can the future leak backwards?" source={<Source kind="simulation" detail="recomputed live" />}>
       <div className="flex flex-wrap items-end gap-3">
         <div className="flex flex-col gap-2">
-          <label htmlFor="repl" className="text-sm font-medium">Replace the last token “{tokens.at(-1)}” with</label>
+          <span className="flex items-center gap-0.5"><label htmlFor="repl" className="text-sm font-medium">Replace the last token “{tokens.at(-1)}” with</label><InfoTip id="attention.check" /></span>
           <input id="repl" data-help-id="attention.check" value={replacement} onChange={(e) => setReplacement(e.target.value.trim())} className="tok h-9 w-40 rounded-md border border-input bg-card px-3 text-sm" />
         </div>
       </div>
@@ -413,7 +415,7 @@ function AttentionExplain() {
     <Explain
       plain={
         <>
-          <p>Your bigram engine sees one previous character. <Term id="attention">Attention</Term> lets every position look at all earlier positions and decide how much each one matters, with weights it computes from the data.</p>
+          <p>Your bigram engine sees one previous character. <TermHelp id="attention" here="This page computes one attention head on a short toy sequence with random weights, so you can follow every number. It shows the mechanism, not a trained model's behaviour.">Attention</TermHelp> lets every position look at all earlier positions and decide how much each one matters, with weights it computes from the data.</p>
           <p>Each position makes a query; every position offers a key and a value. Query-key matches become weights, and the weights mix the values.</p>
         </>
       }

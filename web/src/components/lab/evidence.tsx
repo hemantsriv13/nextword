@@ -4,6 +4,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
 import { findTerm } from "@/content/glossary"
 import { actions, EVIDENCE_LEVELS, useLab } from "@/lib/store"
+import { InfoTip } from "./info-tip"
 
 /** Lets you record your own evidence for one concept. Nothing here is checked automatically. */
 export function EvidenceRecorder({ conceptId, compact = false }: { conceptId: string; compact?: boolean }) {
@@ -15,7 +16,7 @@ export function EvidenceRecorder({ conceptId, compact = false }: { conceptId: st
   return (
     <section aria-labelledby={`ev-${conceptId}`} className="flex flex-col gap-3 rounded-lg bg-raised p-4">
       <div>
-        <h3 id={`ev-${conceptId}`} className="text-sm font-medium">Your evidence for {term.toLowerCase()}</h3>
+        <div className="flex items-center gap-0.5"><h3 id={`ev-${conceptId}`} className="text-sm font-medium">Your evidence for {term.toLowerCase()}</h3><InfoTip id="evidence.levels" /></div>
         {!compact && <p className="text-sm text-muted-foreground">You record these yourself. Opening a page records nothing.</p>}
       </div>
       <ul className="flex flex-col gap-2" data-help-id="evidence.levels">

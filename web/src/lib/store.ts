@@ -57,7 +57,7 @@ export interface SavedExperiment {
 
 export interface LabState {
   version: 1
-  prefs: { sidebarCollapsed: boolean; explainOpen: boolean; explainSize: number; guideOpen: boolean; flowOpen: boolean; helpMode: boolean; tour: { id: string; index: number } | null; tourPositions: Record<string, number>; checkpointPractice: boolean }
+  prefs: { sidebarCollapsed: boolean; explainOpen: boolean; explainSize: number; guideOpen: boolean; flowOpen: boolean; infoIcons: boolean; tour: { id: string; index: number } | null; tourPositions: Record<string, number>; checkpointPractice: boolean }
   lastRoute: string
   evidence: Record<string, Evidence>
   notes: Note[]
@@ -72,7 +72,7 @@ export interface LabState {
 function initialState(): LabState {
   return {
     version: 1,
-    prefs: { sidebarCollapsed: false, explainOpen: true, explainSize: 34, guideOpen: true, flowOpen: false, helpMode: false, tour: null, tourPositions: {}, checkpointPractice: false },
+    prefs: { sidebarCollapsed: false, explainOpen: true, explainSize: 34, guideOpen: true, flowOpen: false, infoIcons: true, tour: null, tourPositions: {}, checkpointPractice: false },
     lastRoute: "playground",
     // Carried over from GLOSSARY.md (2026-10-25): explained with help, recheck independently later.
     evidence: {

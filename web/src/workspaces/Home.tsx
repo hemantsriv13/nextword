@@ -10,6 +10,7 @@ import { api } from "@/lib/api"
 import { hrefFor, useLoad } from "@/lib/hooks"
 import { actions, useLab, type Evidence } from "@/lib/store"
 import { cn } from "@/lib/utils"
+import { InfoTip } from "@/components/lab/info-tip"
 
 export const GUIDE: { id: string; route: Route; minutes: number; title: string; detail: string }[] = [
   { id: "g1", route: "playground", minutes: 4, title: "Step through your engine", detail: "Press Step ten times on “The rain” with seed 1. For each step, find where the draw u lands in the interval strip." },
@@ -101,7 +102,7 @@ export default function Home() {
       </section>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-        <Panel id="guide" title="First guided session" aside={<span className="num text-sm text-muted-foreground">{done} of {GUIDE.length} done, about {minutesLeft} min left</span>}>
+        <Panel id="guide" title="First guided session" aside={<span className="flex items-center gap-1"><span className="num text-sm text-muted-foreground">{done} of {GUIDE.length} done, about {minutesLeft} min left</span><InfoTip id="home.guide-step" /></span>}>
           <ol className="flex flex-col">
             {GUIDE.map((g, i) => (
               <li key={g.id} className="flex items-start gap-3 border-t border-rule py-3 first:border-0 first:pt-0">

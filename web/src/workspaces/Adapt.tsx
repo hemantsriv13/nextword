@@ -21,6 +21,8 @@ import { cn } from "@/lib/utils"
 import { assemblePrompt, bm25, chunkDoc, terms, type Doc } from "@/sim/rag"
 import ragSource from "@/sim/rag.ts?raw"
 import { visible } from "@/sim/tokenize"
+import { InfoTip } from "@/components/lab/info-tip"
+import { TermHelp } from "@/components/lab/term-help"
 
 type Tab = "stages" | "continued" | "retrieval"
 
@@ -146,7 +148,7 @@ function StagesTab() {
         </div>
         <p className="mt-3 text-label text-muted-foreground">The tiny experiments here show the mechanics. They are many orders of magnitude smaller than real pretraining or fine-tuning, and they say nothing about how large models behave.</p>
       </Panel>
-      <Panel id="where" title="Where does the information live?" source={<Source kind="example" />}>
+      <Panel id="where" title="Where does the information live?" aside={<InfoTip id="adapt.scenario" />} source={<Source kind="example" />}>
         <ol className="flex flex-col gap-4">
           {SCENARIOS.map((s, i) => (
             <li key={s.id} className="flex flex-col gap-2">
@@ -227,7 +229,7 @@ function ContinuedTab() {
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <span id="ct-base" className="text-sm font-medium">Base training text</span>
+              <span className="flex items-center gap-0.5"><span id="ct-base" className="text-sm font-medium">Base training text</span><InfoTip id="adapt.texts" /></span>
               <Select value={base} onValueChange={(v) => setBase(String(v))} items={(corpora ?? []).map((c) => ({ value: c.id, label: c.name }))}>
                 <SelectTrigger aria-labelledby="ct-base" data-help-id="adapt.texts"><SelectValue /></SelectTrigger>
                 <SelectContent>{(corpora ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
@@ -267,6 +269,7 @@ function ContinuedTab() {
           </Panel>
           <Panel id="ct-loss" title="Held-out loss, before and after" source={<Source kind="model" detail="add-1 smoothed so it stays finite" />}>
             <table className="w-full text-sm">
+              <caption className="mb-2 text-left text-label text-muted-foreground">Mean <TermHelp id="nll" here="Each number is the average −ln p your engine gave the actual next character of a held-out text. Add-1 smoothing keeps every p above 0, so it stays finite." example={r.baseHeldOutNll.before !== null && r.baseHeldOutNll.after !== null ? <>On the base text it went from {r.baseHeldOutNll.before.toFixed(3)} to {r.baseHeldOutNll.after.toFixed(3)} nats. Lower means the engine gave the actual characters more probability.</> : undefined}>NLL</TermHelp> per character, in <TermHelp id="nats" here="The engine uses the natural log, so these losses are in nats.">nats</TermHelp>. Lower is better.</caption>
               <thead><tr className="text-label text-muted-foreground"><th className="text-left font-normal">Held-out text</th><th className="text-right font-normal">Before</th><th className="text-right font-normal">After</th><th className="text-right font-normal">Change</th></tr></thead>
               <tbody>
                 {[["Base text (old material)", r.baseHeldOutNll, baseChange], ["New text", r.extraHeldOutNll, extraChange]].map(([label, x, c]) => {
@@ -360,6 +363,7 @@ function RetrievalTab() {
           ]} />,
           code: <SimCode path="web/src/sim/rag.ts" symbol="chunkDoc" text={ragSource} />,
         }}>
+        <p className="mb-4 text-sm">Search ranks <TermHelp id="chunking" here="Your documents are cut into passages of a fixed number of words. Search scores each passage, and the best ones go into the prompt." example={chunks.length > 0 ? <>{docs.length} {docs.length === 1 ? "document" : "documents"} at {size} words per chunk with {ov} words of overlap make {chunks.length} chunks. Each starts {size - ov} words after the previous one.</> : undefined}>chunks</TermHelp>, not whole documents.</p>
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
           <SliderField id="csize" helpId="adapt.chunks" label="Chunk size" value={size} min={6} max={80} step={1} onChange={setSize} format={(v) => `${v} words`} />
           <SliderField id="cover" helpId="adapt.chunks" label="Overlap" value={ov} min={0} max={Math.max(0, size - 1)} step={1} onChange={setOverlap} format={(v) => `${v} words`} hint="Words repeated at the start of the next chunk, so a fact on a boundary survives." />
@@ -387,14 +391,14 @@ function RetrievalTab() {
           }}>
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <label htmlFor="q" className="text-sm font-medium">Question</label>
+              <span className="flex items-center gap-0.5"><label htmlFor="q" className="text-sm font-medium">Question</label><InfoTip id="adapt.question" /></span>
               <input id="q" data-help-id="adapt.question" value={query} onChange={(e) => setQuery(e.target.value)} className="h-9 rounded-md border border-input bg-card px-3 text-sm" />
               <p className="text-label text-muted-foreground">Search words after dropping common ones: {qTerms.length ? qTerms.map((t) => <Tok key={t} className="mr-1">{t}</Tok>) : "none"}</p>
             </div>
             <SliderField id="topk-r" helpId="adapt.passages" label="Passages to include" value={topK} min={1} max={5} step={1} onChange={setTopK} />
             <table className="w-full text-sm">
               <caption className="sr-only">Chunks ranked by BM25 score</caption>
-              <thead><tr className="text-label text-muted-foreground"><th className="text-left font-normal">Chunk</th><th className="text-left font-normal">Matched words</th><th className="text-right font-normal">Score</th></tr></thead>
+              <thead><tr className="text-label text-muted-foreground"><th className="text-left font-normal">Chunk</th><th className="text-left font-normal">Matched words</th><th className="text-right font-normal"><TermHelp id="lexical-search" here="Scores come from BM25, run in your browser on these chunks. It matches words, not meanings." example={ranked[0] && ranked[0].score > 0 ? <>Chunk {ranked[0].chunk.id} scores {ranked[0].score.toFixed(3)}: it contains {ranked[0].matched.join(", ")}.</> : undefined}>BM25</TermHelp> score</th></tr></thead>
               <tbody>
                 {ranked.slice(0, 6).map((r, i) => (
                   <tr key={r.chunk.id} className={cn("border-t border-rule", r.score > 0 && i < topK && "font-medium")}>
@@ -437,7 +441,7 @@ function AdaptExplain({ tab }: { tab: Tab }) {
     <Explain
       plain={
         tab === "retrieval" ? (
-          <p><Term id="rag">Retrieval-augmented generation</Term> searches your documents for passages related to a question and puts them, with their sources, into the prompt. The model&apos;s weights stay exactly as they were.</p>
+          <p><TermHelp id="rag" here="This tab builds the retrieval half: chunking, BM25 search and the assembled prompt. No generation model is connected.">Retrieval-augmented generation</TermHelp> searches your documents for passages related to a question and puts them, with their sources, into the prompt. The model&apos;s weights stay exactly as they were.</p>
         ) : tab === "continued" ? (
           <p><Term id="continued-training">Continued training</Term> starts from what a model already learned and learns more from a new text. For your engine that means adding the new text&apos;s counts. It shifts predictions toward the new text, sometimes at the cost of the old.</p>
         ) : (
