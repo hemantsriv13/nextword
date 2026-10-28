@@ -8,7 +8,9 @@ import { Term } from "@/components/lab/glossary"
 import { ErrorNote, LoadingRows, Note, NumberField, Segmented } from "@/components/lab/layout"
 import { Source } from "@/components/lab/source"
 import { ExplanationPanel, TryThis } from "@/components/lab/explanation"
-import { useHelpReveal } from "@/components/lab/help"
+import { CheckpointStatus, useCheckpoints } from "@/components/lab/checkpoint"
+import { spotlight, useHelpReveal } from "@/components/lab/help"
+import { JOURNEY_CHECKPOINTS } from "@/lib/checkpoints"
 import { LevelSwitch, Symbols, type Level } from "@/components/lab/teach"
 import { findTerm } from "@/content/glossary"
 import { api, type Generation, type Journey as JourneyData } from "@/lib/api"
@@ -205,6 +207,17 @@ function Guided({ run, s, stale, stage, setStage, onReplay }: { run: Run; s: Sel
   }, [stage])
   const go = (i: number) => setStage(Math.max(0, Math.min(STAGES.length - 1, i)))
   const next = STAGES[stage + 1]
+  const checkpoints = useCheckpoints()
+  const checkpoint = JOURNEY_CHECKPOINTS[stage]
+  // The checkpoint's question is built from this run and these selections, frozen when it opens.
+  const ctx = { run, pair: s.pair, sel: s.sel }
+  const revisit = () => { go(stage); requestAnimationFrame(() => { const el = document.querySelector<HTMLElement>('[data-testid="stage-canvas"]'); if (el) spotlight(el) }) }
+  useEffect(() => { if (checkpoint) checkpoints?.visit(checkpoint) }, [checkpoint, checkpoints])
+  /** Next: through the checkpoint closing this section, if it has one. Free navigation never asks. */
+  const advance = (to: number, label: string) => {
+    if (checkpoint && checkpoints) checkpoints.beforeNext(checkpoint, ctx, { onContinue: () => go(to), nextLabel: label, revisit })
+    else go(to)
+  }
   return (
     <div className="flex flex-col gap-6" data-testid="guided-view">
       <StageNav stage={stage} onSelect={go} />
@@ -220,13 +233,14 @@ function Guided({ run, s, stale, stage, setStage, onReplay }: { run: Run; s: Sel
           <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Lesson controls">
             <Button variant="outline" data-help-id="journey.back" onClick={() => go(stage - 1)} disabled={stage === 0}><NavArrowLeftIcon className="size-4" /> Back</Button>
             {next ? (
-              <Button className="bg-action text-action-ink hover:bg-action/90" data-help-id="journey.next" onClick={() => go(stage + 1)}>Next: {next.label} <NavArrowRightIcon className="size-4" /></Button>
+              <Button className="bg-action text-action-ink hover:bg-action/90" data-help-id="journey.next" onClick={() => advance(stage + 1, next.label)}>Next: {next.label} <NavArrowRightIcon className="size-4" /></Button>
             ) : (
-              <Button className="bg-action text-action-ink hover:bg-action/90" onClick={() => go(0)}>Back to the start</Button>
+              <Button className="bg-action text-action-ink hover:bg-action/90" onClick={() => advance(0, "the first step")}>Finish and go back to the start</Button>
             )}
             <Button variant="ghost" data-help-id="journey.replay" onClick={onReplay}><RefreshDoubleIcon className="size-4" /> Replay this step</Button>
             <span className="text-label text-muted-foreground">Replay shows the same run again; it draws nothing new.</span>
           </div>
+          {checkpoint && <CheckpointStatus id={checkpoint} ctx={ctx} revisit={revisit} />}
 
         </section>
         <Explanation id={st.id} run={run} s={s} stale={stale} />

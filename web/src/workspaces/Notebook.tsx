@@ -1,7 +1,9 @@
 import { useRef, useState } from "react"
 import { CheckIcon, DownloadIcon, TrashIcon, UploadIcon } from "@/components/icons"
 import { Button } from "@/components/ui/button"
+import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
+import { CHECKPOINTS, statusOf } from "@/lib/checkpoints"
 import { Term } from "@/components/lab/glossary"
 import { EmptyNote, Note, Panel, Segmented, Workspace } from "@/components/lab/layout"
 import { findTerm } from "@/content/glossary"
@@ -18,6 +20,7 @@ export default function Notebook() {
     <Workspace title="Notebook" subtitle="Your notes, questions, evidence and experiment history. All of it is stored in this browser only.">
       <NotesPanel />
       <EvidencePanel />
+      <CheckpointsPanel />
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <RunsPanel />
         <BookmarksPanel />
@@ -100,6 +103,46 @@ function EvidencePanel() {
         </div>
       )}
       <p className="mt-3 text-label text-muted-foreground">Carried over from GLOSSARY.md: bigram model and sampling, explained with assistance on 2026-10-25 (shown as practiced with assistance). An independent recheck with a new example is still pending.</p>
+    </Panel>
+  )
+}
+
+function CheckpointsPanel() {
+  const records = useLab((s) => s.checkpoints)
+  const practice = useLab((s) => s.prefs.checkpointPractice ?? false)
+  const [confirm, setConfirm] = useState(false)
+  return (
+    <Panel id="checkpoints" title="Learning checkpoints"
+      aside={<label className="flex items-center gap-2 text-sm" data-help-id="notebook.checkpoint-practice"><Switch checked={practice} onCheckedChange={(on) => actions.setPref("checkpointPractice", !!on)} aria-label="Practice mode: ask every checkpoint again, even passed ones" /> Practice mode</label>}>
+      <p className="measure mb-4 text-sm text-muted-foreground">Short questions at the end of lesson sections. Each outcome is kept apart: visiting a section, skipping its checkpoint, passing with or without hints, and reviewing the solution. A passed question is evidence about that question, not mastery; your own evidence levels above are separate.</p>
+      <table className="w-full text-sm" data-testid="checkpoint-table">
+        <caption className="sr-only">Checkpoint outcomes</caption>
+        <thead><tr className="text-left text-label text-muted-foreground"><th scope="col" className="py-1 font-normal">Section</th><th scope="col" className="py-1 font-normal">Status</th><th scope="col" className="py-1 text-right font-normal">Answers</th><th scope="col" className="py-1 text-right font-normal">Last</th></tr></thead>
+        <tbody>
+          {CHECKPOINTS.map((c) => {
+            const rec = records[c.id]
+            const last = rec?.attempts.at(-1)?.at ?? rec?.visited
+            return (
+              <tr key={c.id} className="border-t border-rule">
+                <th scope="row" className="py-1.5 text-left font-normal">{c.section} <span className="text-label text-muted-foreground">{c.id.startsWith("journey.") ? "Bigram journey" : WORKSPACE_BY_ROUTE.get(c.id.split(".")[0] as Route)?.title}</span></th>
+                <td className="py-1.5">{statusOf(rec, c.version)}</td>
+                <td className="num py-1.5 text-right">{rec?.attempts.filter((a) => a.outcome !== "skipped").length ?? 0}</td>
+                <td className="num py-1.5 text-right text-muted-foreground">{last ? last.slice(0, 10) : "–"}</td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        {confirm ? (
+          <>
+            <span className="text-sm">Remove all checkpoint progress? Notes and evidence stay.</span>
+            <Button variant="outline" className="text-negative" onClick={() => { actions.resetCheckpoints(); setConfirm(false) }}>Reset checkpoints</Button>
+            <Button variant="ghost" onClick={() => setConfirm(false)}>Keep</Button>
+          </>
+        ) : <Button variant="ghost" data-help-id="notebook.checkpoint-reset" onClick={() => setConfirm(true)}>Reset checkpoint progress</Button>}
+        <span className="text-label text-muted-foreground">Included in Export and Import below.</span>
+      </div>
     </Panel>
   )
 }

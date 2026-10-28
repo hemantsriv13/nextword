@@ -1,3 +1,4 @@
+import { recordOutcome, type CheckpointRecord, type Outcome } from "./checkpoints"
 // Personal Lab state kept in this browser's localStorage: preferences, evidence levels, notes,
 // bookmarks and experiment history. Model data never lives here; it stays with the Python backend.
 
@@ -56,7 +57,7 @@ export interface SavedExperiment {
 
 export interface LabState {
   version: 1
-  prefs: { sidebarCollapsed: boolean; explainOpen: boolean; explainSize: number; guideOpen: boolean; flowOpen: boolean; helpMode: boolean; tour: { id: string; index: number } | null; tourPositions: Record<string, number> }
+  prefs: { sidebarCollapsed: boolean; explainOpen: boolean; explainSize: number; guideOpen: boolean; flowOpen: boolean; helpMode: boolean; tour: { id: string; index: number } | null; tourPositions: Record<string, number>; checkpointPractice: boolean }
   lastRoute: string
   evidence: Record<string, Evidence>
   notes: Note[]
@@ -64,12 +65,14 @@ export interface LabState {
   runs: RunRecord[]
   experiments: SavedExperiment[]
   guide: Record<string, boolean>
+  /** Learning checkpoints: kept apart from the evidence levels, which you record yourself. */
+  checkpoints: Record<string, CheckpointRecord>
 }
 
 function initialState(): LabState {
   return {
     version: 1,
-    prefs: { sidebarCollapsed: false, explainOpen: true, explainSize: 34, guideOpen: true, flowOpen: false, helpMode: false, tour: null, tourPositions: {} },
+    prefs: { sidebarCollapsed: false, explainOpen: true, explainSize: 34, guideOpen: true, flowOpen: false, helpMode: false, tour: null, tourPositions: {}, checkpointPractice: false },
     lastRoute: "playground",
     // Carried over from GLOSSARY.md (2026-10-25): explained with help, recheck independently later.
     evidence: {
@@ -81,6 +84,7 @@ function initialState(): LabState {
     runs: [],
     experiments: [],
     guide: {},
+    checkpoints: {},
   }
 }
 
@@ -113,6 +117,7 @@ function migrate(data: unknown): LabState {
     runs: Array.isArray(d.runs) ? d.runs : [],
     experiments: Array.isArray(d.experiments) ? d.experiments : [],
     guide: { ...(d.guide ?? {}) },
+    checkpoints: d.checkpoints && typeof d.checkpoints === "object" ? { ...d.checkpoints } : {},
   }
 }
 
@@ -211,6 +216,13 @@ export const actions = {
   },
   deleteExperiment(id: string) {
     update((s) => ({ ...s, experiments: s.experiments.filter((e) => e.id !== id) }))
+  },
+  /** Record a checkpoint event: a visit, a skip, a wrong answer, a pass, a viewed solution. */
+  recordCheckpoint(id: string, version: number, question: string, outcome: Outcome | "visited") {
+    update((s) => ({ ...s, checkpoints: { ...s.checkpoints, [id]: recordOutcome(s.checkpoints[id], version, question, outcome, new Date().toISOString()) } }))
+  },
+  resetCheckpoints() {
+    update((s) => ({ ...s, checkpoints: {} }))
   },
   setGuideStep(id: string, done: boolean) {
     update((s) => ({ ...s, guide: { ...s.guide, [id]: done } }))

@@ -4,8 +4,10 @@ import { TooltipProvider } from "@/components/ui/tooltip"
 import { GlossaryProvider } from "@/components/lab/glossary"
 import { HelpProvider } from "@/components/lab/help"
 import { ToolkitTourProvider } from "@/components/lab/toolkit-tour"
+import { CheckpointProvider } from "@/components/lab/checkpoint"
 import { LoadingRows } from "@/components/lab/layout"
 import { Shell } from "@/components/lab/shell"
+import { PixelAlien } from "@/components/lab/pixel-alien"
 import { WorkspaceBoundary } from "@/components/lab/boundary"
 import type { Route } from "@/content/glossary"
 import { useRoute } from "@/lib/hooks"
@@ -36,6 +38,7 @@ export function App() {
       <GlossaryProvider>
       <HelpProvider>
       <ToolkitTourProvider>
+      <CheckpointProvider>
         <Shell>
           <WorkspaceBoundary name={route}>
           <Suspense fallback={<div className="p-6"><LoadingRows rows={6} label="Loading workspace" /></div>}>
@@ -43,6 +46,8 @@ export function App() {
           </Suspense>
           </WorkspaceBoundary>
         </Shell>
+        <PixelAlien />
+      </CheckpointProvider>
       </ToolkitTourProvider>
       </HelpProvider>
       </GlossaryProvider>

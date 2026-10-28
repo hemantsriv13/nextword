@@ -248,6 +248,9 @@ export const CONTROLS: ControlHelp[] = [
   c({ id: "notebook.resolve", label: "Mark resolved", route: "notebook", where: "Notebook, beside a question", does: "Marks a question as answered, or not.", when: "Once you found the answer.", effect: "saves" }),
   c({ id: "notebook.delete", label: "Delete this note", route: "notebook", where: "Notebook, beside a note", does: "Deletes one note from this browser.", when: "You no longer need it.", effect: "deletes" }),
 
+  c({ id: "notebook.checkpoint-practice", label: "Practice mode", route: "notebook", where: "Notebook, Learning checkpoints", does: "Asks every lesson checkpoint again when you press Next, even ones you passed.", when: "To practise a section again.", effect: "setting" }),
+  c({ id: "notebook.checkpoint-reset", label: "Reset checkpoint progress", route: "notebook", where: "Notebook, Learning checkpoints", does: "Removes every checkpoint outcome after you confirm. Notes, evidence and saved runs stay.", when: "To start the checkpoints fresh.", effect: "deletes" }),
+
   // ---- toolkit guide
   c({ id: "toolkit.tours", label: "Toolkit tours", route: "toolkit", where: "Toolkit Guide, Guided tours", region: true, does: "Three optional tours of the Lab, each step pointing at a real part of a page.", when: "You want to be shown around.", effect: "view" }),
 ]

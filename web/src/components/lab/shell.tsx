@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils"
 import { useGlossary } from "./glossary"
 import { useFocusMode } from "./shell-state"
 import { HelpModeSwitch, useHelp } from "./help"
+import { PixelPet } from "./pixel-pet"
 import { CONCEPTS, CONTROLS } from "@/content/help"
 
 type IconType = ComponentType<SVGProps<SVGSVGElement>>
@@ -235,7 +236,7 @@ export function Shell({ children }: { children: ReactNode }) {
     return (
       <div className="min-h-dvh bg-card">
         <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded focus:bg-card focus:px-3 focus:py-2">Skip to content</a>
-        <div className="fixed right-3 top-3 z-40 flex items-center gap-1 rounded-md border border-border bg-card p-0.5"><HelpModeSwitch />{focusButton}</div>
+        <div className="fixed right-3 top-3 z-40 flex items-center gap-1 rounded-md border border-border bg-card p-0.5"><PixelPet size={28} className="mx-1" /><HelpModeSwitch />{focusButton}</div>
         <main id="main" className="mx-auto max-w-[1400px]">{children}</main>
         <SearchPalette open={searchOpen} onOpenChange={setSearchOpen} />
       </div>
@@ -260,6 +261,7 @@ export function Shell({ children }: { children: ReactNode }) {
             <NavItems collapsed={collapsed} />
           </SidebarContent>
           <SidebarFooter className="border-t-0">
+            <div className={cn("flex pb-1", collapsed ? "justify-center" : "px-3")}><PixelPet size={collapsed ? 32 : 44} /></div>
             <SidebarItem
               icon={collapsed ? <SidebarExpandIcon /> : <SidebarCollapseIcon />}
               label="Collapse sidebar"
@@ -281,6 +283,7 @@ export function Shell({ children }: { children: ReactNode }) {
                 <MenuIcon className="size-5" />
               </Button>
               <span className="truncate text-sm font-semibold">{WORKSPACE_BY_ROUTE.get(route)?.short}</span>
+              <PixelPet size={28} className="ml-1 flex-none" />
             </div>
           )}
           {desktop && <div className="flex flex-1 justify-center">{searchButton}</div>}

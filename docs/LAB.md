@@ -71,6 +71,24 @@ works**: the question it answers, a flow diagram, and **Read and watch**.
 - Opening the Bigram journey always loads its built-in example run, also when a tour or a help link
   takes you there; that is the page's own behaviour. Help itself never sends a request.
 
+## Learning checkpoints
+
+- **Where.** In the Bigram journey's Guided lesson, Next on stages 2 to 6 asks one short question
+  (Count pairs, Read the context, Calculate probabilities, Sample a character, Append and repeat). In
+  Read and watch walkthroughs: Neural training (the loss, one update), Attention (the causal mask),
+  Decoding (the order of the stages), Evaluation (validation versus test) and Retrieval (lexical
+  search). Explore all and ordinary navigation never ask.
+- **Questions** (`web/src/lib/checkpoints.ts`) are built from your run's frozen snapshot, or from stated
+  worked-example numbers on simulation pages, and checked automatically (choices, or numbers with a
+  stated rounding; 1/5, 0.2 and 20% are all accepted).
+- **When it isn't right yet** you stay put, with feedback that names what to revisit. *Get a hint* gives
+  up to three hints, one at a time; *Show the solution* is separate and recorded; *Revisit this step*
+  minimises the question and *Return to checkpoint* brings it back. A solved question can be replaced
+  with *Try a new question*; answering the solution you were shown is not counted as a pass.
+- **Outcomes** are kept apart: section visited, checkpoint skipped, passed, passed with hints, reviewed
+  with solution. They are in the Notebook (with practice mode and a reset), and in Export/Import. A
+  passed question is evidence about that question, not mastery; your evidence levels stay separate.
+
 ## How the explanations work
 
 - **Flow diagram.** Closed by default under *How this workspace works*; open it with *Show the flow*.

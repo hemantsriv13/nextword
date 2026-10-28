@@ -81,6 +81,7 @@
     --color-canvas: var(--canvas);
     --color-canvas-edge: var(--canvas-edge);
     --color-action: var(--action);
+    --color-success: var(--success);
     --color-companion: var(--companion);
     --color-companion-edge: var(--companion-edge);
     --color-companion-callout: var(--companion-callout);
@@ -164,6 +165,8 @@
     --action: #1b6c80;
     --action-ink: #ffffff;
     /* The teaching companion: a pale teal sheet beside the canvas (about 1.2:1 against the ground). */
+    /* Success surface for a passed checkpoint: a quiet green tint, never a full-screen effect. */
+    --success: #e3f1e8;
     --companion: #d6eaf0;
     --companion-edge: #a9d0db;
     --companion-callout: #c2dfe8;
@@ -243,6 +246,7 @@
     --canvas-edge: #262626;
     --action: #5fbdd1;
     --action-ink: #0a0a0a;
+    --success: #10241a;
     --companion: #10222a;
     --companion-edge: #24505c;
     --companion-callout: #163a45;
@@ -330,4 +334,46 @@
 @media (prefers-reduced-motion: no-preference) {
   [data-help-spot] { animation: help-spot 1.2s ease-out 2; }
   @keyframes help-spot { 50% { outline-offset: 6px; } }
+}
+
+/* The checkpoint tick draws itself once; with reduced motion it is simply there. */
+@media (prefers-reduced-motion: no-preference) {
+  .checkpoint-tick { stroke-dasharray: 16; stroke-dashoffset: 16; animation: checkpoint-tick 420ms ease-out 120ms forwards; }
+  @keyframes checkpoint-tick { to { stroke-dashoffset: 0; } }
+}
+
+/* The pixel cheer flips between its two frames; with reduced motion it stays on the first. */
+.pixel-cheer-b { visibility: hidden; }
+@media (prefers-reduced-motion: no-preference) {
+  .pixel-cheer-a { animation: pixel-cheer 0.9s steps(1) infinite; }
+  .pixel-cheer-b { animation: pixel-cheer 0.9s steps(1) infinite reverse; }
+  @keyframes pixel-cheer { 0% { visibility: visible; } 50% { visibility: hidden; } }
+}
+
+/* The pixel cat: eyes shut and the tail down are hidden at rest; with motion allowed it blinks
+   every few seconds and swishes its tail. With reduced motion it simply sits, eyes open. */
+.pixel-pet-eyes-shut, .pixel-pet-tail-b { visibility: hidden; }
+@media (prefers-reduced-motion: no-preference) {
+  .pixel-pet-eyes-open { animation: pixel-pet-blink 4.2s steps(1) infinite; }
+  .pixel-pet-eyes-shut { animation: pixel-pet-shut 4.2s steps(1) infinite; }
+  .pixel-pet-tail-a { animation: pixel-pet-tail 1.6s steps(1) infinite; }
+  .pixel-pet-tail-b { animation: pixel-pet-tail 1.6s steps(1) infinite reverse; }
+  @keyframes pixel-pet-blink { 0% { visibility: visible; } 95% { visibility: hidden; } }
+  @keyframes pixel-pet-shut { 0% { visibility: hidden; } 95% { visibility: visible; } }
+  @keyframes pixel-pet-tail { 0% { visibility: visible; } 50% { visibility: hidden; } }
+}
+
+/* The pixel alien drifts in a slow loop around the bottom-right corner and its saucer lights take
+   turns. With reduced motion it stays in place with its lights on. */
+@media (prefers-reduced-motion: no-preference) {
+  .pixel-alien-float { animation: pixel-alien-float 11s ease-in-out infinite; }
+  .pixel-alien-lights-a { animation: pixel-alien-lights 1.2s steps(1) infinite; }
+  .pixel-alien-lights-b { animation: pixel-alien-lights 1.2s steps(1) infinite -0.6s; }
+  @keyframes pixel-alien-float {
+    0%, 100% { transform: translate(0, 0); }
+    25% { transform: translate(-28px, -14px); }
+    50% { transform: translate(-10px, -30px); }
+    75% { transform: translate(-36px, -6px); }
+  }
+  @keyframes pixel-alien-lights { 0% { visibility: visible; } 50% { visibility: hidden; } 100% { visibility: hidden; } }
 }

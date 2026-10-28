@@ -31,6 +31,11 @@ Working notes for building the Lab, so the work can resume if a session ends. Ne
 - Comprehension check flags the workspaces as dense (130–170 words). Accepted for a working tool the
   user asked to be deep; copy was trimmed where it didn't carry meaning.
 
+## Done (2026-10-27): learning checkpoints (not committed, not pushed)
+- [x] `web/src/lib/checkpoints.ts` (11 checkpoints: 5 journey, 6 walkthrough), `components/lab/checkpoint.tsx`
+  (shared dialog, revisit/return, hints, solution, success), store `checkpoints` + practice mode, Notebook panel.
+- [x] Tests: vitest 188 OK; build OK; Chrome: wrong answer, pass, focus, retake, light and dark.
+
 ## Done (2026-10-27): contextual help and Toolkit Guide (not committed, not pushed)
 - [x] Inventory `web/src/content/help.ts` (controls, workspace directory, questions, three tours); help layer
   `components/lab/help.tsx` (hints, Learn this control popover, Help mode markers, goTo/revealers);

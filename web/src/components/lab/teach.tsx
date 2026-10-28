@@ -10,6 +10,7 @@ import { findTerm } from "@/content/glossary"
 import { usePrefersReducedMotion } from "@/lib/hooks"
 import { actions, useLab } from "@/lib/store"
 import { cn } from "@/lib/utils"
+import { CheckpointStatus, useCheckpoints } from "./checkpoint"
 import { Term } from "./glossary"
 import { Source, type SourceKind } from "./source"
 
@@ -45,6 +46,8 @@ export interface TourStep {
   terms?: { id: string; role: ReactNode }[]
   /** For workspaces with tabs: the tab that must be open for this step. */
   tab?: string
+  /** A checkpoint (lib/checkpoints.ts) that closes this step: Next asks it before moving on. */
+  checkpoint?: string
 }
 
 export interface Guide {
@@ -355,6 +358,17 @@ function TourCard({ step, teach, fallback }: { step: TourStep; teach?: PanelTeac
   const { index, level } = t.tour!
   const total = t.guide.tour.length
   const last = index === total - 1
+  const checkpoints = useCheckpoints()
+  useEffect(() => { if (step.checkpoint) checkpoints?.visit(step.checkpoint) }, [step.checkpoint, checkpoints])
+  const next = () => {
+    if (step.checkpoint && checkpoints) {
+      checkpoints.beforeNext(step.checkpoint, {}, {
+        onContinue: () => t.goTo(index + 1),
+        nextLabel: t.guide.tour[index + 1].title,
+        revisit: () => { const el = document.querySelector<HTMLElement>(`[data-teach="${CSS.escape(step.target)}"]`); el?.scrollIntoView({ block: "start" }) },
+      })
+    } else t.goTo(index + 1)
+  }
 
   useEffect(() => {
     // A new step is a new place on the page: bring it into view and move focus to its heading.
@@ -403,12 +417,13 @@ function TourCard({ step, teach, fallback }: { step: TourStep; teach?: PanelTeac
         {last ? (
           <Button size="sm" onClick={t.exitTour}>Finish the walkthrough</Button>
         ) : (
-          <Button size="sm" onClick={() => t.goTo(index + 1)}>Next: {t.guide.tour[index + 1].title} <NavArrowRightIcon className="size-4" /></Button>
+          <Button size="sm" onClick={next}>Next: {t.guide.tour[index + 1].title} <NavArrowRightIcon className="size-4" /></Button>
         )}
         <Button variant="ghost" size="sm" onClick={t.replay}><RefreshDoubleIcon className="size-4" /> Replay</Button>
         <Button variant="ghost" size="sm" onClick={t.exitTour}><XmarkIcon className="size-4" /> Exit</Button>
         <span className="text-label text-muted-foreground">Esc also exits. Your settings and results stay as they are.</span>
       </div>
+      {step.checkpoint && <CheckpointStatus id={step.checkpoint} ctx={{}} />}
     </div>
   )
 }
