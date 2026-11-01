@@ -3,7 +3,7 @@
 // "example" = a worked example with stated values, "discussed" = explained only.
 
 export type Route =
-  | "home" | "learn" | "journey" | "playground" | "data" | "counts" | "neural" | "mlp" | "attention" | "decoding"
+  | "home" | "paths" | "how" | "learn" | "journey" | "playground" | "data" | "counts" | "neural" | "mlp" | "attention" | "decoding"
   | "evaluation" | "adapt" | "serving" | "glossary" | "notebook" | "toolkit"
 
 export type StageId = "text" | "tokens" | "prediction" | "training" | "attention" | "generation" | "evaluation" | "serving" | "adaptation"

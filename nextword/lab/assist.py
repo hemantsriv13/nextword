@@ -478,7 +478,11 @@ def resolve_model(cfg: AssistConfig, timeout: float = 2.0) -> str:
 def status(cfg: AssistConfig, timeout: float = 2.0) -> dict:
     """Ask Colibri which models it serves. This lists models; it does not generate anything."""
     out = {"url": cfg.url, "model": cfg.model, "available": False, "modelServed": False, "served": [], "contextTokens": None,
-           "known": [{"id": k, **v} for k, v in MODELS.items()]}
+           "known": [{"id": k, **v} for k, v in MODELS.items()],
+           # NextWord's own limits, the same whether or not the model runs (shown on How NextWord Works).
+           "limits": {"contextTokens": CONTEXT_TOKENS, "maxTurns": MAX_TURNS, "maxTokens": MAX_TOKENS,
+                      "maxQuestionChars": MAX_QUESTION_CHARS, "temperature": TEMPERATURE,
+                      "readTimeoutSeconds": READ_TIMEOUT_S, "totalTimeoutSeconds": TOTAL_TIMEOUT_S}}
     try:
         with urllib.request.urlopen(cfg.url + "/models", timeout=timeout) as res:
             data = json.loads(res.read().decode("utf-8"))

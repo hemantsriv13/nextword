@@ -21,6 +21,13 @@ from nextword.lab import assist, lessons, mlp_service, service
 from nextword.lab.service import LabError
 
 WEB_DIST = service.ROOT / "web" / "dist"
+# The project documents the app links to, served read-only at /docs/<name> (nothing else in the folder is).
+PROJECT_DOCS = {name: service.ROOT / rel for name, rel in {
+    "README.md": "README.md", "ROADMAP.md": "ROADMAP.md", "LAB.md": "docs/LAB.md", "LESSONS.md": "docs/LESSONS.md",
+    "MLP.md": "docs/MLP.md", "DATASETS.md": "docs/DATASETS.md", "LOCAL_AI.md": "docs/LOCAL_AI.md",
+    "COMPARE.md": "evals/local_ai/COMPARE.md", "ROUND2.md": "evals/local_ai/ROUND2.md", "TUTOR.md": "evals/local_ai/TUTOR.md",
+    "FROZEN.md": "evals/local_ai/FROZEN.md",
+}.items()}
 MAX_BODY_BYTES = 8 * 1024 * 1024
 MAX_ASSIST_BODY_BYTES = 16 * 1024
 
@@ -85,6 +92,9 @@ def r_health(_):
 
 
 def r_engines(_):
+    """The prediction engines and their real state on this computer, so pages never hard-code it. An engine
+    that can't run says why and what to do. (The explaining model is separate: /api/assist/status.)"""
+    mlp = _mlps().status()
     return [{
         "id": "char-bigram",
         "name": "Character bigram",
@@ -92,7 +102,31 @@ def r_engines(_):
         "status": "available",
         "version": service.engine_version(),
         "file": "nextword/bigram.py",
+        "route": "journey",
         "decoding": ["sample"],
+    }, {
+        "id": "char-mlp",
+        "name": "Character MLP",
+        "source": "model",
+        "status": "available" if mlp["available"] else "unavailable",
+        "version": f"PyTorch {mlp['torch']}" if mlp["available"] else None,
+        "file": "nextword/mlp.py",
+        "route": "mlp",
+        "savedRuns": len(mlp["saved"]),
+        "reason": None if mlp["available"] else f"PyTorch could not be imported ({mlp['error']}).",
+        "nextAction": None if mlp["available"] else
+            r".venv\Scripts\python -m pip install --index-url https://download.pytorch.org/whl/cpu -r requirements-mlp.txt, then restart the Lab",
+        "decoding": ["sample"],
+    }, {
+        "id": "tiny-transformer",
+        "name": "Tiny transformer",
+        "source": "model",
+        "status": "planned",
+        "version": None,
+        "file": None,
+        "route": None,
+        "reason": "Not built. The Attention page simulates its core step in the browser.",
+        "decoding": [],
     }]
 
 
@@ -257,6 +291,9 @@ class LabHandler(BaseHTTPRequestHandler):
         if parsed.path.startswith("/api/"):
             self._api(GET_ROUTES, lambda: {k: v[-1] for k, v in parse_qs(parsed.query).items()})
             return
+        if parsed.path.startswith("/docs/"):
+            self._doc(parsed.path[len("/docs/"):])
+            return
         self._static(parsed.path)
 
     def do_POST(self):  # noqa: N802
@@ -317,6 +354,19 @@ class LabHandler(BaseHTTPRequestHandler):
                 send({"type": "error", **payload}) if streaming else self._send_json(500, {"error": payload}, started)
             except ConnectionError:
                 pass
+
+    def _doc(self, name: str) -> None:
+        """One of the project's documents, read-only and as plain text, so the app can link to them offline.
+        Only the files named in PROJECT_DOCS are served."""
+        source = PROJECT_DOCS.get(name)
+        data = (source.read_bytes() if source and source.is_file()
+                else f"No document called {name!r}. Available: {', '.join(sorted(PROJECT_DOCS))}".encode("utf-8"))
+        self.send_response(200 if source and source.is_file() else 404)
+        self.send_header("Content-Type", "text/plain; charset=utf-8")
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Cache-Control", "no-cache")
+        self.end_headers()
+        self.wfile.write(data)
 
     def _static(self, path: str) -> None:
         if not WEB_DIST.exists():

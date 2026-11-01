@@ -1,7 +1,8 @@
 # Roadmap
 
 **Current position: Stage 1, increment 1.1 done and understood with assistance. The NextWord Lab
-(learning interface) is built. Next: your independent recheck of 1.1 in the Lab, then 1.2.**
+(learning interface), the Beginner lessons and a Stage 2 character MLP are built. Next: your independent
+recheck of 1.1 in the Lab, then 1.2; and your own walkthrough of the MLP.**
 
 ## Stage 1: Count-based autocomplete
 | # | Increment | Done when | Status |
@@ -19,7 +20,11 @@ not mark any increment as understood; your evidence is recorded separately, by y
 
 ## Stage 2: Small neural LM (fixed context, embeddings, MLP; PyTorch)
 Done when: readable training loop, checkpoints, train/val curves, a controlled overfitting demo.
-The Lab's Neural page simulates this in the browser and is ready to show your real training logs.
+**Implemented (2026-11-01, by the assistant at your request):** `nextword/mlp.py` and the Lab's MLP journey: a
+character MLP trained with PyTorch on the CPU, saved checkpoints, train/validation curves (overfitting shows on
+the small texts), recorded training replays, and a bigram comparison on the same targets. See
+[docs/MLP.md](docs/MLP.md). Your own walkthrough and independent explanation of it are not recorded yet. The
+Lab's Neural page stays a browser simulation of the same computation.
 
 ## Stage 3: Tiny causal transformer
 Done when: attention worked by hand first, causal mask verified by test, trains locally.

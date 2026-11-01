@@ -115,6 +115,10 @@ npm --prefix web run build
 Opens **http://127.0.0.1:8765**. See [docs/LAB.md](docs/LAB.md) for the feature map, what is your
 real engine versus a simulation, and a 30-minute guided first session.
 
+It opens on **Home**: your next lesson (from your saved progress only), the learning paths, every tool,
+and what is running on this computer. **Learning paths** orders the lessons into twelve steps; **How
+NextWord Works** explains the parts, the data, the tutor, hardware, evaluations and the roadmap.
+
 ### Beginner lessons
 
 Start here if the words are new: thirteen short lessons from characters, pairs and counts to embeddings,

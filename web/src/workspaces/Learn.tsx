@@ -5,10 +5,11 @@
 // - The written text (content/lessons.json) works without the local AI; the tutor only rewords.
 // - The tutor is off while a check is open, and isn't offered on the check step at all.
 import { useEffect, useState } from "react"
-import { CheckIcon, EyeIcon, InfoCircleIcon, LightBulbIcon, NavArrowRightIcon, RefreshDoubleIcon, UndoIcon } from "@/components/icons"
+import { EyeIcon, InfoCircleIcon, LightBulbIcon, NavArrowRightIcon, RefreshDoubleIcon, UndoIcon } from "@/components/icons"
 import { Button } from "@/components/ui/button"
 import { AssistProvider, useAssist, type AssistTarget } from "@/components/lab/ask-ai"
 import { ExplanationPanel } from "@/components/lab/explanation"
+import { StatusBadge } from "@/components/lab/lesson-status"
 import { IntervalStrip, ProbBars, Tok } from "@/components/lab/charts"
 import { Look, TrainingReplay, UpdateReplay } from "@/components/lab/replay"
 import { CheckpointStatus, useCheckpoints } from "@/components/lab/checkpoint"
@@ -16,9 +17,9 @@ import { Term } from "@/components/lab/glossary"
 import { ErrorNote, LoadingRows, Workspace } from "@/components/lab/layout"
 import { Source } from "@/components/lab/source"
 import { lessonKey, type LessonRef } from "@/lib/assist"
-import { CHECKPOINT_BY_ID, statusOf } from "@/lib/checkpoints"
-import { hrefFor } from "@/lib/hooks"
-import { checkpointId, LESSON_BY_ID, LESSONS, lessonResult, lessonStatus, PARTS, resumePlace, STATUS_TONE, STEPS, termsSoFar, type LessonResult, type LessonStatus, type LessonText, type Place } from "@/lib/lessons"
+import { CHECKPOINT_BY_ID, statusOf, type CheckpointRecord } from "@/lib/checkpoints"
+import { hrefFor, useRoute } from "@/lib/hooks"
+import { checkpointId, LESSON_BY_ID, LESSONS, lessonResult, lessonStatus, PARTS, resumePlace, STEPS, termsSoFar, type LessonResult, type LessonRecord, type LessonText, type Place } from "@/lib/lessons"
 import { actions, useLab } from "@/lib/store"
 import type { Route } from "@/content/glossary"
 import { cn } from "@/lib/utils"
@@ -27,14 +28,29 @@ const n4 = (x: number) => x.toFixed(4)
 const q = (c: string) => `‘${c}’`
 
 export default function Learn() {
-  return <AssistProvider><LearnPage /></AssistProvider>
+  // #/learn?lesson=pairs (from Home and Learning paths) opens that lesson; a new link remounts the page.
+  const wanted = useRoute().params.get("lesson")
+  return <AssistProvider><LearnPage key={wanted ?? ""} wanted={wanted && LESSON_BY_ID.has(wanted) ? wanted : null} /></AssistProvider>
 }
 
-function LearnPage() {
+/** Where a linked lesson opens: where you left it if it is in progress, else at its start. */
+function placeFor(id: string, place: Place | null, rec: LessonRecord | undefined, checks: Record<string, CheckpointRecord>): Place {
+  if (place?.lesson === id) return place
+  const inProgress = lessonStatus(rec, checks[checkpointId(id)]) === "In progress"
+  return { lesson: id, step: inProgress ? Math.min(rec?.reached ?? 0, STEPS.length - 1) : 0, example: 0 }
+}
+
+function LearnPage({ wanted }: { wanted: string | null }) {
   const place = useLab((s) => s.lessons.place)
   const records = useLab((s) => s.lessons.records)
   const checks = useLab((s) => s.checkpoints)
-  const [open, setOpen] = useState<Place | null>(place)
+  const [open, setOpen] = useState<Place | null>(() => (wanted ? placeFor(wanted, place, records[wanted], checks) : place))
+  // A linked lesson becomes your saved place, and the link is cleared so a reload returns to where you are.
+  useEffect(() => {
+    if (!wanted || !open) return
+    actions.setLessonPlace(open)
+    history.replaceState(null, "", "#/learn")
+  }, [wanted]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!open) return <Overview records={records} checks={checks} onOpen={(p) => { actions.setLessonPlace(p); setOpen(p) }} resume={resumePlace(place, records, checks)} />
   return <LessonView place={open} onPlace={(p) => { actions.setLessonPlace(p); setOpen(p) }} onOverview={() => setOpen(null)} />
@@ -42,16 +58,6 @@ function LearnPage() {
 
 // ----------------------------------------------------------------------------- overview
 
-function StatusBadge({ status }: { status: LessonStatus }) {
-  const tone = STATUS_TONE[status]
-  return (
-    <span data-testid="lesson-status" className={cn("inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium leading-5",
-      tone === "done" && "bg-success text-positive", tone === "help" && "bg-data-soft text-foreground", tone === "skip" && "bg-src-sim text-src-sim-ink",
-      tone === "open" && "bg-raised text-foreground ring-1 ring-inset ring-border", tone === "none" && "text-muted-foreground")}>
-      {tone === "done" && <CheckIcon className="size-3.5" aria-hidden="true" />}{status}
-    </span>
-  )
-}
 
 function Overview({ records, checks, onOpen, resume }: { records: Record<string, import("@/lib/lessons").LessonRecord>; checks: Record<string, import("@/lib/checkpoints").CheckpointRecord>; onOpen: (p: Place) => void; resume: Place }) {
   const [confirmReset, setConfirmReset] = useState(false)

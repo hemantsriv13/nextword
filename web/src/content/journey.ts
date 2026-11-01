@@ -35,7 +35,9 @@ export interface Workspace {
 }
 
 export const WORKSPACES: Workspace[] = [
-  { route: "home", title: "Home", short: "Home", description: "Your learning map and next step", group: "start" },
+  { route: "home", title: "Home", short: "Home", description: "What NextWord is, where to start, and your next step", group: "start" },
+  { route: "paths", title: "Learning paths", short: "Learning paths", description: "The order to learn in, with your progress and an optional session plan", group: "start" },
+  { route: "how", title: "How NextWord Works", short: "How it works", description: "The models, the data, the tutor and the hardware, explained", group: "keep" },
   { route: "learn", title: "Beginner lessons", short: "Beginner lessons", description: "Start here: one idea at a time, from characters to weight updates", group: "start" },
   { route: "journey", title: "Bigram journey", short: "Bigram journey", description: "One example from text to generated characters, step by step", group: "start" },
   { route: "playground", title: "Writing playground", short: "Playground", description: "Write with your bigram engine and trace each step", group: "start" },

@@ -27,6 +27,18 @@ For frontend development, run the backend as above and `npm --prefix web run dev
 
 ## Where to begin
 
+The Lab opens on **Home** (direct links such as `#/mlp` still open their page). Home shows one next step,
+worked out only from your saved lesson progress: lesson 1 if you are new, otherwise the lesson you were in
+or the first one you haven't started. It also lists your lessons by status (on your own, with help, with
+the solution, check skipped, skipped, in progress), the learning paths, every tool with when to use it, and
+what is running on this computer. Opening Home never asks the AI to write: it only lists which model
+Colibri serves. **Learning paths** orders the lessons and tools into twelve foundation steps (what to
+understand first, what you'll use, what you'll be able to explain, your statuses, start or resume) plus
+deeper paths, with an optional one-sitting plan; you can start anywhere. **How NextWord Works** is the
+technical reference: the parts, the two workflows (training changes the MLP's weights; asking the tutor
+changes nothing), the MLP's live defaults, the data, the tutor's limits, hardware, evaluations and the
+roadmap. Project documents open from the Lab at `/docs/<name>.md` (a fixed list, read-only).
+
 If the words are new, open **Beginner lessons** (second item in the sidebar): thirteen short lessons, from
 characters to weight updates, each with a prediction, the real result, the idea's name and a check. See
 [LESSONS.md](LESSONS.md). Then **Bigram journey** follows one short example through your engine and needs
@@ -148,7 +160,9 @@ works**: the question it answers, a flow diagram, and **Read and watch**.
 
 | Workspace | Your model (Python engine) | Interactive simulation (browser) | Worked example |
 |---|---|---|---|
-| Home | Engine version | | |
+| Home | Next step from saved lessons, lesson statuses, learning paths, tools, what is running (backend, bigram, PyTorch MLP, tutor) | | |
+| Learning paths | Twelve foundation steps over the Beginner lessons and tools, your statuses, start or resume links, deeper paths, an optional session plan | | |
+| How NextWord Works | Live MLP defaults and limits, datasets on this computer, tutor limits and status | | Dated evaluation summaries and one-off laptop measurements, labelled as such |
 | Bigram journey | One snapshot from `/api/journey`: the example text (or one of yours), its count table and one traced run. Pairs highlighted in the text, counts, normalization, the prompt's last character, the draw and its interval, append-and-repeat with trace-back for any generated character. **Ask local AI** (optional): a pretrained model on this computer words an explanation of the step from facts the backend recomputes; labelled "AI-generated explanation", see [LOCAL_AI.md](LOCAL_AI.md) | | |
 | Writing playground | Suggestions, seeded generation, the step trace (context, distribution, draw, chosen character), accept and regenerate, A/B comparison, request timings | | |
 | Data and tokens | Corpus list, upload and paste (saved to `data/lab/`), preview, statistics, character frequency | Character tokens and IDs (same rule as `tokenize()`), word splitter, BPE merges, sliding windows, training pairs, split and leakage demo | |
@@ -241,8 +255,6 @@ their file name.
 Exit any walkthrough with *Exit* or Esc whenever you like. Nothing is marked as learned.
 
 ## First guided session (about 30 minutes)
-
-Also on the Home screen, where you can tick steps off.
 
 1. **Playground, 4 min.** Press Step ten times on “The rain” with seed 1. For each step, find where the
    draw u lands in the interval strip.

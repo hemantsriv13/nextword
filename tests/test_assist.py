@@ -315,6 +315,23 @@ class RouteTests(AssistTestCase):
         conn.close()
         return res.status, lines
 
+    def get(self, path):
+        conn = http.client.HTTPConnection("127.0.0.1", self.lab.server_address[1], timeout=10)
+        conn.request("GET", path)
+        res = conn.getresponse()
+        body = res.read().decode("utf-8")
+        conn.close()
+        return res.status, res.getheader("Content-Type"), body
+
+    def test_project_docs_are_served_read_only_from_an_allow_list(self):
+        status, kind, body = self.get("/docs/LESSONS.md")
+        self.assertEqual((status, kind), (200, "text/plain; charset=utf-8"))
+        self.assertIn("# Beginner lessons", body)
+        for path in ("/docs/../nextword/lab/server.py", "/docs/server.py", "/docs/%2e%2e/README.md"):
+            status, _, body = self.get(path)
+            self.assertEqual(status, 404, path)
+            self.assertNotIn("import ", body)
+
     def test_a_whole_answer_streams_and_is_remembered(self):
         status, events = self.events({"action": "explain", "run": RUN, "focus": {"stage": "probs", "context": "h"}})
         self.assertEqual(status, 200)

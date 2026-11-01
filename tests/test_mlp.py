@@ -177,5 +177,32 @@ class ExplanationFactTests(MLPTestCase):
         self.assertEqual(conv["model"], "qwen3-4b-instruct-2507-q4km")
 
 
+class EngineStatusTests(MLPTestCase):
+    """/api/engines reports the MLP's real state (it needs PyTorch, not the explaining model)."""
+
+    def engines(self):
+        from nextword.lab import server
+        old = server.mlps
+        server.mlps = self.svc
+        self.addCleanup(lambda: setattr(server, "mlps", old))
+        return {e["id"]: e for e in server.r_engines(None)}
+
+    def test_the_mlp_is_available_when_pytorch_imports(self):
+        mlp_engine = self.engines()["char-mlp"]
+        self.assertEqual(mlp_engine["status"], "available")
+        self.assertTrue(mlp_engine["version"].startswith("PyTorch "))
+        self.assertEqual((mlp_engine["route"], mlp_engine["reason"]), ("mlp", None))
+
+    def test_without_pytorch_it_says_why_and_what_to_do(self):
+        saved = (mlp_service.torch, mlp_service.TORCH_ERROR)
+        mlp_service.torch, mlp_service.TORCH_ERROR = None, "No module named 'torch'"
+        self.addCleanup(lambda: setattr(mlp_service, "torch", saved[0]) or setattr(mlp_service, "TORCH_ERROR", saved[1]))
+        mlp_engine = self.engines()["char-mlp"]
+        self.assertEqual(mlp_engine["status"], "unavailable")
+        self.assertIn("No module named 'torch'", mlp_engine["reason"])
+        self.assertIn("requirements-mlp.txt", mlp_engine["nextAction"])
+        self.assertEqual(self.engines()["tiny-transformer"]["status"], "planned")
+
+
 if __name__ == "__main__":
     unittest.main()

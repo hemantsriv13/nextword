@@ -1,7 +1,7 @@
 import { useEffect, useState, type ComponentType, type ReactNode, type SVGProps } from "react"
 import {
   BookIcon, CollapseIcon, DatabaseIcon, DiceThreeIcon, EditPencilIcon, ExpandIcon, EyeIcon, GitForkIcon, GraphUpIcon,
-  HalfMoonIcon, HomeIcon, MapIcon, OpenBookIcon, PathArrowIcon, JournalIcon, MenuIcon, NetworkIcon, SearchIcon, ServerIcon, SidebarCollapseIcon, SidebarExpandIcon, SunLightIcon, TableIcon, WarningTriangleIcon,
+  CpuIcon, HalfMoonIcon, HomeIcon, MapIcon, OpenBookIcon, PathArrowIcon, JournalIcon, MenuIcon, NetworkIcon, SearchIcon, ServerIcon, SidebarCollapseIcon, SidebarExpandIcon, SunLightIcon, TableIcon, WarningTriangleIcon,
 } from "@/components/icons"
 import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
@@ -24,16 +24,16 @@ import { CONCEPTS, CONTROLS } from "@/content/help"
 type IconType = ComponentType<SVGProps<SVGSVGElement>>
 
 const ICONS: Record<Route, IconType> = {
-  home: HomeIcon, learn: OpenBookIcon, journey: PathArrowIcon, playground: EditPencilIcon, data: DatabaseIcon, counts: TableIcon, neural: NetworkIcon, mlp: NetworkIcon, attention: EyeIcon,
+  home: HomeIcon, paths: PathArrowIcon, how: CpuIcon, learn: OpenBookIcon, journey: PathArrowIcon, playground: EditPencilIcon, data: DatabaseIcon, counts: TableIcon, neural: NetworkIcon, mlp: NetworkIcon, attention: EyeIcon,
   decoding: DiceThreeIcon, evaluation: GraphUpIcon, serving: ServerIcon, adapt: GitForkIcon, glossary: BookIcon, notebook: JournalIcon, toolkit: MapIcon,
 }
 
 const GROUPS: { id: string; label: string; routes: Route[] }[] = [
-  { id: "write", label: "Write", routes: ["home", "learn", "journey", "playground"] },
+  { id: "write", label: "Write", routes: ["home", "paths", "learn", "journey", "playground"] },
   { id: "engine", label: "Text and counts", routes: ["data", "counts"] },
   { id: "neural", label: "Neural models", routes: ["mlp", "neural", "attention", "decoding"] },
   { id: "measure", label: "Measure and apply", routes: ["evaluation", "serving", "adapt"] },
-  { id: "keep", label: "Reference", routes: ["toolkit", "glossary", "notebook"] },
+  { id: "keep", label: "Reference", routes: ["how", "toolkit", "glossary", "notebook"] },
 ]
 
 /** The product mark: a typed letter followed by its suggested next character. */

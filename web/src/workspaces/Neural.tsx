@@ -8,6 +8,7 @@ import { EvidenceRecorder } from "@/components/lab/evidence"
 import { Term } from "@/components/lab/glossary"
 import { GuidedCycle } from "@/components/lab/guide"
 import { EmptyNote, ErrorNote, Explain, ExplainSection, Note, NumberField, Panel, Segmented, SliderField, Workspace } from "@/components/lab/layout"
+import { engineOf, useSystemStatus } from "@/lib/system"
 import { Source } from "@/components/lab/source"
 import { MathHelp, TermHelp } from "@/components/lab/term-help"
 import { Symbols, Teach, TeachSpot, WorkspaceGuide, type FlowNode, type Guide } from "@/components/lab/teach"
@@ -24,7 +25,7 @@ const node = (id: string, label: string, kind: FlowNode["kind"], target: string,
 
 const GUIDE: Guide = {
   question: "How does a neural network turn context IDs into a prediction, and how does one training step change it?",
-  scope: "Everything on this page is an interactive simulation in your browser, not your Python engine. It shows the computation a Stage 2 model will do, on a five-character vocabulary small enough to print every number. Your bigram engine does not use any of it.",
+  scope: "Everything on this page is an interactive simulation in your browser, not your Python engine. It shows the same computation as your real character MLP (trained in PyTorch in the MLP journey), on a five-character vocabulary small enough to print every number. Your bigram engine does not use any of it.",
   sources: ["simulation"],
   nodes: [
     node("ids", "Context IDs", "input", "onestep", "2 IDs", { goesIn: "Two context tokens, picked in the panel, as their ID numbers.", happens: "Nothing yet; IDs are only labels.", why: "An ID says which row of the embedding table to use. It is not an amount.", comesOut: "Two whole numbers between 0 and 4.", next: "Each ID selects one row of E." }),
@@ -66,11 +67,11 @@ export default function Neural() {
       explain={<NeuralExplain />}
     >
       <WorkspaceGuide />
-      <Note>Stage 2 of your roadmap builds this model in PyTorch. Until then, everything on this page is an interactive simulation, and its curves are not results from a model you trained.</Note>
+      <Note>Everything on this page is an interactive simulation in your browser, so you can watch each number change. Your real, trained network is the character MLP in PyTorch: train it and inspect it in the MLP journey.</Note>
       <ScalarDescent />
       <OneStep />
       <TrainingRun />
-      <PythonAdapter />
+      <RealMlp />
     </Workspace>
     </Teach>
   )
@@ -530,16 +531,28 @@ function textComparison(a: RunResult | null, b: RunResult | null, running: boole
   return { answer: Math.abs(small - large) < 0.05 ? "same" : small < large ? "small" : "large" }
 }
 
-// ----------------------------------------------------------------------------- future engine adapter
+// ----------------------------------------------------------------------------- the real engine
 
-function PythonAdapter() {
+/** Where the real, trained MLP is: its state comes from the backend, never from this page. */
+function RealMlp() {
+  const status = useSystemStatus()
+  const mlp = engineOf(status, "char-mlp")
   return (
-    <Panel id="adapter" title="Your Python neural engine" source={<Source kind="model" detail="not built yet" />}>
-      <p className="text-sm">When you build the Stage 2 PyTorch model, its training log will appear here next to the simulation, in the same chart. The Lab expects the backend to answer <code className="tok rounded bg-secondary px-1">GET /api/neural/runs</code> with a list of runs:</p>
-      <pre className="tok mt-3 overflow-x-auto rounded-md bg-raised p-3 text-[12.5px] leading-relaxed">{`[{ "engine": "char-mlp", "modelVersion": "char-mlp@…",
-   "settings": { "context": 3, "embed": 8, "hidden": 64, "lr": 0.1 },
-   "curve": [{ "step": 0, "train": 3.3, "val": 3.3 }, …] }]`}</pre>
-      <p className="mt-3 text-label text-muted-foreground">The curve shape is the same CurvePoint type the simulation uses (web/src/sim/neural.ts), so nothing in this page needs rebuilding.</p>
+    <Panel id="real-mlp" title="Your real neural network" source={<Source kind="model" detail={mlp?.version ?? undefined} />}>
+      {status.engines.state === "checking" && <p className="text-sm text-muted-foreground" role="status">Asking the backend about the MLP…</p>}
+      {status.engines.state === "failed" && <p className="text-sm">The Python backend isn't answering, so the MLP can't be checked. Start it with <code className="tok rounded bg-secondary px-1">.venv\Scripts\python -m nextword.lab</code>.</p>}
+      {mlp?.status === "available" && (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <p className="measure text-sm">The same kind of model, built for real: a character MLP trained with PyTorch on your computer's processor, with saved runs, recorded training and a bigram comparison. {mlp.savedRuns ? `${mlp.savedRuns} saved run${mlp.savedRuns === 1 ? "" : "s"}.` : "No saved runs yet."}</p>
+          <Button asChild variant="outline" className="bg-card"><a href="#/mlp">Open the MLP journey</a></Button>
+        </div>
+      )}
+      {mlp?.status === "unavailable" && (
+        <div className="flex flex-col gap-1 text-sm">
+          <p><span className="font-medium">The MLP can't run here yet.</span> {mlp.reason}</p>
+          {mlp.nextAction && <p>Next: <code className="tok rounded bg-secondary px-1">{mlp.nextAction}</code></p>}
+        </div>
+      )}
     </Panel>
   )
 }

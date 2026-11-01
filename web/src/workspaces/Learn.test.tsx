@@ -164,4 +164,13 @@ describe("Beginner lessons", () => {
     expect(within(screen.getByTestId("lesson-row-characters")).getByTestId("lesson-status").textContent).toBe("Check skipped")
     expect(within(screen.getByTestId("lesson-row-pairs")).getByTestId("lesson-status").textContent).toBe("Skipped")
   })
+
+  it("opens a linked lesson (from Home or Learning paths), saves it as your place and clears the link", async () => {
+    window.location.hash = "#/learn?lesson=pairs"
+    await mount()
+    await screen.findByTestId("lesson-example")
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("2. Pairs")
+    expect(getState().lessons.place).toEqual({ lesson: "pairs", step: 0, example: 0 })
+    expect(window.location.hash).toBe("#/learn")
+  })
 })

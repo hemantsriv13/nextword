@@ -22,12 +22,6 @@ import { charTokens, visible } from "@/sim/tokenize"
 import { InfoTip } from "@/components/lab/info-tip"
 import { TermHelp } from "@/components/lab/term-help"
 
-const ENGINES = [
-  { id: "char-bigram", label: "Character bigram", note: "Your model", available: true },
-  { id: "mlp", label: "Neural MLP", note: "Stage 2, not built yet", available: false },
-  { id: "transformer", label: "Tiny transformer", note: "Stage 3, not built yet", available: false },
-]
-
 const newSeed = () => Math.floor(Math.random() * 10000)
 
 const GUIDE: Guide = {
@@ -225,16 +219,9 @@ export default function Playground() {
         <div className="mt-5 grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2 2xl:grid-cols-[minmax(11rem,1.2fr)_minmax(11rem,1.2fr)_minmax(10rem,1fr)_auto]">
           <div className="flex flex-col gap-2">
             <span className="flex items-center gap-0.5"><span id="engine-label" className="text-sm font-medium">Engine</span><InfoTip id="playground.engine" /></span>
-            <Select value="char-bigram" onValueChange={() => {}} items={ENGINES.map((e) => ({ value: e.id, label: e.label }))}>
-              <SelectTrigger aria-labelledby="engine-label" data-help-id="playground.engine"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {ENGINES.map((e) => (
-                  <SelectItem key={e.id} value={e.id} disabled={!e.available}>
-                    {e.label} <span className="text-muted-foreground">({e.note})</span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* The playground writes with the bigram only. The MLP writes in its own journey; a transformer is planned. */}
+            <p aria-labelledby="engine-label" data-help-id="playground.engine" className="flex min-h-9 items-center rounded-md border border-input bg-card px-3 text-sm">Character bigram <span className="ml-1 text-muted-foreground">(your engine)</span></p>
+            <p className="text-label text-muted-foreground">The character MLP writes in the <a className="underline underline-offset-2" href="#/mlp">MLP journey</a>, at its Generation step.</p>
           </div>
           <div className="flex flex-col gap-2">
             <span className="flex items-center gap-0.5"><span id="corpus-label" className="text-sm font-medium">Training text</span><InfoTip id="playground.corpus" /></span>

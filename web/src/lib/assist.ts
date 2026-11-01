@@ -45,6 +45,8 @@ export interface AssistStatus {
   served: string[]
   contextTokens: number | null
   message?: string
+  /** NextWord's own limits for tutor conversations (the same whether or not the model runs). */
+  limits?: { contextTokens: number; maxTurns: number; maxTokens: Record<string, number>; maxQuestionChars: number; temperature: number; readTimeoutSeconds: number; totalTimeoutSeconds: number }
 }
 
 export interface AssistTimings {

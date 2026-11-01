@@ -174,3 +174,22 @@ Working notes for building the Lab, so the work can resume if a session ends. Ne
    `buildDataset` windows by code point, Data studio counts and preview, Counts guard.
 6. [x] Checks: Python 27 OK; vitest 82 OK; `npm run build` OK; browser checks on the real backend at
    one desktop width (1677 px; window resizing had no effect, so 390/1440/1728 were not measured).
+
+## Done (2026-11-02): Home, Learning paths, How NextWord Works (local, not committed)
+1. [x] "Neural MLP not yet active": stale copy written before the MLP existed (Playground engine select,
+   Neural page adapter card and note, old Home engine table, help text, ROADMAP). Not a flag, build or
+   dependency problem. `/api/engines` now reports the MLP from PyTorch's real status, with the reason and
+   install command when unavailable; the tiny transformer is reported as planned.
+2. [x] Home rewritten: next step and "Continue learning" from saved records only, status counts (no
+   percentages or times), learning paths, tools directory, system status (lists models, never generates),
+   links to How NextWord Works, the glossary and `/docs/README.md`.
+3. [x] Learning paths (`web/src/content/paths.ts`, `web/src/lib/paths.ts`): 12 foundation steps over the
+   13 lessons, prerequisite guidance without locks, optional session plan, deeper paths.
+4. [x] How NextWord Works: sections A to H plus roadmap, on-page contents, "More detail" disclosures,
+   text alternatives for diagrams, live defaults and limits from the backend.
+5. [x] `/docs/<name>` serves an allow-list of project documents as plain text.
+6. [x] Lesson deep link `#/learn?lesson=<id>` (sets your place, then clears the link).
+7. [x] Checks: Python 106 OK; vitest 262 OK; build OK; spacing measured at 390/1440/1728 (Home 85,
+   moderate only, then fixed; Paths and How 100); every link on the three pages resolves; no AI
+   generation requests on opening them; Colibri stopped during checks.
+
