@@ -176,7 +176,7 @@ class GenerationTests(unittest.TestCase):
         self.assertEqual(self.store.text(second["id"]), "second text")
         self.assertEqual(self.store.text(third["id"]), "third text, same name as the first")
         self.assertEqual(first["fingerprint"], service._fingerprint("first text, kept"))
-        self.assertEqual(len(self.store.list()), 5)  # the sample, the example and three uploads
+        self.assertEqual(len([c for c in self.store.list() if c["origin"] != "dataset"]), 5)  # the sample, the example and three uploads
 
     def test_repeated_identical_uploads_stay_separate(self):
         a = self.store.add("Same", "identical text")

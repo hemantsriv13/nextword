@@ -1,0 +1,21 @@
+T01 r1 PASS 
+T02 r1 PASS 
+T03 r1 PASS 
+T04 r1 PASS 
+T05 r1 PASS 
+T06 r1 PASS 
+T07 r1 PASS 
+T08 r1 PASS 
+T09 r1 PASS 
+T10 r1 PASS 
+T11 r1 PASS 
+T12 r1 FAIL at most 3 sentences: ['4 sentences']
+T13 r1 PASS 
+T14 r1 FAIL says it isn't in the facts: ["one of: doesn't show, does not show, not shown, not in, isn't in, don't have"]
+T15 r1 PASS 
+T16 r1 FAIL says it isn't shown: ["one of: doesn't show, does not show, not shown, isn't shown, not in, isn't in"]
+T17 r1 PASS 
+T18 r1 PASS 
+T19 r1 PASS 
+T20 r1 FAIL gives the weight before: ['one of: -0.7773, −0.7773']; gives the weight after: ['one of: -0.7492, −0.7492']
+16/20 case runs passed every automatic check. Saved evals\local_ai\results\tutor_cases-4b-fixed-20261101-175432.json

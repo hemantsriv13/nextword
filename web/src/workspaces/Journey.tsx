@@ -21,6 +21,8 @@ import { contextBefore, engineRow, intervals, JOURNEY_DEFAULTS, journeyChanges, 
 import { cn } from "@/lib/utils"
 import { charTokens, visible } from "@/sim/tokenize"
 import { InfoTip } from "@/components/lab/info-tip"
+import { AssistProvider, type AssistTarget } from "@/components/lab/ask-ai"
+import { assistKey, type AssistFocus } from "@/lib/assist"
 
 const MAX_JOURNEY_CHARS = 20_000
 type Step = Generation["steps"][number]
@@ -66,6 +68,7 @@ export default function Journey() {
   const promptOk = charTokens(form.prompt).length > 0
 
   return (
+    <AssistProvider>
     <div className="flex min-w-0 flex-col gap-8 p-4 sm:p-6 lg:px-8 lg:pt-8">
       <header className="flex flex-col gap-4">
         <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-4">
@@ -121,6 +124,7 @@ export default function Journey() {
         />
       )}
     </div>
+    </AssistProvider>
   )
 }
 
@@ -187,7 +191,7 @@ function RunView({ run, stale, mode, stage, setStage }: { run: Run; stale: boole
             <h2 id={`stage-${st.id}-h`} className="flex items-baseline gap-3 text-lesson font-semibold"><span className="num text-muted-foreground">{i + 1}</span>{st.label}</h2>
             <div className="grid grid-cols-1 items-start gap-8 xl:grid-cols-[minmax(0,1fr)_24rem]">
               <div className="min-w-0 rounded-2xl border border-canvas-edge bg-canvas p-5 sm:p-7"><StageCanvas id={st.id} run={run} s={s} /></div>
-              <Explanation id={st.id} run={run} s={s} stale={stale} />
+              <Explanation id={st.id} run={run} s={s} stale={stale} explore />
             </div>
           </section>
         ))}
@@ -414,12 +418,13 @@ interface Copy {
   code: ReactNode
 }
 
-function Explanation({ id, run, s, stale }: { id: StageId; run: Run; s: Selection; stale: boolean }) {
+function Explanation({ id, run, s, stale, explore = false }: { id: StageId; run: Run; s: Selection; stale: boolean; explore?: boolean }) {
   const [level, setLevel] = useState<Level>("walk")
   const copy = stageCopy(id, run, s)
   const label = STAGES.find((st) => st.id === id)!.label
   return (
-    <ExplanationPanel title={label} testid="stage-explanation">
+    <ExplanationPanel title={label} testid="stage-explanation" tutor={{ target: assistTarget(id, run, s) }}
+      layout={explore ? "inline" : "sidebar"} desktopFrom={explore ? 1280 : 1024}>
       {stale && <p className="text-label font-medium text-src-sim-ink">These words describe the earlier run, not the changed inputs.</p>}
       <LevelSwitch level={level} onChange={setLevel} className="grid w-full grid-cols-3 bg-companion-callout [&>button]:h-auto [&>button]:min-h-10 [&>button]:px-2 [&>button]:py-1.5 [&>button]:leading-snug" />
       <div className="measure flex flex-col gap-4 text-prose" data-testid="explanation-body">
@@ -443,6 +448,27 @@ function Explanation({ id, run, s, stale }: { id: StageId; run: Run; s: Selectio
       )}
     </ExplanationPanel>
   )
+}
+
+/** What Ask local AI may ask about on this step: the run shown and the selection on screen. */
+function assistTarget(id: StageId, run: Run, s: Selection): AssistTarget | null {
+  const g = run.result.generation
+  const spec = { corpus: run.config.corpus, fingerprint: run.result.corpus.fingerprint, prompt: run.config.prompt, length: run.config.length, seed: run.config.seed }
+  const stageLabel = STAGES.find((st) => st.id === id)!.label
+  const base = `${run.result.corpus.name}, prompt “${g.prompt}”, seed ${g.seed}, step “${stageLabel}”`
+  const make = (focus: AssistFocus, describe: string): AssistTarget => ({ request: { run: spec, focus }, key: assistKey(spec, focus), stage: id, stageLabel, describe })
+  switch (id) {
+    case "text":
+    case "count": return make({ stage: id, pair: [s.pair.a, s.pair.b] }, `${base}, pair ${q(s.pair.a)} → ${q(s.pair.b)}`)
+    case "context": return make({ stage: id }, base)
+    case "probs": return make({ stage: id, context: s.context }, `${base}, row ${q(s.context)}`)
+    case "sample":
+    case "repeat": {
+      if (!g.steps.length) return null
+      const i = id === "sample" ? Math.min(s.sel, g.steps.length - 1) : Math.min(s.sel, Math.max(0, s.revealed - 1))
+      return make({ stage: id, step: i }, `${base}, character ${i + 1}`)
+    }
+  }
 }
 
 function stageCopy(id: StageId, run: Run, s: Selection): Copy {

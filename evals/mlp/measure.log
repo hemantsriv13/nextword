@@ -1,0 +1,8 @@
+ds-tiny-cat              ctx 3 emb  8 hid  64 batch  32:   0.87 s train (0.435 ms/step), setup 0.01 s, compare 0.0 s, peak 193.7 MB, val {'mlpInitial': 2.90738, 'mlpTrained': 1.238, 'bigramAdd1': 1.8147}
+ds-medium-alice          ctx 3 emb  8 hid  64 batch  32:   1.41 s train (0.706 ms/step), setup 0.02 s, compare 0.11 s, peak 210.6 MB, val {'mlpInitial': 4.16169, 'mlpTrained': 2.27646, 'bigramAdd1': 2.40875}
+ds-medium-alice          ctx 5 emb 12 hid 128 batch  64:   2.14 s train (1.069 ms/step), setup 0.02 s, compare 0.14 s, peak 228.4 MB, val {'mlpInitial': 4.20801, 'mlpTrained': 2.11325, 'bigramAdd1': 2.40875}
+ds-large-austen-doyle    ctx 3 emb  8 hid  64 batch  32:   1.59 s train (0.793 ms/step), setup 0.26 s, compare 1.48 s, peak 291.1 MB, val {'mlpInitial': 4.4278, 'mlpTrained': 2.30721, 'bigramAdd1': 2.36834}
+ds-large-austen-doyle    ctx 5 emb 12 hid 128 batch  64:   2.63 s train (1.314 ms/step), setup 0.26 s, compare 1.61 s, peak 321.5 MB, val {'mlpInitial': 4.37081, 'mlpTrained': 2.17699, 'bigramAdd1': 2.36834}
+ds-large-austen-doyle    ctx 8 emb 16 hid 256 batch 128:   5.31 s train (2.653 ms/step), setup 0.26 s, compare 2.09 s, peak 375.6 MB, val {'mlpInitial': 4.39138, 'mlpTrained': 2.0874, 'bigramAdd1': 2.36834}
+ds-large-austen-doyle    ctx 8 emb 16 hid 256 batch 128:  24.04 s train (1.202 ms/step), setup 0.27 s, compare 2.09 s, peak 376.5 MB, val {'mlpInitial': 4.39138, 'mlpTrained': 1.54846, 'bigramAdd1': 2.36834}
+saved evals\mlp\results\measure-20261101-172324.json

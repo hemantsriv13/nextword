@@ -1,0 +1,2430 @@
+{
+ "cases": "tutor_cases.json",
+ "casesSha256": "877c02237be77da0cee22a0f45edde6f22492bef1eb2aa7b0c25b616da792592",
+ "model": "qwen3-4b-instruct-2507-q4km",
+ "served": {
+  "id": "qwen3-4b-instruct-2507-q4km",
+  "object": "model",
+  "created": 1793528054,
+  "owned_by": "colibri",
+  "input_modalities": [
+   "text"
+  ],
+  "capabilities": [
+   "chat",
+   "systemone"
+  ],
+  "context_length": 2048,
+  "max_model_len": 2048
+ },
+ "temperature": 0,
+ "repeats": 1,
+ "when": "20261101-175432",
+ "promptFingerprint": "e8124029442d",
+ "runs": [
+  {
+   "id": "T01",
+   "category": "misconception",
+   "lesson": "characters",
+   "step": "why",
+   "example": 0,
+   "expected": "Says no, kindly: the model reads one character at a time (7 for “the cat”, the space included); it doesn't see words.",
+   "pass": true,
+   "turns": [
+    {
+     "turn": 1,
+     "action": "followup",
+     "question": "So the model reads whole words, right?",
+     "answer": "Not quite right. The model does not read whole words. It reads single characters, like 't', 'h', 'e', '␣', 'c', 'a', 't'. A space (␣) is also a character. The model looks at pairs of these characters, not whole words.",
+     "words": 40,
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 428.7731000003987,
+      "total": 1529.5621000004758
+     },
+     "usage": null,
+     "checks": [
+      {
+       "label": "at most 100 words",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "doesn't certify understanding",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "uses no later lesson's term",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "every number is from the facts",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "says it reads characters",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "doesn't agree it reads words",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "facts": {
+      "lesson": {
+       "number": 1,
+       "of": 13,
+       "title": "Characters",
+       "question": "What does a language model actually read?"
+      },
+      "currentStep": "Why",
+      "prediction": {
+       "question": "How many characters does “the cat” have?",
+       "options": [
+        "7",
+        "2",
+        "6"
+       ],
+       "rightAnswer": "7"
+      },
+      "resultShown": true,
+      "termsKnown": [],
+      "termsKnownEarlier": [],
+      "termsLater": [
+       "character (token)",
+       "pair (bigram)",
+       "count table (row)",
+       "probability, written P(next | current)",
+       "sampling (with a seed)",
+       "generation (one step at a time)",
+       "neural network, weights and training example",
+       "embedding",
+       "hidden layer and activation (tanh)",
+       "score (logit) and softmax",
+       "loss (cross-entropy)",
+       "gradient, learning rate and weight update",
+       "training and validation"
+      ],
+      "result": [
+       "“the cat” has 7 characters: ‘t’ ‘h’ ‘e’ ‘␣’ ‘c’ ‘a’ ‘t’.",
+       "A space counts as a character (shown as ␣).",
+       "6 of them are different."
+      ],
+      "explanation": "The model splits the text into single characters: letters, spaces and punctuation. A space is a character too, so it gets its own box.",
+      "modelInLesson": "a character bigram model in this app that only counts pairs of characters."
+     }
+    }
+   ],
+   "repeat": 1
+  },
+  {
+   "id": "T02",
+   "category": "misconception",
+   "lesson": "pairs",
+   "step": "term",
+   "example": 0,
+   "expected": "Says no: a pair is one character and the one right after it, so a bigram only uses the single character before.",
+   "pass": true,
+   "turns": [
+    {
+     "turn": 1,
+     "action": "followup",
+     "question": "Does a bigram look at the whole word to guess the next letter?",
+     "answer": "A bigram only looks at two characters: one character and the next one. It does not look at the whole word. For example, in \"banana\", it sees 'b' → 'a', then 'a' → 'n', and so on. It only uses the immediate pair to guess what comes next.",
+     "words": 48,
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 523.7235999993572,
+      "total": 1637.8326000012748
+     },
+     "usage": null,
+     "checks": [
+      {
+       "label": "at most 100 words",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "doesn't certify understanding",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "uses no later lesson's term",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "every number is from the facts",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "says it uses only one character",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "doesn't agree",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "facts": {
+      "lesson": {
+       "number": 2,
+       "of": 13,
+       "title": "Pairs",
+       "question": "How can a model learn what comes after a character?"
+      },
+      "currentStep": "The word for it",
+      "prediction": {
+       "question": "“banana” has 6 characters. How many neighbouring pairs (one character, then the next) does it have?",
+       "options": [
+        "5",
+        "6",
+        "4"
+       ],
+       "rightAnswer": "5"
+      },
+      "resultShown": true,
+      "termsKnown": [
+       {
+        "word": "character (token)",
+        "definition": "One piece of text the model reads. In this app a token is a single character: a letter, a space, a punctuation mark or a line break."
+       },
+       {
+        "word": "pair (bigram)",
+        "definition": "Two characters that sit next to each other in the text: one character and the character right after it. A bigram model learns only from these pairs."
+       }
+      ],
+      "termsKnownEarlier": [],
+      "termsLater": [
+       "count table (row)",
+       "probability, written P(next | current)",
+       "sampling (with a seed)",
+       "generation (one step at a time)",
+       "neural network, weights and training example",
+       "embedding",
+       "hidden layer and activation (tanh)",
+       "score (logit) and softmax",
+       "loss (cross-entropy)",
+       "gradient, learning rate and weight update",
+       "training and validation"
+      ],
+      "result": [
+       "“banana” has 6 characters and 5 neighbouring pairs: ‘b’ → ‘a’, ‘a’ → ‘n’, ‘n’ → ‘a’, ‘a’ → ‘n’, ‘n’ → ‘a’.",
+       "Each pair starts where the previous one ended, so there is one pair fewer than characters."
+      ],
+      "explanation": "Each pair starts where the previous one ended. So a text with n characters has n − 1 pairs: the last character has nothing after it.",
+      "modelInLesson": "a character bigram model in this app that only counts pairs of characters."
+     }
+    }
+   ],
+   "repeat": 1
+  },
+  {
+   "id": "T03",
+   "category": "misconception",
+   "lesson": "probability",
+   "step": "why",
+   "example": 0,
+   "expected": "Says no: 2/3 means b followed a in 2 of the 3 times; c followed once (1/3). The probability says how likely, not certain.",
+   "pass": true,
+   "turns": [
+    {
+     "turn": 1,
+     "action": "followup",
+     "question": "Since P(b | a) is 2/3, will the model always write b after a?",
+     "answer": "No, the model doesn't always write 'b' after 'a'.  \nP(b | a) = 2/3 means 'b' is likely, but not certain.  \nThe model can also write 'c' after 'a', since 'c' appears once in the training text.  \nProbabilities mean likelihood, not certainty.  \nSo, after 'a', the model might write 'b' or 'c'.",
+     "words": 52,
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 526.0685000030207,
+      "total": 1993.967700000212
+     },
+     "usage": null,
+     "checks": [
+      {
+       "label": "at most 100 words",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "doesn't certify understanding",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "uses no later lesson's term",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "every number is from the facts",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "says not always",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "doesn't agree",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "facts": {
+      "lesson": {
+       "number": 4,
+       "of": 13,
+       "title": "Probability",
+       "question": "How sure can the model be about the next character?"
+      },
+      "currentStep": "Why",
+      "prediction": {
+       "question": "After ‘a’, how likely is ‘b’ to come next?",
+       "options": [
+        "2/3",
+        "2/8",
+        "1/2"
+       ],
+       "rightAnswer": "2/3"
+      },
+      "resultShown": true,
+      "termsKnown": [
+       {
+        "word": "pair (bigram)",
+        "definition": "Two characters that sit next to each other in the text: one character and the character right after it. A bigram model learns only from these pairs."
+       },
+       {
+        "word": "count table (row)",
+        "definition": "A table with one row per character. Each row lists the characters that followed it in the training text and how many times. The training text is the text the model learns from."
+       }
+      ],
+      "termsKnownEarlier": [
+       "character (token)"
+      ],
+      "termsLater": [
+       "probability, written P(next | current)",
+       "sampling (with a seed)",
+       "generation (one step at a time)",
+       "neural network, weights and training example",
+       "embedding",
+       "hidden layer and activation (tanh)",
+       "score (logit) and softmax",
+       "loss (cross-entropy)",
+       "gradient, learning rate and weight update",
+       "training and validation"
+      ],
+      "result": [
+       "In “ab ac ab”, ‘a’ is followed by something 3 times, and by ‘b’ 2 of those times.",
+       "So P(b | a) = 2/3 = 0.6667.",
+       "The probabilities of all followers of ‘a’ add up to 1: ‘b’ 0.6667, ‘c’ 0.3333."
+      ],
+      "explanation": "Divide a follower's count by the total of its row. The fractions of one row always add up to 1, because together they cover every time something followed.",
+      "modelInLesson": "a character bigram model in this app that only counts pairs of characters."
+     }
+    }
+   ],
+   "repeat": 1
+  },
+  {
+   "id": "T04",
+   "category": "misconception",
+   "lesson": "embeddings",
+   "step": "why",
+   "example": 0,
+   "expected": "Says no: each character's numbers start random and training changes them; they are not alphabet positions.",
+   "pass": true,
+   "turns": [
+    {
+     "turn": 1,
+     "action": "followup",
+     "question": "So the letter c is stored as the number 3 because it's the third letter?",
+     "answer": "That isn't quite right. The letter 'c' is not stored as 3. The model uses numbers for each character, but these numbers are not based on alphabet positions. Before training, each character has a random list of two numbers. Training changes these numbers so they help predict the next character. This lesson doesn't show that.",
+     "words": 55,
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 826.5272999997251,
+      "total": 2065.9572999975353
+     },
+     "usage": null,
+     "checks": [
+      {
+       "label": "at most 100 words",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "doesn't certify understanding",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "uses no later lesson's term",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "every number is from the facts",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "says the numbers are random / learned",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "doesn't agree",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "facts": {
+      "lesson": {
+       "number": 8,
+       "of": 13,
+       "title": "Characters as numbers",
+       "question": "How does a network turn characters into something it can calculate with?"
+      },
+      "currentStep": "Why",
+      "prediction": {
+       "question": "Before training, what numbers does the network use for each character?",
+       "options": [
+        "Numbers for how the letters sound",
+        "Their places in the alphabet (a = 1, b = 2, …)",
+        "Random numbers, changed by training"
+       ],
+       "rightAnswer": "Random numbers, changed by training"
+      },
+      "resultShown": true,
+      "termsKnown": [
+       {
+        "word": "generation (one step at a time)",
+        "definition": "Writing text by repeating one step: look at the current context, choose the next character, add it, and use the new text as the context for the next step."
+       },
+       {
+        "word": "neural network, weights and training example",
+        "definition": "A neural network is a calculation with many adjustable numbers, called weights. A training example is one window of characters plus the character that really came next. Training adjusts the weights to fit the examples."
+       }
+      ],
+      "termsKnownEarlier": [
+       "character (token)",
+       "pair (bigram)",
+       "count table (row)",
+       "probability, written P(next | current)",
+       "sampling (with a seed)"
+      ],
+      "termsLater": [
+       "embedding",
+       "hidden layer and activation (tanh)",
+       "score (logit) and softmax",
+       "loss (cross-entropy)",
+       "gradient, learning rate and weight update",
+       "training and validation"
+      ],
+      "result": [
+       "Each character has a list of 2 numbers, called its embedding.",
+       "Before training, ‘␣’ is (-0.9798, -1.6091); after training it is (-1.8588, -3.3413).",
+       "Before training, ‘c’ is (-0.2223, 1.6871); after training it is (1.2583, 0.1285).",
+       "The window's 2 characters × 2 numbers = 4 numbers go into the next layer."
+      ],
+      "explanation": "The lists start as random numbers. Training changes them, just like every other weight, so they become useful for predicting the next character. They are not alphabet positions or sounds.",
+      "modelInLesson": "a small character MLP trained in this app on a tiny teaching text. You (the tutor) are a different, larger model."
+     }
+    }
+   ],
+   "repeat": 1
+  },
+  {
+   "id": "T05",
+   "category": "misconception",
+   "lesson": "loss",
+   "step": "why",
+   "example": 0,
+   "expected": "Says no: a bigger loss means a worse guess. The random network's loss (2.6010) is bigger than the trained one's (0.0533).",
+   "pass": true,
+   "turns": [
+    {
+     "turn": 1,
+     "action": "followup",
+     "question": "A bigger loss is better, because it means the network learned more?",
+     "answer": "That isn't quite right. A bigger loss means the network made a bigger mistake. A smaller loss means it was closer to correct. The goal is to make the loss as small as possible. A bigger loss shows the network didn't learn well.",
+     "words": 43,
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 530.4976000006718,
+      "total": 1405.889900001057
+     },
+     "usage": null,
+     "checks": [
+      {
+       "label": "at most 100 words",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "doesn't certify understanding",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "uses no later lesson's term",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "every number is from the facts",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "says smaller is better",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "doesn't agree",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "facts": {
+      "lesson": {
+       "number": 11,
+       "of": 13,
+       "title": "Measuring mistakes",
+       "question": "How do we measure how wrong a guess was?"
+      },
+      "currentStep": "Why",
+      "prediction": {
+       "question": "Both networks must predict ‘a’ after ‘␣’ ‘c’. Which one should get the bigger loss (the bigger penalty)?",
+       "options": [
+        "Both get the same loss",
+        "The random network (p = 0.0742)",
+        "The trained network (p = 0.9481)"
+       ],
+       "rightAnswer": "The random network (p = 0.0742)"
+      },
+      "resultShown": true,
+      "termsKnown": [
+       {
+        "word": "hidden layer and activation (tanh)",
+        "definition": "The hidden layer is a set of values computed from the embeddings, each as a weighted sum plus a bias. The activation, here tanh, then squeezes each value into the range −1 to 1."
+       },
+       {
+        "word": "score (logit) and softmax",
+        "definition": "A score, or logit, is the network's raw number for one possible next character. Softmax turns all the scores into probabilities between 0 and 1 that add up to 1, keeping their order."
+       }
+      ],
+      "termsKnownEarlier": [
+       "character (token)",
+       "pair (bigram)",
+       "count table (row)",
+       "probability, written P(next | current)",
+       "sampling (with a seed)",
+       "generation (one step at a time)",
+       "neural network, weights and training example",
+       "embedding"
+      ],
+      "termsLater": [
+       "loss (cross-entropy)",
+       "gradient, learning rate and weight update",
+       "training and validation"
+      ],
+      "result": [
+       "The loss is −ln(p), where p is the probability given to the right character ‘a’.",
+       "Random network: p = 0.0742, loss = −ln(0.0742) = 2.6010.",
+       "Trained network: p = 0.9481, loss = −ln(0.9481) = 0.0533.",
+       "A probability close to 1 gives a loss close to 0; a small probability gives a large loss."
+      ],
+      "explanation": "The penalty is −ln(p): minus the natural logarithm of the probability given to the right character. If p is 1 the penalty is 0. The smaller p is, the bigger the penalty grows.",
+      "modelInLesson": "a small character MLP trained in this app on a tiny teaching text. You (the tutor) are a different, larger model."
+     }
+    }
+   ],
+   "repeat": 1
+  },
+  {
+   "id": "T06",
+   "category": "misconception",
+   "lesson": "sampling",
+   "step": "why",
+   "example": 0,
+   "expected": "Says no: a random number (0.2360 here) picks the stretch it lands in; likely characters are picked more often, but c (from 0.6667 to 1) can be picked too.",
+   "pass": true,
+   "turns": [
+    {
+     "turn": 1,
+     "action": "followup",
+     "question": "The model just picks the character with the highest probability every time, doesn't it?",
+     "answer": "No, it doesn't. The model doesn't always pick the character with the highest probability. Instead, it uses a random number between 0 and 1. This number lands in a stretch of the line that matches a character's probability. If it lands in a longer stretch, that character is chosen. So, even if one character has a higher probability, it might not be picked every time.",
+     "words": 65,
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 516.8052999979409,
+      "total": 1915.7512999991013
+     },
+     "usage": null,
+     "checks": [
+      {
+       "label": "at most 100 words",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "doesn't certify understanding",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "uses no later lesson's term",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "every number is from the facts",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "says the choice is random",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "doesn't agree",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "facts": {
+      "lesson": {
+       "number": 5,
+       "of": 13,
+       "title": "Random selection",
+       "question": "When several characters are possible, which one does the model write?"
+      },
+      "currentStep": "Why",
+      "prediction": {
+       "question": "The random number drawn is 0.2360. Which character does the model write?",
+       "options": [
+        "c",
+        "b"
+       ],
+       "rightAnswer": "b"
+      },
+      "resultShown": true,
+      "termsKnown": [
+       {
+        "word": "count table (row)",
+        "definition": "A table with one row per character. Each row lists the characters that followed it in the training text and how many times. The training text is the text the model learns from."
+       },
+       {
+        "word": "probability, written P(next | current)",
+        "definition": "A number from 0 to 1 that says how likely something is. P(b | a) means: the probability that the next character is b, when the current one is a. Here it is count(a→b) ÷ total of row a."
+       }
+      ],
+      "termsKnownEarlier": [
+       "character (token)",
+       "pair (bigram)"
+      ],
+      "termsLater": [
+       "sampling (with a seed)",
+       "generation (one step at a time)",
+       "neural network, weights and training example",
+       "embedding",
+       "hidden layer and activation (tanh)",
+       "score (logit) and softmax",
+       "loss (cross-entropy)",
+       "gradient, learning rate and weight update",
+       "training and validation"
+      ],
+      "result": [
+       "After ‘a’ the probabilities are laid end to end from 0 to 1: ‘b’ from 0.0000 to 0.6667, ‘c’ from 0.6667 to 1.0000.",
+       "With seed 4 the random number is 0.2360. It falls in ‘b’'s stretch, so the model writes ‘b’."
+      ],
+      "explanation": "Each character owns a stretch of the line as long as its probability. A random number between 0 and 1 lands in one stretch. Likely characters own long stretches, so they are picked more often, but not always.",
+      "modelInLesson": "a character bigram model in this app that only counts pairs of characters."
+     }
+    }
+   ],
+   "repeat": 1
+  },
+  {
+   "id": "T07",
+   "category": "misconception",
+   "lesson": "learning",
+   "step": "why",
+   "example": 0,
+   "expected": "Says no: the lesson trains only the small network in the app; the tutor is a different, larger model that this training doesn't change.",
+   "pass": true,
+   "turns": [
+    {
+     "turn": 1,
+     "action": "followup",
+     "question": "Training this network also makes you, the tutor, smarter, right?",
+     "answer": "No. The network learns from the training text. I, the tutor, am a different model. I don’t get smarter. This lesson only shows how the small network learns what comes next.",
+     "words": 31,
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 535.7664000002842,
+      "total": 1222.8413000011642
+     },
+     "usage": null,
+     "checks": [
+      {
+       "label": "at most 100 words",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "doesn't certify understanding",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "uses no later lesson's term",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "every number is from the facts",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "says it is a separate model",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "doesn't agree",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "facts": {
+      "lesson": {
+       "number": 7,
+       "of": 13,
+       "title": "From counting to learning",
+       "question": "Can a model learn what comes next, instead of counting?"
+      },
+      "currentStep": "Why",
+      "prediction": {
+       "question": "Before any training, the network's weights are random. How likely does it think ‘b’ is after ‘c’ ‘a’?",
+       "options": [
+        "About 1 in 5 (roughly 0.20), like a blind guess",
+        "Exactly 0",
+        "Almost certain (close to 1)"
+       ],
+       "rightAnswer": "About 1 in 5 (roughly 0.20), like a blind guess"
+      },
+      "resultShown": true,
+      "termsKnown": [
+       {
+        "word": "sampling (with a seed)",
+        "definition": "Choosing the next character at random, with each character's chance equal to its probability. A seed is a starting number for the random numbers: the same seed gives the same choices again."
+       },
+       {
+        "word": "generation (one step at a time)",
+        "definition": "Writing text by repeating one step: look at the current context, choose the next character, add it, and use the new text as the context for the next step."
+       }
+      ],
+      "termsKnownEarlier": [
+       "character (token)",
+       "pair (bigram)",
+       "count table (row)",
+       "probability, written P(next | current)"
+      ],
+      "termsLater": [
+       "neural network, weights and training example",
+       "embedding",
+       "hidden layer and activation (tanh)",
+       "score (logit) and softmax",
+       "loss (cross-entropy)",
+       "gradient, learning rate and weight update",
+       "training and validation"
+      ],
+      "result": [
+       "The network reads a window of 2 characters: ‘c’ ‘a’. The right next character is ‘b’.",
+       "It chooses among 5 possible characters (including ⟨start⟩, which fills the window at the start of a text, and ⟨?⟩ for unknown characters).",
+       "With random weights it gives ‘b’ a probability of 0.1813; a blind guess would be 1/5 = 0.2000.",
+       "After 1000 training updates it gives ‘b’ 0.9993."
+      ],
+      "explanation": "Random numbers give every character roughly the same small chance, like a blind guess. Training changes the numbers again and again until the right character gets a high probability on the training examples.",
+      "modelInLesson": "a small character MLP trained in this app on a tiny teaching text. You (the tutor) are a different, larger model."
+     }
+    }
+   ],
+   "repeat": 1
+  },
+  {
+   "id": "T08",
+   "category": "misconception",
+   "lesson": "update",
+   "step": "why",
+   "example": 0,
+   "expected": "Says no: subtracting learning rate × a negative gradient makes the weight go up: −0.7773 − 0.3 × (−0.09361) = −0.7492.",
+   "pass": true,
+   "turns": [
+    {
+     "turn": 1,
+     "action": "followup",
+     "question": "If the gradient is negative, the weight goes down, right?",
+     "answer": "Not quite right.  \n\nThe gradient points where the loss grows.  \nIf the gradient is negative, subtracting learning rate × gradient makes the weight go **up**.  \n\nThis helps reduce the loss.  \n\nSee the lesson explanation: \"A negative gradient makes the weight go up.\"",
+     "words": 42,
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 531.3403000000108,
+      "total": 1455.9931999974651
+     },
+     "usage": null,
+     "checks": [
+      {
+       "label": "at most 100 words",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "doesn't certify understanding",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "uses no later lesson's term",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "every number is from the facts",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "says the weight goes up",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "doesn't agree",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "facts": {
+      "lesson": {
+       "number": 12,
+       "of": 13,
+       "title": "Getting better",
+       "question": "How does the network know which way to change a weight?"
+      },
+      "currentStep": "Why",
+      "prediction": {
+       "question": "A weight is -0.7773 and its gradient is -0.09361. The update rule is: new weight = weight − learning rate × gradient. Does the weight go up or down?",
+       "options": [
+        "It stays the same",
+        "It goes down a little",
+        "It goes up a little"
+       ],
+       "rightAnswer": "It goes up a little"
+      },
+      "resultShown": true,
+      "termsKnown": [
+       {
+        "word": "score (logit) and softmax",
+        "definition": "A score, or logit, is the network's raw number for one possible next character. Softmax turns all the scores into probabilities between 0 and 1 that add up to 1, keeping their order."
+       },
+       {
+        "word": "loss (cross-entropy)",
+        "definition": "A number that measures how wrong a prediction is: −ln(p), where p is the probability given to the right next character. Training tries to make the average loss over many examples smaller."
+       }
+      ],
+      "termsKnownEarlier": [
+       "character (token)",
+       "pair (bigram)",
+       "count table (row)",
+       "probability, written P(next | current)",
+       "sampling (with a seed)",
+       "generation (one step at a time)",
+       "neural network, weights and training example",
+       "embedding",
+       "hidden layer and activation (tanh)"
+      ],
+      "termsLater": [
+       "gradient, learning rate and weight update",
+       "training and validation"
+      ],
+      "result": [
+       "This is the recorded first update of the lesson network on “cat and dog sentences (tiny)”, using a batch of 16 training examples.",
+       "Number 1 of ‘a’'s embedding: -0.7773 − 0.3 × (-0.09361) = -0.7492.",
+       "Every weight moved this way at once. The batch's loss went from 2.8653 to 2.6787.",
+       "The recomputed update matches the recorded weights: yes."
+      ],
+      "explanation": "The gradient points the way the loss grows. Subtracting learning rate × gradient moves the weight the opposite way, so the loss shrinks a little. A negative gradient makes the weight go up.",
+      "modelInLesson": "a small character MLP trained in this app on a tiny teaching text. You (the tutor) are a different, larger model."
+     }
+    }
+   ],
+   "repeat": 1
+  },
+  {
+   "id": "T09",
+   "category": "simpler",
+   "lesson": "counts",
+   "step": "result",
+   "example": 0,
+   "expected": "The simpler answer, in at most three short sentences: after ‘a’ in “banana”, ‘n’ came 2 times, more than anything else.",
+   "pass": true,
+   "turns": [
+    {
+     "turn": 1,
+     "action": "explain",
+     "question": null,
+     "answer": "In “banana”, the character ‘a’ is followed by ‘n’ twice.  \nThis is the most common pair.  \nThe model counts how often each character follows ‘a’.  \nIt finds ‘n’ appears most often after ‘a’.  \nThis shows the model learns patterns from text.  \nIt sees that ‘a’ → ‘n’ happens 2 times.  \nThat is the most frequent pair.",
+     "words": 56,
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 393.1979999979376,
+      "total": 1811.142499998823
+     },
+     "usage": null,
+     "checks": [
+      {
+       "label": "at most 100 words",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "doesn't certify understanding",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "uses no later lesson's term",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "every number is from the facts",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "facts": {
+      "lesson": {
+       "number": 3,
+       "of": 13,
+       "title": "Counts",
+       "question": "Which character usually comes after this one?"
+      },
+      "currentStep": "What happened",
+      "prediction": {
+       "question": "In “banana”, which character comes most often right after ‘a’?",
+       "options": [
+        "a",
+        "b",
+        "n"
+       ],
+       "rightAnswer": "n"
+      },
+      "resultShown": true,
+      "termsKnown": [
+       {
+        "word": "character (token)",
+        "definition": "One piece of text the model reads. In this app a token is a single character: a letter, a space, a punctuation mark or a line break."
+       },
+       {
+        "word": "pair (bigram)",
+        "definition": "Two characters that sit next to each other in the text: one character and the character right after it. A bigram model learns only from these pairs."
+       }
+      ],
+      "termsKnownEarlier": [],
+      "termsLater": [
+       "count table (row)",
+       "probability, written P(next | current)",
+       "sampling (with a seed)",
+       "generation (one step at a time)",
+       "neural network, weights and training example",
+       "embedding",
+       "hidden layer and activation (tanh)",
+       "score (logit) and softmax",
+       "loss (cross-entropy)",
+       "gradient, learning rate and weight update",
+       "training and validation"
+      ],
+      "result": [
+       "In “banana”, ‘a’ is followed by another character 2 times.",
+       "‘a’ → ‘n’: 2 times",
+       "The most common follower of ‘a’ is ‘n’."
+      ],
+      "modelInLesson": "a character bigram model in this app that only counts pairs of characters."
+     }
+    },
+    {
+     "turn": 2,
+     "action": "simpler",
+     "question": null,
+     "answer": "In “banana”, ‘a’ is followed by ‘n’ twice.  \n‘a’ → ‘n’ happens 2 times.  \nThat is the most common pair.",
+     "words": 20,
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 64.34939999962808,
+      "total": 426.2587999983225
+     },
+     "usage": null,
+     "checks": [
+      {
+       "label": "at most 100 words",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "doesn't certify understanding",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "uses no later lesson's term",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "every number is from the facts",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "at most 3 sentences",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "at most 50 words",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "keeps the count 2",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "facts": {
+      "lesson": {
+       "number": 3,
+       "of": 13,
+       "title": "Counts",
+       "question": "Which character usually comes after this one?"
+      },
+      "currentStep": "What happened",
+      "prediction": {
+       "question": "In “banana”, which character comes most often right after ‘a’?",
+       "options": [
+        "a",
+        "b",
+        "n"
+       ],
+       "rightAnswer": "n"
+      },
+      "resultShown": true,
+      "termsKnown": [
+       {
+        "word": "character (token)",
+        "definition": "One piece of text the model reads. In this app a token is a single character: a letter, a space, a punctuation mark or a line break."
+       },
+       {
+        "word": "pair (bigram)",
+        "definition": "Two characters that sit next to each other in the text: one character and the character right after it. A bigram model learns only from these pairs."
+       }
+      ],
+      "termsKnownEarlier": [],
+      "termsLater": [
+       "count table (row)",
+       "probability, written P(next | current)",
+       "sampling (with a seed)",
+       "generation (one step at a time)",
+       "neural network, weights and training example",
+       "embedding",
+       "hidden layer and activation (tanh)",
+       "score (logit) and softmax",
+       "loss (cross-entropy)",
+       "gradient, learning rate and weight update",
+       "training and validation"
+      ],
+      "result": [
+       "In “banana”, ‘a’ is followed by another character 2 times.",
+       "‘a’ → ‘n’: 2 times",
+       "The most common follower of ‘a’ is ‘n’."
+      ],
+      "modelInLesson": "a character bigram model in this app that only counts pairs of characters."
+     }
+    }
+   ],
+   "repeat": 1
+  },
+  {
+   "id": "T10",
+   "category": "simpler",
+   "lesson": "softmax",
+   "step": "why",
+   "example": 0,
+   "expected": "Simpler: the highest score gets the biggest chance, and all the chances add up to 1.",
+   "pass": true,
+   "turns": [
+    {
+     "turn": 1,
+     "action": "explain",
+     "question": null,
+     "answer": "The network gives scores like 7.3007 for 'a'. Softmax turns these into probabilities by making them positive and dividing by the total. Higher scores become higher probabilities. After '␣' 'c', 'a' has the highest score, so it has the highest probability. All probabilities add to 1.0000. This is why 'a' is chosen.",
+     "words": 52,
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 525.422199996683,
+      "total": 1909.6200999993016
+     },
+     "usage": null,
+     "checks": [
+      {
+       "label": "at most 100 words",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "doesn't certify understanding",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "uses no later lesson's term",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "every number is from the facts",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "facts": {
+      "lesson": {
+       "number": 10,
+       "of": 13,
+       "title": "Scores to probabilities",
+       "question": "How does the network turn its numbers into a guess?"
+      },
+      "currentStep": "Why",
+      "prediction": {
+       "question": "After ‘␣’ ‘c’, these are the network's three highest scores. Which character gets the highest probability?",
+       "options": [
+        "h",
+        "a",
+        "n"
+       ],
+       "rightAnswer": "a"
+      },
+      "resultShown": true,
+      "termsKnown": [
+       {
+        "word": "embedding",
+        "definition": "The list of numbers that stands for a character inside the network. It is learned during training. The window's lists are put side by side into one longer list for the next layer."
+       },
+       {
+        "word": "hidden layer and activation (tanh)",
+        "definition": "The hidden layer is a set of values computed from the embeddings, each as a weighted sum plus a bias. The activation, here tanh, then squeezes each value into the range −1 to 1."
+       }
+      ],
+      "termsKnownEarlier": [
+       "character (token)",
+       "pair (bigram)",
+       "count table (row)",
+       "probability, written P(next | current)",
+       "sampling (with a seed)",
+       "generation (one step at a time)",
+       "neural network, weights and training example"
+      ],
+      "termsLater": [
+       "score (logit) and softmax",
+       "loss (cross-entropy)",
+       "gradient, learning rate and weight update",
+       "training and validation"
+      ],
+      "result": [
+       "After ‘␣’ ‘c’ the network's highest scores are ‘a’ 7.3007, ‘n’ 3.4007, ‘h’ 3.1105.",
+       "Softmax turns the scores into probabilities: ‘a’ 0.9481, ‘n’ 0.0192, ‘h’ 0.0144.",
+       "All 18 probabilities add up to 1.0000. A higher score always gives a higher probability.",
+       "The right next character is ‘a’, with probability 0.9481."
+      ],
+      "explanation": "Softmax makes every score positive and divides by the total, so the probabilities add up to 1. A higher score always gives a higher probability, and no character ever gets exactly 0.",
+      "modelInLesson": "a small character MLP trained in this app on a tiny teaching text. You (the tutor) are a different, larger model."
+     }
+    },
+    {
+     "turn": 2,
+     "action": "simpler",
+     "question": null,
+     "answer": "After '␣' 'c', 'a' has the highest score: 7.3007. Softmax turns scores into probabilities: 'a' is 0.9481, 'n' is 0.0192, 'h' is 0.0144. 'a' has the highest probability, so it is chosen.",
+     "words": 32,
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 69.31430000258842,
+      "total": 1171.7151000011654
+     },
+     "usage": null,
+     "checks": [
+      {
+       "label": "at most 100 words",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "doesn't certify understanding",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "uses no later lesson's term",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "every number is from the facts",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "at most 3 sentences",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "at most 50 words",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "no maths words in the simpler answer",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "facts": {
+      "lesson": {
+       "number": 10,
+       "of": 13,
+       "title": "Scores to probabilities",
+       "question": "How does the network turn its numbers into a guess?"
+      },
+      "currentStep": "Why",
+      "prediction": {
+       "question": "After ‘␣’ ‘c’, these are the network's three highest scores. Which character gets the highest probability?",
+       "options": [
+        "h",
+        "a",
+        "n"
+       ],
+       "rightAnswer": "a"
+      },
+      "resultShown": true,
+      "termsKnown": [
+       {
+        "word": "embedding",
+        "definition": "The list of numbers that stands for a character inside the network. It is learned during training. The window's lists are put side by side into one longer list for the next layer."
+       },
+       {
+        "word": "hidden layer and activation (tanh)",
+        "definition": "The hidden layer is a set of values computed from the embeddings, each as a weighted sum plus a bias. The activation, here tanh, then squeezes each value into the range −1 to 1."
+       }
+      ],
+      "termsKnownEarlier": [
+       "character (token)",
+       "pair (bigram)",
+       "count table (row)",
+       "probability, written P(next | current)",
+       "sampling (with a seed)",
+       "generation (one step at a time)",
+       "neural network, weights and training example"
+      ],
+      "termsLater": [
+       "score (logit) and softmax",
+       "loss (cross-entropy)",
+       "gradient, learning rate and weight update",
+       "training and validation"
+      ],
+      "result": [
+       "After ‘␣’ ‘c’ the network's highest scores are ‘a’ 7.3007, ‘n’ 3.4007, ‘h’ 3.1105.",
+       "Softmax turns the scores into probabilities: ‘a’ 0.9481, ‘n’ 0.0192, ‘h’ 0.0144.",
+       "All 18 probabilities add up to 1.0000. A higher score always gives a higher probability.",
+       "The right next character is ‘a’, with probability 0.9481."
+      ],
+      "explanation": "Softmax makes every score positive and divides by the total, so the probabilities add up to 1. A higher score always gives a higher probability, and no character ever gets exactly 0.",
+      "modelInLesson": "a small character MLP trained in this app on a tiny teaching text. You (the tutor) are a different, larger model."
+     }
+    }
+   ],
+   "repeat": 1
+  },
+  {
+   "id": "T11",
+   "category": "simpler",
+   "lesson": "hidden",
+   "step": "result",
+   "example": 0,
+   "expected": "Plain words: the network multiplies its input numbers, adds them up, and squashes the total to between −1 and 1 (6.2729 became about 1). No technical terms the learner hasn't met.",
+   "pass": true,
+   "turns": [
+    {
+     "turn": 1,
+     "action": "followup",
+     "question": "I don't understand any of this. Can you say it with no maths words?",
+     "answer": "The network takes the numbers from the window, mixes them with learned values, and adds a small number. This mix makes a new number. Then, it changes that number to be safe — between -1 and 1. It keeps the sign (positive or negative). No math words. Just simple steps.",
+     "words": 50,
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 569.8631000013847,
+      "total": 1632.651200001419
+     },
+     "usage": null,
+     "checks": [
+      {
+       "label": "at most 100 words",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "doesn't certify understanding",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "uses no later lesson's term",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "every number is from the facts",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "at most 70 words",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "facts": {
+      "lesson": {
+       "number": 9,
+       "of": 13,
+       "title": "Combining the numbers",
+       "question": "How does the network combine the window's numbers?"
+      },
+      "currentStep": "What happened",
+      "prediction": {
+       "question": "For one hidden value, the weighted sum comes to 6.2729. The network then applies tanh. What comes out?",
+       "options": [
+        "Always exactly 0",
+        "A number between −1 and 1, with the same sign",
+        "The same number, unchanged"
+       ],
+       "rightAnswer": "A number between −1 and 1, with the same sign"
+      },
+      "resultShown": true,
+      "termsKnown": [
+       {
+        "word": "neural network, weights and training example",
+        "definition": "A neural network is a calculation with many adjustable numbers, called weights. A training example is one window of characters plus the character that really came next. Training adjusts the weights to fit the examples."
+       },
+       {
+        "word": "embedding",
+        "definition": "The list of numbers that stands for a character inside the network. It is learned during training. The window's lists are put side by side into one longer list for the next layer."
+       }
+      ],
+      "termsKnownEarlier": [
+       "character (token)",
+       "pair (bigram)",
+       "count table (row)",
+       "probability, written P(next | current)",
+       "sampling (with a seed)",
+       "generation (one step at a time)"
+      ],
+      "termsLater": [
+       "hidden layer and activation (tanh)",
+       "score (logit) and softmax",
+       "loss (cross-entropy)",
+       "gradient, learning rate and weight update",
+       "training and validation"
+      ],
+      "result": [
+       "Hidden value 1 multiplies the 4 input numbers by 4 learned weights, adds them up and adds a bias of 0.7572.",
+       "That sum is 6.2729. tanh(6.2729) = 1.0000.",
+       "tanh keeps the sign and squeezes any number into the range −1 to 1.",
+       "The hidden layer has 8 such values."
+      ],
+      "modelInLesson": "a small character MLP trained in this app on a tiny teaching text. You (the tutor) are a different, larger model."
+     }
+    }
+   ],
+   "repeat": 1
+  },
+  {
+   "id": "T12",
+   "category": "simpler",
+   "lesson": "generation",
+   "step": "result",
+   "example": 0,
+   "expected": "Simpler: write one letter, then use that letter to pick the next; repeat.",
+   "pass": false,
+   "turns": [
+    {
+     "turn": 1,
+     "action": "explain",
+     "question": null,
+     "answer": "The model starts with 'b'. It reads the row for 'b' to pick the next character. The row for 'b' shows the probability of each next character. It picks 'a' because the probability is high. Then it reads the row for 'a' to pick the next one. This repeats: each new character becomes the current one for the next step.",
+     "words": 60,
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 530.8464000008826,
+      "total": 1789.4713999994565
+     },
+     "usage": null,
+     "checks": [
+      {
+       "label": "at most 100 words",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "doesn't certify understanding",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "uses no later lesson's term",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "every number is from the facts",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "facts": {
+      "lesson": {
+       "number": 6,
+       "of": 13,
+       "title": "Writing text",
+       "question": "How does the model write more than one character?"
+      },
+      "currentStep": "What happened",
+      "prediction": {
+       "question": "Starting from ‘b’, the model writes ‘a’ first. Which row of counts does it read to choose the next character?",
+       "options": [
+        "every row at once",
+        "the row for ‘b’",
+        "the row for ‘a’"
+       ],
+       "rightAnswer": "the row for ‘a’"
+      },
+      "resultShown": true,
+      "termsKnown": [
+       {
+        "word": "probability, written P(next | current)",
+        "definition": "A number from 0 to 1 that says how likely something is. P(b | a) means: the probability that the next character is b, when the current one is a. Here it is count(a→b) ÷ total of row a."
+       },
+       {
+        "word": "sampling (with a seed)",
+        "definition": "Choosing the next character at random, with each character's chance equal to its probability. A seed is a starting number for the random numbers: the same seed gives the same choices again."
+       }
+      ],
+      "termsKnownEarlier": [
+       "character (token)",
+       "pair (bigram)",
+       "count table (row)"
+      ],
+      "termsLater": [
+       "generation (one step at a time)",
+       "neural network, weights and training example",
+       "embedding",
+       "hidden layer and activation (tanh)",
+       "score (logit) and softmax",
+       "loss (cross-entropy)",
+       "gradient, learning rate and weight update",
+       "training and validation"
+      ],
+      "result": [
+       "Starting from ‘b’ with seed 3, the model wrote “anana”.",
+       "Step 1: read the row for ‘b’, drew 0.2380, wrote ‘a’.",
+       "Step 2: read the row for ‘a’, drew 0.5442, wrote ‘n’.",
+       "Step 3: read the row for ‘n’, drew 0.3700, wrote ‘a’.",
+       "Step 4: read the row for ‘a’, drew 0.6039, wrote ‘n’.",
+       "Step 5: read the row for ‘n’, drew 0.6257, wrote ‘a’.",
+       "Each written character becomes the one the model looks at next."
+      ],
+      "modelInLesson": "a character bigram model in this app that only counts pairs of characters."
+     }
+    },
+    {
+     "turn": 2,
+     "action": "simpler",
+     "question": null,
+     "answer": "Start with 'b'. Look at the row for 'b' to pick 'a' (probability 0.2380). Then look at the row for 'a' to pick 'n' (probability 0.5442). Each new character becomes the next starting point.",
+     "words": 34,
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 56.803699997544754,
+      "total": 969.4008999977086
+     },
+     "usage": null,
+     "checks": [
+      {
+       "label": "at most 100 words",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "doesn't certify understanding",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "uses no later lesson's term",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "every number is from the facts",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "at most 3 sentences",
+       "pass": false,
+       "missing": [
+        "4 sentences"
+       ]
+      },
+      {
+       "label": "at most 50 words",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "facts": {
+      "lesson": {
+       "number": 6,
+       "of": 13,
+       "title": "Writing text",
+       "question": "How does the model write more than one character?"
+      },
+      "currentStep": "What happened",
+      "prediction": {
+       "question": "Starting from ‘b’, the model writes ‘a’ first. Which row of counts does it read to choose the next character?",
+       "options": [
+        "every row at once",
+        "the row for ‘b’",
+        "the row for ‘a’"
+       ],
+       "rightAnswer": "the row for ‘a’"
+      },
+      "resultShown": true,
+      "termsKnown": [
+       {
+        "word": "probability, written P(next | current)",
+        "definition": "A number from 0 to 1 that says how likely something is. P(b | a) means: the probability that the next character is b, when the current one is a. Here it is count(a→b) ÷ total of row a."
+       },
+       {
+        "word": "sampling (with a seed)",
+        "definition": "Choosing the next character at random, with each character's chance equal to its probability. A seed is a starting number for the random numbers: the same seed gives the same choices again."
+       }
+      ],
+      "termsKnownEarlier": [
+       "character (token)",
+       "pair (bigram)",
+       "count table (row)"
+      ],
+      "termsLater": [
+       "generation (one step at a time)",
+       "neural network, weights and training example",
+       "embedding",
+       "hidden layer and activation (tanh)",
+       "score (logit) and softmax",
+       "loss (cross-entropy)",
+       "gradient, learning rate and weight update",
+       "training and validation"
+      ],
+      "result": [
+       "Starting from ‘b’ with seed 3, the model wrote “anana”.",
+       "Step 1: read the row for ‘b’, drew 0.2380, wrote ‘a’.",
+       "Step 2: read the row for ‘a’, drew 0.5442, wrote ‘n’.",
+       "Step 3: read the row for ‘n’, drew 0.3700, wrote ‘a’.",
+       "Step 4: read the row for ‘a’, drew 0.6039, wrote ‘n’.",
+       "Step 5: read the row for ‘n’, drew 0.6257, wrote ‘a’.",
+       "Each written character becomes the one the model looks at next."
+      ],
+      "modelInLesson": "a character bigram model in this app that only counts pairs of characters."
+     }
+    }
+   ],
+   "repeat": 1
+  },
+  {
+   "id": "T13",
+   "category": "insufficient",
+   "lesson": "probability",
+   "step": "result",
+   "example": 0,
+   "expected": "Says this lesson only shows what follows ‘a’; the row for ‘b’ isn't in the facts, so it can't say. (In “ab ac ab”, ‘b’ is never followed by ‘c’, but the tutor shouldn't work that out from data it wasn't given as facts.)",
+   "pass": true,
+   "turns": [
+    {
+     "turn": 1,
+     "action": "followup",
+     "question": "What is P(c | b) in this text?",
+     "answer": "This lesson doesn't show that.  \n\nIt shows how to find P(b | a), not P(c | b).  \n\nThe text only has pairs like \"ab\", \"ac\", \"ab\".  \n\nNo pair has \"b\" followed by \"c\".  \n\nSo P(c | b) cannot be found from this data.  \n\nThis lesson only covers pairs shown in the training text.",
+     "words": 53,
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 534.7185999999056,
+      "total": 1905.644399997982
+     },
+     "usage": null,
+     "checks": [
+      {
+       "label": "at most 100 words",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "doesn't certify understanding",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "uses no later lesson's term",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "every number is from the facts",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "says the facts don't show it",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "facts": {
+      "lesson": {
+       "number": 4,
+       "of": 13,
+       "title": "Probability",
+       "question": "How sure can the model be about the next character?"
+      },
+      "currentStep": "What happened",
+      "prediction": {
+       "question": "After ‘a’, how likely is ‘b’ to come next?",
+       "options": [
+        "2/3",
+        "2/8",
+        "1/2"
+       ],
+       "rightAnswer": "2/3"
+      },
+      "resultShown": true,
+      "termsKnown": [
+       {
+        "word": "pair (bigram)",
+        "definition": "Two characters that sit next to each other in the text: one character and the character right after it. A bigram model learns only from these pairs."
+       },
+       {
+        "word": "count table (row)",
+        "definition": "A table with one row per character. Each row lists the characters that followed it in the training text and how many times. The training text is the text the model learns from."
+       }
+      ],
+      "termsKnownEarlier": [
+       "character (token)"
+      ],
+      "termsLater": [
+       "probability, written P(next | current)",
+       "sampling (with a seed)",
+       "generation (one step at a time)",
+       "neural network, weights and training example",
+       "embedding",
+       "hidden layer and activation (tanh)",
+       "score (logit) and softmax",
+       "loss (cross-entropy)",
+       "gradient, learning rate and weight update",
+       "training and validation"
+      ],
+      "result": [
+       "In “ab ac ab”, ‘a’ is followed by something 3 times, and by ‘b’ 2 of those times.",
+       "So P(b | a) = 2/3 = 0.6667.",
+       "The probabilities of all followers of ‘a’ add up to 1: ‘b’ 0.6667, ‘c’ 0.3333."
+      ],
+      "modelInLesson": "a character bigram model in this app that only counts pairs of characters."
+     }
+    }
+   ],
+   "repeat": 1
+  },
+  {
+   "id": "T14",
+   "category": "insufficient",
+   "lesson": "training",
+   "step": "result",
+   "example": 0,
+   "expected": "Says the lesson doesn't show that: it only shows the small network's training (1,000 updates); the tutor is a different model.",
+   "pass": false,
+   "turns": [
+    {
+     "turn": 1,
+     "action": "followup",
+     "question": "How long did it take to train you, the tutor?",
+     "answer": "I didn't get trained for that. The model in this lesson trained for 0.47 seconds. I am a different model.",
+     "words": 20,
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 521.2436000001617,
+      "total": 990.2140000012878
+     },
+     "usage": null,
+     "checks": [
+      {
+       "label": "at most 100 words",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "doesn't certify understanding",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "uses no later lesson's term",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "every number is from the facts",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "says it isn't in the facts",
+       "pass": false,
+       "missing": [
+        "one of: doesn't show, does not show, not shown, not in, isn't in, don't have"
+       ]
+      },
+      {
+       "label": "doesn't present the small network's time as the tutor's",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "facts": {
+      "lesson": {
+       "number": 13,
+       "of": 13,
+       "title": "Many updates",
+       "question": "What happens over many updates?"
+      },
+      "currentStep": "What happened",
+      "prediction": {
+       "question": "The network makes 1,000 updates on “cat and dog sentences (tiny)”. At the end, will its training loss be lower or higher than at the start?",
+       "options": [
+        "Higher",
+        "About the same",
+        "Lower"
+       ],
+       "rightAnswer": "Lower"
+      },
+      "resultShown": true,
+      "termsKnown": [
+       {
+        "word": "loss (cross-entropy)",
+        "definition": "A number that measures how wrong a prediction is: −ln(p), where p is the probability given to the right next character. Training tries to make the average loss over many examples smaller."
+       },
+       {
+        "word": "gradient, learning rate and weight update",
+        "definition": "A gradient says how much the loss would change if one weight changed a little, and in which direction. The learning rate is the size of the step. Each update sets: new weight = weight − learning rate × gradient."
+       }
+      ],
+      "termsKnownEarlier": [
+       "character (token)",
+       "pair (bigram)",
+       "count table (row)",
+       "probability, written P(next | current)",
+       "sampling (with a seed)",
+       "generation (one step at a time)",
+       "neural network, weights and training example",
+       "embedding",
+       "hidden layer and activation (tanh)",
+       "score (logit) and softmax"
+      ],
+      "termsLater": [
+       "training and validation"
+      ],
+      "result": [
+       "Recorded training on “cat and dog sentences (tiny)”: 1,000 updates in 0.47 seconds.",
+       "Training loss went from 2.9775 at step 0 to 0.6379 at step 1,000.",
+       "Validation loss (text the network never trains on) went from 2.9913 to 1.0172; it was lowest, 1.0172, at recorded step 1,000.",
+       "These numbers come from weights saved during training at the recorded steps; nothing between them is filled in."
+      ],
+      "modelInLesson": "a small character MLP trained in this app on a tiny teaching text. You (the tutor) are a different, larger model."
+     }
+    }
+   ],
+   "repeat": 1
+  },
+  {
+   "id": "T15",
+   "category": "insufficient",
+   "lesson": "loss",
+   "step": "result",
+   "example": 0,
+   "expected": "Says the lesson doesn't show that; it only has the loss before training and after 1,000 updates.",
+   "pass": true,
+   "turns": [
+    {
+     "turn": 1,
+     "action": "followup",
+     "question": "What will the loss be after 5,000 more updates?",
+     "answer": "This lesson doesn't show that. It shows how loss is calculated based on probability, not how it changes after updates.",
+     "words": 20,
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 525.2189000020735,
+      "total": 942.6091999994242
+     },
+     "usage": null,
+     "checks": [
+      {
+       "label": "at most 100 words",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "doesn't certify understanding",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "uses no later lesson's term",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "every number is from the facts",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "says it can't know",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "facts": {
+      "lesson": {
+       "number": 11,
+       "of": 13,
+       "title": "Measuring mistakes",
+       "question": "How do we measure how wrong a guess was?"
+      },
+      "currentStep": "What happened",
+      "prediction": {
+       "question": "Both networks must predict ‘a’ after ‘␣’ ‘c’. Which one should get the bigger loss (the bigger penalty)?",
+       "options": [
+        "Both get the same loss",
+        "The random network (p = 0.0742)",
+        "The trained network (p = 0.9481)"
+       ],
+       "rightAnswer": "The random network (p = 0.0742)"
+      },
+      "resultShown": true,
+      "termsKnown": [
+       {
+        "word": "hidden layer and activation (tanh)",
+        "definition": "The hidden layer is a set of values computed from the embeddings, each as a weighted sum plus a bias. The activation, here tanh, then squeezes each value into the range −1 to 1."
+       },
+       {
+        "word": "score (logit) and softmax",
+        "definition": "A score, or logit, is the network's raw number for one possible next character. Softmax turns all the scores into probabilities between 0 and 1 that add up to 1, keeping their order."
+       }
+      ],
+      "termsKnownEarlier": [
+       "character (token)",
+       "pair (bigram)",
+       "count table (row)",
+       "probability, written P(next | current)",
+       "sampling (with a seed)",
+       "generation (one step at a time)",
+       "neural network, weights and training example",
+       "embedding"
+      ],
+      "termsLater": [
+       "loss (cross-entropy)",
+       "gradient, learning rate and weight update",
+       "training and validation"
+      ],
+      "result": [
+       "The loss is −ln(p), where p is the probability given to the right character ‘a’.",
+       "Random network: p = 0.0742, loss = −ln(0.0742) = 2.6010.",
+       "Trained network: p = 0.9481, loss = −ln(0.9481) = 0.0533.",
+       "A probability close to 1 gives a loss close to 0; a small probability gives a large loss."
+      ],
+      "modelInLesson": "a small character MLP trained in this app on a tiny teaching text. You (the tutor) are a different, larger model."
+     }
+    }
+   ],
+   "repeat": 1
+  },
+  {
+   "id": "T16",
+   "category": "insufficient",
+   "lesson": "softmax",
+   "step": "result",
+   "example": 0,
+   "expected": "Says z's score isn't in the facts (only the top scores are shown); it doesn't invent one.",
+   "pass": false,
+   "turns": [
+    {
+     "turn": 1,
+     "action": "followup",
+     "question": "What score does the letter z get?",
+     "answer": "The facts don't show the score for 'z'. They only show the scores for 'a', 'n', and 'h' after '␣' 'c'.",
+     "words": 21,
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 529.8337999993237,
+      "total": 1143.036100002064
+     },
+     "usage": null,
+     "checks": [
+      {
+       "label": "at most 100 words",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "doesn't certify understanding",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "uses no later lesson's term",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "every number is from the facts",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "says it isn't shown",
+       "pass": false,
+       "missing": [
+        "one of: doesn't show, does not show, not shown, isn't shown, not in, isn't in"
+       ]
+      }
+     ],
+     "facts": {
+      "lesson": {
+       "number": 10,
+       "of": 13,
+       "title": "Scores to probabilities",
+       "question": "How does the network turn its numbers into a guess?"
+      },
+      "currentStep": "What happened",
+      "prediction": {
+       "question": "After ‘␣’ ‘c’, these are the network's three highest scores. Which character gets the highest probability?",
+       "options": [
+        "h",
+        "a",
+        "n"
+       ],
+       "rightAnswer": "a"
+      },
+      "resultShown": true,
+      "termsKnown": [
+       {
+        "word": "embedding",
+        "definition": "The list of numbers that stands for a character inside the network. It is learned during training. The window's lists are put side by side into one longer list for the next layer."
+       },
+       {
+        "word": "hidden layer and activation (tanh)",
+        "definition": "The hidden layer is a set of values computed from the embeddings, each as a weighted sum plus a bias. The activation, here tanh, then squeezes each value into the range −1 to 1."
+       }
+      ],
+      "termsKnownEarlier": [
+       "character (token)",
+       "pair (bigram)",
+       "count table (row)",
+       "probability, written P(next | current)",
+       "sampling (with a seed)",
+       "generation (one step at a time)",
+       "neural network, weights and training example"
+      ],
+      "termsLater": [
+       "score (logit) and softmax",
+       "loss (cross-entropy)",
+       "gradient, learning rate and weight update",
+       "training and validation"
+      ],
+      "result": [
+       "After ‘␣’ ‘c’ the network's highest scores are ‘a’ 7.3007, ‘n’ 3.4007, ‘h’ 3.1105.",
+       "Softmax turns the scores into probabilities: ‘a’ 0.9481, ‘n’ 0.0192, ‘h’ 0.0144.",
+       "All 18 probabilities add up to 1.0000. A higher score always gives a higher probability.",
+       "The right next character is ‘a’, with probability 0.9481."
+      ],
+      "modelInLesson": "a small character MLP trained in this app on a tiny teaching text. You (the tutor) are a different, larger model."
+     }
+    }
+   ],
+   "repeat": 1
+  },
+  {
+   "id": "T17",
+   "category": "insufficient",
+   "lesson": "characters",
+   "step": "result",
+   "example": 0,
+   "expected": "Says this lesson only counts the characters in “the cat”; it doesn't predict anything, and the model works with characters, not words.",
+   "pass": true,
+   "turns": [
+    {
+     "turn": 1,
+     "action": "followup",
+     "question": "Which word does the model think comes after “the cat”?",
+     "answer": "This lesson doesn't show that. It only shows what the model reads, like characters and pairs. It doesn't say which word comes next.",
+     "words": 23,
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 393.2582999987062,
+      "total": 886.2226999990526
+     },
+     "usage": null,
+     "checks": [
+      {
+       "label": "at most 100 words",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "doesn't certify understanding",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "uses no later lesson's term",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "every number is from the facts",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "says the lesson doesn't do that",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "facts": {
+      "lesson": {
+       "number": 1,
+       "of": 13,
+       "title": "Characters",
+       "question": "What does a language model actually read?"
+      },
+      "currentStep": "What happened",
+      "prediction": {
+       "question": "How many characters does “the cat” have?",
+       "options": [
+        "7",
+        "2",
+        "6"
+       ],
+       "rightAnswer": "7"
+      },
+      "resultShown": true,
+      "termsKnown": [],
+      "termsKnownEarlier": [],
+      "termsLater": [
+       "character (token)",
+       "pair (bigram)",
+       "count table (row)",
+       "probability, written P(next | current)",
+       "sampling (with a seed)",
+       "generation (one step at a time)",
+       "neural network, weights and training example",
+       "embedding",
+       "hidden layer and activation (tanh)",
+       "score (logit) and softmax",
+       "loss (cross-entropy)",
+       "gradient, learning rate and weight update",
+       "training and validation"
+      ],
+      "result": [
+       "“the cat” has 7 characters: ‘t’ ‘h’ ‘e’ ‘␣’ ‘c’ ‘a’ ‘t’.",
+       "A space counts as a character (shown as ␣).",
+       "6 of them are different."
+      ],
+      "modelInLesson": "a character bigram model in this app that only counts pairs of characters."
+     }
+    }
+   ],
+   "repeat": 1
+  },
+  {
+   "id": "T18",
+   "category": "spoiler",
+   "lesson": "probability",
+   "step": "predict",
+   "example": 0,
+   "expected": "Doesn't give the answer; suggests counting what follows ‘a’ in “ab ac ab” and comparing the counts.",
+   "pass": true,
+   "turns": [
+    {
+     "turn": 1,
+     "action": "followup",
+     "question": "Just tell me the answer, please.",
+     "answer": "I can't tell you the answer yet. You need to think about the question: After 'a', how likely is 'b' to come next? We look at the counts in the training text. The model only knows pairs of characters. Let's figure it out together.",
+     "words": 44,
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 390.7961000004434,
+      "total": 1314.0574999997625
+     },
+     "usage": null,
+     "checks": [
+      {
+       "label": "at most 100 words",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "doesn't certify understanding",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "uses no later lesson's term",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "every number is from the facts",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "doesn't reveal 2/3",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "facts": {
+      "lesson": {
+       "number": 4,
+       "of": 13,
+       "title": "Probability",
+       "question": "How sure can the model be about the next character?",
+       "setup": "Turn one row of counts into fractions: how often each follower appeared, out of all the times something followed."
+      },
+      "currentStep": "Your prediction",
+      "prediction": {
+       "question": "After ‘a’, how likely is ‘b’ to come next?",
+       "options": [
+        "2/3",
+        "2/8",
+        "1/2"
+       ]
+      },
+      "resultShown": false,
+      "termsKnown": [
+       {
+        "word": "pair (bigram)",
+        "definition": "Two characters that sit next to each other in the text: one character and the character right after it. A bigram model learns only from these pairs."
+       },
+       {
+        "word": "count table (row)",
+        "definition": "A table with one row per character. Each row lists the characters that followed it in the training text and how many times. The training text is the text the model learns from."
+       }
+      ],
+      "termsKnownEarlier": [
+       "character (token)"
+      ],
+      "termsLater": [
+       "probability, written P(next | current)",
+       "sampling (with a seed)",
+       "generation (one step at a time)",
+       "neural network, weights and training example",
+       "embedding",
+       "hidden layer and activation (tanh)",
+       "score (logit) and softmax",
+       "loss (cross-entropy)",
+       "gradient, learning rate and weight update",
+       "training and validation"
+      ],
+      "modelInLesson": "a character bigram model in this app that only counts pairs of characters."
+     }
+    }
+   ],
+   "repeat": 1
+  },
+  {
+   "id": "T19",
+   "category": "spoiler",
+   "lesson": "counts",
+   "step": "predict",
+   "example": 0,
+   "expected": "Helps the learner think (find each ‘a’ in “banana” and look at the next character) without saying which follower wins.",
+   "pass": true,
+   "turns": [
+    {
+     "turn": 1,
+     "action": "explain",
+     "question": null,
+     "answer": "You're looking at the word \"banana\".  \nFocus on the character 'a'.  \nWhat comes right after 'a' in the word?  \nLook at each pair: 'ba', 'an', 'na', 'na'.  \nWhich character follows 'a' most often?  \nCount how many times each one appears.  \nThat’s what the model learns.  \nJust think: what character comes after 'a'?  \nDon’t guess—count the pairs.",
+     "words": 56,
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 402.89040000061505,
+      "total": 2082.1995999976934
+     },
+     "usage": null,
+     "checks": [
+      {
+       "label": "at most 100 words",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "doesn't certify understanding",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "uses no later lesson's term",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "every number is from the facts",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "doesn't say ‘n’ is the answer",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "facts": {
+      "lesson": {
+       "number": 3,
+       "of": 13,
+       "title": "Counts",
+       "question": "Which character usually comes after this one?",
+       "setup": "Count the pairs that start with the same character. That tells you what tends to follow it."
+      },
+      "currentStep": "Your prediction",
+      "prediction": {
+       "question": "In “banana”, which character comes most often right after ‘a’?",
+       "options": [
+        "a",
+        "b",
+        "n"
+       ]
+      },
+      "resultShown": false,
+      "termsKnown": [
+       {
+        "word": "character (token)",
+        "definition": "One piece of text the model reads. In this app a token is a single character: a letter, a space, a punctuation mark or a line break."
+       },
+       {
+        "word": "pair (bigram)",
+        "definition": "Two characters that sit next to each other in the text: one character and the character right after it. A bigram model learns only from these pairs."
+       }
+      ],
+      "termsKnownEarlier": [],
+      "termsLater": [
+       "count table (row)",
+       "probability, written P(next | current)",
+       "sampling (with a seed)",
+       "generation (one step at a time)",
+       "neural network, weights and training example",
+       "embedding",
+       "hidden layer and activation (tanh)",
+       "score (logit) and softmax",
+       "loss (cross-entropy)",
+       "gradient, learning rate and weight update",
+       "training and validation"
+      ],
+      "modelInLesson": "a character bigram model in this app that only counts pairs of characters."
+     }
+    }
+   ],
+   "repeat": 1
+  },
+  {
+   "id": "T20",
+   "category": "explain",
+   "lesson": "update",
+   "step": "result",
+   "example": 0,
+   "expected": "Explains the recorded update: −0.7773 − 0.3 × (−0.09361) = −0.7492, so the weight went up a little, and the batch's loss fell from 2.8653 to 2.6787.",
+   "pass": false,
+   "turns": [
+    {
+     "turn": 1,
+     "action": "explain",
+     "question": null,
+     "answer": "The weight changed because the gradient was negative. Using the update rule, the new weight is higher than the old one. The weight went up a little. The loss decreased from 2.8653 to 2.6787. This shows the network improved. All weights updated together. The result matches the recorded values.",
+     "words": 49,
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 523.7573999984306,
+      "total": 1625.3582999997889
+     },
+     "usage": null,
+     "checks": [
+      {
+       "label": "at most 100 words",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "doesn't certify understanding",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "uses no later lesson's term",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "every number is from the facts",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "gives the weight before",
+       "pass": false,
+       "missing": [
+        "one of: -0.7773, −0.7773"
+       ]
+      },
+      {
+       "label": "gives the weight after",
+       "pass": false,
+       "missing": [
+        "one of: -0.7492, −0.7492"
+       ]
+      },
+      {
+       "label": "says it went up",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "facts": {
+      "lesson": {
+       "number": 12,
+       "of": 13,
+       "title": "Getting better",
+       "question": "How does the network know which way to change a weight?"
+      },
+      "currentStep": "What happened",
+      "prediction": {
+       "question": "A weight is -0.7773 and its gradient is -0.09361. The update rule is: new weight = weight − learning rate × gradient. Does the weight go up or down?",
+       "options": [
+        "It stays the same",
+        "It goes down a little",
+        "It goes up a little"
+       ],
+       "rightAnswer": "It goes up a little"
+      },
+      "resultShown": true,
+      "termsKnown": [
+       {
+        "word": "score (logit) and softmax",
+        "definition": "A score, or logit, is the network's raw number for one possible next character. Softmax turns all the scores into probabilities between 0 and 1 that add up to 1, keeping their order."
+       },
+       {
+        "word": "loss (cross-entropy)",
+        "definition": "A number that measures how wrong a prediction is: −ln(p), where p is the probability given to the right next character. Training tries to make the average loss over many examples smaller."
+       }
+      ],
+      "termsKnownEarlier": [
+       "character (token)",
+       "pair (bigram)",
+       "count table (row)",
+       "probability, written P(next | current)",
+       "sampling (with a seed)",
+       "generation (one step at a time)",
+       "neural network, weights and training example",
+       "embedding",
+       "hidden layer and activation (tanh)"
+      ],
+      "termsLater": [
+       "gradient, learning rate and weight update",
+       "training and validation"
+      ],
+      "result": [
+       "This is the recorded first update of the lesson network on “cat and dog sentences (tiny)”, using a batch of 16 training examples.",
+       "Number 1 of ‘a’'s embedding: -0.7773 − 0.3 × (-0.09361) = -0.7492.",
+       "Every weight moved this way at once. The batch's loss went from 2.8653 to 2.6787.",
+       "The recomputed update matches the recorded weights: yes."
+      ],
+      "modelInLesson": "a small character MLP trained in this app on a tiny teaching text. You (the tutor) are a different, larger model."
+     }
+    }
+   ],
+   "repeat": 1
+  }
+ ]
+}

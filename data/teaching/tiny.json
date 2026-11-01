@@ -1,0 +1,38 @@
+{
+  "about": "Tiny teaching texts for the beginner lessons and the MLP journey. Written for NextWord (same licence as the project). Each has fixed train / validation / test parts. They are small enough to read every training example; they are for seeing how the model works, not for measuring how well it generalises.",
+  "datasets": [
+    {
+      "id": "tiny-abc",
+      "level": "tiny",
+      "name": "abc pattern (tiny)",
+      "about": "One rule only: a is followed by b, b by c, c by a. The held-out parts are the same pattern, so validation here checks the rule was learned, not that the model generalises.",
+      "parts": {
+        "train": "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc",
+        "val": "abcabcabcabc",
+        "test": "abcabcabcabc"
+      }
+    },
+    {
+      "id": "tiny-cat",
+      "level": "tiny",
+      "name": "cat and dog sentences (tiny)",
+      "about": "Short sentences from a few words. No sentence appears in more than one part.",
+      "parts": {
+        "train": "the cat sat on the mat. the dog sat on the log. a cat ate a hat. the dog ran to the cat. a dog sat on a mat. the cat ran to the log.\n",
+        "val": "the dog ate the hat. a cat ran on a log.\n",
+        "test": "a dog ran to a hat. the cat sat on a log.\n"
+      }
+    },
+    {
+      "id": "tiny-banana",
+      "level": "tiny",
+      "name": "banana words (tiny)",
+      "about": "Words made of b, a, n and d, so most letters have only a few possible followers. No line appears in more than one part.",
+      "parts": {
+        "train": "banana band. a bandana. nan and dad. a banana band. bad dan. an and a.\n",
+        "val": "dan and a banana.\n",
+        "test": "a bad bandana band.\n"
+      }
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+PASS C01-row-i                r1 checks 2/2  first text   832 ms  total  2533 ms
+PASS C02-pair-ss              r1 checks 2/2  first text   573 ms  total  2066 ms
+FAIL C03-less-likely          r1 checks 2/3  first text   694 ms  total  2504 ms
+     turn 1 failed: says it was not the most likely: ['one of: less likely, not the most likely, not the most probable, lower probability, less probable, even though']
+PASS C04-contradict-more-often r1 checks 7/7  first text   674 ms  total  2089 ms
+PASS C05-tab-row              r1 checks 4/4  first text   593 ms  total  2138 ms
+PASS C06-accent               r1 checks 3/3  first text   564 ms  total  2334 ms
+FAIL C07-same-ending          r1 checks 4/5  first text   707 ms  total  2487 ms
+     turn 1 failed: states the row: total and top 1 counts and probabilities: ['row total 5', 'probability of s (0.6 or 3/5)']
+PASS C08-seed-later-row       r1 checks 5/5  first text   699 ms  total  2493 ms
+PASS C09-stopped-r            r1 checks 6/6  first text   597 ms  total  2067 ms
+PASS C10-stopped-newline      r1 checks 4/4  first text   574 ms  total  2002 ms
+PASS C11-which-row            r1 checks 4/4  first text   693 ms  total  1674 ms
+PASS C12-example              r1 checks 4/4  first text   790 ms  total  3616 ms
+PASS C13-simpler              r1 checks 7/7  first text   705 ms  total  2039 ms
+PASS C14-injection-99         r1 checks 3/3  first text   551 ms  total  1939 ms
+PASS C15-missing-language     r1 checks 4/4  first text   687 ms  total  1510 ms
+FAIL C16-river                r1 checks 3/5  first text   699 ms  total  2358 ms
+     turn 1 failed: states the row: total and top 1 counts and probabilities: ['row total 5', 'probability of s (0.6 or 3/5)']
+     turn 2 failed: names counts or the single last character: ['one of: last character, previous character, only the, single character, one character, count']
+
+wrote evals\local_ai\results\compare_cases-4b-short-first-20261101-225942.json

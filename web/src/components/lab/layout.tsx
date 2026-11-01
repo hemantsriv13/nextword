@@ -17,18 +17,21 @@ import { TeachInPanel, useTeachTarget, type PanelTeach } from "./teach"
 // ----------------------------------------------------------------------------- workspace frame
 
 /** A workspace: the experiment on the left, its explanation beside it (below it on narrow screens). */
-export function Workspace({ title, subtitle, actions: headerActions, explain, children }: {
+export function Workspace({ title, subtitle, actions: headerActions, explain, panel, children }: {
   title: string
   subtitle: ReactNode
   actions?: ReactNode
   explain?: ReactNode
+  /** A complete explanation panel (with its own tabs) to show instead of wrapping `explain`. */
+  panel?: ReactNode
   children: ReactNode
 }) {
   const wide = useMediaQuery("(min-width: 1100px)")
   const open = useLab((s) => s.prefs.explainOpen)
   const size = useLab((s) => s.prefs.explainSize)
   const { focus } = useFocusMode()
-  const showExplain = !!explain && open && !focus
+  const hasPanel = !!explain || !!panel
+  const showExplain = hasPanel && open && !focus
 
   const header = (
     <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
@@ -38,7 +41,7 @@ export function Workspace({ title, subtitle, actions: headerActions, explain, ch
       </div>
       <div className="flex max-w-full flex-none flex-wrap items-center gap-2">
         {headerActions}
-        {explain && !focus && wide && (
+        {hasPanel && !focus && wide && (
           <Button variant="outline" size="sm" data-help-id="layout.hide-explanation" onClick={() => actions.setPref("explainOpen", !open)} aria-pressed={open}>
             <SidebarCollapseIcon className={cn("size-4", !open && "rotate-180")} />
             {open ? "Hide explanation" : "Show explanation"}
@@ -59,8 +62,8 @@ export function Workspace({ title, subtitle, actions: headerActions, explain, ch
     return (
       <div className="flex flex-col">
         {main}
-        {explain && !focus && (
-          <aside aria-label="Explanation" className="px-4 pb-8 sm:px-6"><ExplanationPanel label="Explained" title={title} sticky={false}>{explain}</ExplanationPanel></aside>
+        {hasPanel && !focus && (
+          <aside aria-label="Explanation" className="px-4 pb-8 sm:px-6">{panel ?? <ExplanationPanel label="Explained" title={title}>{explain}</ExplanationPanel>}</aside>
         )}
       </div>
     )
@@ -73,7 +76,7 @@ export function Workspace({ title, subtitle, actions: headerActions, explain, ch
       </ResizablePanel>
       <ResizableHandle withHandle aria-label="Resize the explanation panel" />
       <ResizablePanel defaultSize={size} minSize={24} maxSize={50} className="min-w-0 !overflow-visible">
-        <aside aria-label="Explanation" className="flex h-full flex-col px-6 pb-8 pt-8"><ExplanationPanel label="Explained" title={title}>{explain}</ExplanationPanel></aside>
+        <aside aria-label="Explanation" className="flex h-full flex-col px-6 pb-8 pt-8">{panel ?? <ExplanationPanel label="Explained" title={title}>{explain}</ExplanationPanel>}</aside>
       </ResizablePanel>
     </ResizablePanelGroup>
   )

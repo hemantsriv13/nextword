@@ -14,7 +14,7 @@ from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
-from nextword import bigram
+from nextword import bigram, datasets
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 SAMPLE_PATH = ROOT / "data" / "sample.txt"
@@ -60,9 +60,24 @@ BUILT_IN_NAMES = {"sample": "Sample passage", "example": "Example passage"}
 class CorpusStore:
     """Training texts: the bundled sample plus any text uploaded through the Lab (kept in data/lab/)."""
 
-    def __init__(self, upload_dir: Path = UPLOAD_DIR):
+    def __init__(self, upload_dir: Path = UPLOAD_DIR, datasets_home: Path | None = datasets.DEFAULT_HOME):
         self.upload_dir = upload_dir
+        self.datasets_home = datasets_home  # None: only the tiny teaching texts (used by tests)
         self._tables: dict[str, tuple[str, dict]] = {}  # corpus id -> (fingerprint, counts)
+
+    # Datasets (nextword/datasets.py) come with fixed train / validation / test parts. Their text is the
+    # three parts joined in that order; parts() returns them separately so nothing re-splits them.
+    def _datasets(self) -> dict[str, dict]:
+        found = {"ds-" + k: v for k, v in datasets.tiny().items()}
+        if self.datasets_home is not None:
+            found.update({"ds-" + k: v for k, v in datasets.prepared(self.datasets_home).items()})
+        return found
+
+    def parts(self, corpus_id: str) -> dict[str, str] | None:
+        d = self._datasets().get(corpus_id)
+        if d is None:
+            return None
+        return dict(d["parts"]) if "parts" in d else datasets.parts_of(d)
 
     def _paths(self) -> dict[str, tuple[Path, str]]:
         paths = {"sample": (SAMPLE_PATH, "sample"), "example": (EXAMPLE_PATH, "example")}
@@ -72,12 +87,27 @@ class CorpusStore:
         return paths
 
     def text(self, corpus_id: str) -> str:
+        parts = self.parts(corpus_id)
+        if parts is not None:
+            return parts["train"] + parts["val"] + parts["test"]
         entry = self._paths().get(corpus_id)
         if entry is None:
             raise LabError(f"no corpus called {corpus_id!r}", 404, "unknown_corpus")
         return entry[0].read_text(encoding="utf-8")
 
     def describe(self, corpus_id: str) -> dict:
+        d = self._datasets().get(corpus_id)
+        if d is not None:
+            parts = self.parts(corpus_id)
+            text = parts["train"] + parts["val"] + parts["test"]
+            return {
+                "id": corpus_id, "name": d["name"], "created": None, "origin": "dataset", "level": d["level"],
+                "about": d.get("about"), "license": d.get("license", "Written for NextWord (same licence as the project)"),
+                "sources": d.get("sources"), "preprocessing": d.get("preprocessing"), "overlapRemoved": d.get("overlapRemoved"),
+                "file": (d["dir"].replace("\\", "/") if "dir" in d else "data/teaching/tiny.json"),
+                "chars": len(text), "distinct": len(set(text)), "fingerprint": _fingerprint(text),
+                "parts": {k: len(v) for k, v in parts.items()},
+            }
         path, origin = self._paths()[corpus_id]
         text = path.read_text(encoding="utf-8")
         meta = self._meta(path) if origin == "upload" else {}
@@ -94,7 +124,7 @@ class CorpusStore:
         }
 
     def list(self) -> list[dict]:
-        return [self.describe(corpus_id) for corpus_id in self._paths()]
+        return [self.describe(corpus_id) for corpus_id in [*self._paths(), *self._datasets()]]
 
     @staticmethod
     def _meta(path: Path) -> dict:
@@ -136,6 +166,8 @@ class CorpusStore:
 
     def delete(self, corpus_id: str) -> None:
         entry = self._paths().get(corpus_id)
+        if entry is None and corpus_id in self._datasets():
+            raise LabError("the bundled texts cannot be deleted", 403, "protected")
         if entry is None:
             raise LabError(f"no corpus called {corpus_id!r}", 404, "unknown_corpus")
         if entry[1] != "upload":
@@ -353,18 +385,22 @@ def split_text(text: str, train: float, val: float) -> dict:
     return {"train": text[:a], "val": text[a:b], "test": text[b:], "bounds": [a, b]}
 
 
-def evaluate(text: str, train: float, val: float, on: str, k: float) -> dict:
+def evaluate(text: str, train: float, val: float, on: str, k: float, parts: dict | None = None) -> dict:
     """Held-out next-character loss for the bigram engine, trained on the train part only.
 
     k is add-k smoothing strength. k = 0 is the engine exactly as implemented (unseen events get
     probability 0, so their loss is infinite). k > 0 is a Lab-side variant: P = (c + k) / (n + kV),
     with V = training vocabulary + 1 slot for characters never seen in training.
+    `parts` are a dataset's fixed train / val / test texts; they replace the fraction split.
     """
     if on not in ("val", "test"):
         raise LabError("evaluate on 'val' or 'test'", 422, "bad_split_name")
     if not isinstance(k, (int, float)) or k < 0 or k > 100:
         raise LabError("smoothing k must be between 0 and 100", 422, "bad_k")
-    parts = split_text(text, train, val)
+    if parts is not None:
+        parts = {**parts, "bounds": [len(parts["train"]), len(parts["train"]) + len(parts["val"])]}
+    else:
+        parts = split_text(text, train, val)
     held = parts[on]
     if len(parts["train"]) < 2:
         raise LabError("the training part is too short to count any pairs", 422, "train_too_short")

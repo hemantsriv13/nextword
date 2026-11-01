@@ -1,4 +1,5 @@
 import { recordOutcome, type CheckpointRecord, type Outcome } from "./checkpoints"
+import type { LessonRecord, Place } from "./lessons"
 // Personal Lab state kept in this browser's localStorage: preferences, evidence levels, notes,
 // bookmarks and experiment history. Model data never lives here; it stays with the Python backend.
 
@@ -67,6 +68,8 @@ export interface LabState {
   guide: Record<string, boolean>
   /** Learning checkpoints: kept apart from the evidence levels, which you record yourself. */
   checkpoints: Record<string, CheckpointRecord>
+  /** Beginner lessons: where you are, and each lesson's progress (its check is in `checkpoints`). */
+  lessons: { place: Place | null; records: Record<string, LessonRecord> }
 }
 
 function initialState(): LabState {
@@ -85,6 +88,7 @@ function initialState(): LabState {
     experiments: [],
     guide: {},
     checkpoints: {},
+    lessons: { place: null, records: {} },
   }
 }
 
@@ -118,6 +122,7 @@ function migrate(data: unknown): LabState {
     experiments: Array.isArray(d.experiments) ? d.experiments : [],
     guide: { ...(d.guide ?? {}) },
     checkpoints: d.checkpoints && typeof d.checkpoints === "object" ? { ...d.checkpoints } : {},
+    lessons: d.lessons && typeof d.lessons === "object" ? { place: d.lessons.place ?? null, records: { ...(d.lessons.records ?? {}) } } : base.lessons,
   }
 }
 
@@ -220,6 +225,37 @@ export const actions = {
   /** Record a checkpoint event: a visit, a skip, a wrong answer, a pass, a viewed solution. */
   recordCheckpoint(id: string, version: number, question: string, outcome: Outcome | "visited") {
     update((s) => ({ ...s, checkpoints: { ...s.checkpoints, [id]: recordOutcome(s.checkpoints[id], version, question, outcome, new Date().toISOString()) } }))
+  },
+  /** Save your place in the beginner lessons, and how far each lesson got. */
+  setLessonPlace(place: Place) {
+    update((s) => {
+      const rec: LessonRecord = s.lessons.records[place.lesson] ?? { reached: 0 }
+      const next: LessonRecord = { ...rec, started: rec.started ?? new Date().toISOString(), reached: Math.max(rec.reached, place.step) }
+      return { ...s, lessons: { place, records: { ...s.lessons.records, [place.lesson]: next } } }
+    })
+  },
+  skipLesson(id: string) {
+    update((s) => ({ ...s, lessons: { ...s.lessons, records: { ...s.lessons.records, [id]: { ...(s.lessons.records[id] ?? { reached: 0 }), skipped: new Date().toISOString() } } } }))
+  },
+  /** Help asked for during a lesson (simpler wording, the tutor). Kept apart from how its check went. */
+  recordLessonHelp(id: string, kind: string) {
+    update((s) => {
+      const rec = s.lessons.records[id] ?? { reached: 0 }
+      if (rec.helpUsed?.includes(kind)) return s
+      return { ...s, lessons: { ...s.lessons, records: { ...s.lessons.records, [id]: { ...rec, helpUsed: [...(rec.helpUsed ?? []), kind] } } } }
+    })
+  },
+  setLessonPrediction(id: string, example: number, value: string) {
+    update((s) => {
+      const rec = s.lessons.records[id] ?? { reached: 0 }
+      return { ...s, lessons: { ...s.lessons, records: { ...s.lessons.records, [id]: { ...rec, predictions: { ...(rec.predictions ?? {}), [example]: value } } } } }
+    })
+  },
+  resetLessons() {
+    update((s) => {
+      const checkpoints = Object.fromEntries(Object.entries(s.checkpoints).filter(([k]) => !k.startsWith("learn.")))
+      return { ...s, checkpoints, lessons: { place: null, records: {} } }
+    })
   },
   resetCheckpoints() {
     update((s) => ({ ...s, checkpoints: {} }))

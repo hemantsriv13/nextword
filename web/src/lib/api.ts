@@ -49,11 +49,19 @@ async function request<T>(path: string, body?: unknown, timeoutMs = 20000): Prom
 export interface Corpus {
   id: string
   name: string
-  origin: "sample" | "example" | "upload"
+  origin: "sample" | "example" | "upload" | "dataset"
   file: string
   chars: number
   distinct: number
   fingerprint: string
+  /** Datasets only (nextword/datasets.py): their level, fixed parts and where they come from. */
+  level?: "tiny" | "medium" | "large"
+  about?: string
+  license?: string
+  sources?: { title: string; author: string; url: string; split: Record<string, string> }[]
+  preprocessing?: string[]
+  overlapRemoved?: Record<string, { repeatedParagraphs: number; shared12WordRuns: number }>
+  parts?: { train: number; val: number; test: number }
 }
 
 export interface FrequencyRow {

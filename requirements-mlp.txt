@@ -1,0 +1,2 @@
+torch==2.15.0
+# CPU build: pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu -r requirements-mlp.txt

@@ -31,6 +31,72 @@ Working notes for building the Lab, so the work can resume if a session ends. Ne
 - Comprehension check flags the workspaces as dense (130–170 words). Accepted for a working tool the
   user asked to be deep; copy was trimmed where it didn't carry meaning.
 
+## Done (2026-11-01, late): explanation panel layout (not committed, not pushed)
+- `components/lab/explanation.tsx`: one panel for the Bigram and MLP journeys, the lessons and the workspaces.
+  Tabs "Understand this step" / "Ask your tutor" (both stay mounted), one scroll area, composer pinned at the bottom,
+  sticky and window-high but never past the experiment's end (so the page height never changes), Expand overlay,
+  full-screen view below the page's wide breakpoint, Escape, focus return and focus kept inside overlays.
+- `components/lab/ask-ai.tsx`: transcript + composer split; follows streamed text only at the end, "Jump to latest";
+  experimental notice once; engine numbers collapsible; short "Explain this step" + "Explain in more detail";
+  backend `room` report, so a full conversation is announced before asking; new conversations keep earlier answers.
+- Verified live (4B): page height constant through long answers and follow-ups; scrolling up kept during streaming;
+  expand and phone view keep the stream and position; quiz lock in every view; Info popovers unclipped.
+- Tests: Python 103, vitest 244 (new `panel.test.tsx`), build OK. Spacing: 0 serious.
+
+## Done (2026-11-01, evening): Beginner lessons, tutor, dataset levels, recorded training (not committed, not pushed)
+- Backup before this: `..\local-ai\backups\nextword-uncommitted-20261101-170132.tgz` (+ .patch, .files).
+- Beginner lessons (`web/src/workspaces/Learn.tsx`, `content/lessons.json`, `lib/lessons.ts`, `lib/lesson-checks.ts`,
+  `nextword/lab/lessons.py`): 13 lessons, 6 steps each, 5 help controls, saved place and predictions, statuses
+  skipped / check skipped / with help / reviewed with solution / on your own. Docs: docs/LESSONS.md.
+- Tutor (`nextword/lab/assist_lesson.py`): off until the result is shown and during checks; evaluation in
+  `evals/local_ai/TUTOR.md` (fresh set: 7 correct, 3 minor, 2 wrong; human review blank).
+- Datasets (`nextword/datasets.py`, `data/teaching/tiny.json`; medium/large prepared in D:\LocalAI\datasets from 3
+  Gutenberg books, chapter splits, overlap removed): docs/DATASETS.md. Measured: largest setting 24 s / 377 MB.
+- Recorded training: weights saved at chosen steps + batches; replayed and recomputation-checked
+  (`components/lab/replay.tsx`, MLP page "Replay the recorded training", lessons 12–13).
+- Fixed on the way: quadratic window building (`mlp.examples`), curve losses chunked and sampled.
+- Tests: Python 102, vitest 237, build OK. Spacing measured (0 serious); comprehension check flags the lesson step's
+  7 actions (the 5 requested help controls are kept visible on purpose).
+
+## Done (2026-11-01): larger model comparison and the Neural MLP journey (not committed, not pushed)
+- Backups of the uncommitted work before this: `..\local-ai\backups\nextword-uncommitted-20261101-132848.tgz` (+ .patch).
+- Models now on D: (`D:\LocalAI\models`); 4B moved (checksum verified, loaded from D:, C: copy deleted); Qwen3.5-9B
+  downloaded (5.68 GB, SHA-256 matches). `start-colibri.cmd 4b|9b` runs one model at a time; NextWord uses "auto".
+- Comparison (`evals/local_ai/COMPARE.md`, frozen `compare_cases.json`): 9B not more accurate, ~12× slower, near RAM
+  limit → 4B stays default. Human review: none yet.
+- MLP: `nextword/mlp.py` (PyTorch 2.15 CPU, `requirements-mlp.txt`), `nextword/lab/mlp_service.py` (train/stop/reset,
+  saved runs in data/lab/mlp, inspect, generate, bigram comparison), `assist_mlp.py` (MLP facts for Ask local AI),
+  `web/src/workspaces/MlpJourney.tsx` (8 stages, quizzes mlp.examples/loss/update, completion card). Docs: docs/MLP.md.
+- Tests: Python 79, vitest 226, build OK. Chrome: training, stages, AI explanation of an update, stale after retrain,
+  quiz lock incl. minimised, 390 px (no sideways scroll on any stage), light theme. Spacing measured (0 serious).
+- Known: lesson pages stay dense (comprehension check); kit controls are 32–36 px (not 44 px touch targets).
+
+## Done (2026-11-01): Ask local AI, accuracy round 2 (not committed, not pushed)
+- Correction recorded in `evals/local_ai/RESULTS.md`: round 1 held-out is 8 correct / 5 wrong (AI review).
+- Fixes in `assist.py`: engine-worded `calculations`, `trace`, `concepts` (zero-rule left out for missing rows),
+  `trainingTextName`, backend-written invented example, rules; page shows the engine lines ("Your model") above
+  the "Experimental AI explanation". Prompt 918–1,042 tokens (was 645–749); ~2–3 answers per conversation.
+- Eval: `dev_cases.json` (old 19, now development/regression), `fresh_cases.json` (16, frozen in FROZEN.md before
+  fixes), new detectors in `run_eval.py` (+ `tests/test_eval_checks.py`). Report: `evals/local_ai/ROUND2.md`.
+- Result (AI review, 3 repeats): all 5 original mistakes gone; fresh 9/16 → 13/16 correct; first words +0.2 s.
+- Tests: Python 64, vitest 220, build OK. Human review of answers: not done yet.
+
+## Done (2026-11-01): Ask local AI (not committed, not pushed)
+- Colibri v2.1.0 + Qwen3-4B-Instruct-2507 Q4_K_M in `../local-ai/` (outside the repo); `start-colibri.cmd`
+  serves it on 127.0.0.1:8000 with CUDA, 2,048-token context. Details and measurements: `docs/LOCAL_AI.md`.
+- Backend `nextword/lab/assist.py` + streaming route `/api/assist/explain` and `/api/assist/status` in
+  `server.py`: recomputes the run from its id (fingerprint checked), step facts only, server-side
+  conversations bound to run + selection (4 answers), one request at a time, timeouts, loopback-only URL.
+- Frontend `components/lab/ask-ai.tsx` + `lib/assist.ts`, in the journey's explanation panel; checkpoint
+  API gained `active` (true while a question is shown or minimised) and the AI is off then.
+- Tests: Python 52 (22 new, fake Colibri server incl. cancellation), vitest 220 (8 new); build OK.
+  Chrome: stream, follow-up, stale marking, Stop (Colibri counted 1 cancellation), Try again, checkpoint
+  lock incl. minimised, Colibri stopped, 390 px, light theme. Better Design: review rules, comprehension
+  (one finding kept: 4 actions after an answer, all required), spacing measured at 390/1440/1728.
+- Evaluation `evals/local_ai/`: 19 cases; held-out 13/13 automatic, 4 factual errors found on reading.
+- Known: the after-answer state has 4 actions; buttons are the kit's 36 px (not 44 px touch targets).
+- Housekeeping: every "not committed, not pushed" section below is now on `main` (up to 681213a).
+
 ## Done (2026-10-28): term help and expandable code (not committed, not pushed)
 - `TermHelp` / `MathHelp` reuse the Info-icon popover (`HelpPopover` in info-tip.tsx). New glossary
   entries: exp, ln, NLL, nats; BPE, perplexity and cross-entropy rewritten. Examples bound to the

@@ -1,0 +1,83 @@
+[
+  {
+    "case": "instruction",
+    "run": 1,
+    "firstTextS": 0.4710875999999189,
+    "totalS": 0.49015959999996994,
+    "finish": "stop",
+    "usage": null,
+    "text": "blue"
+  },
+  {
+    "case": "instruction",
+    "run": 2,
+    "firstTextS": 0.054138699999839446,
+    "totalS": 0.07271189999983108,
+    "finish": "stop",
+    "usage": null,
+    "text": "blue"
+  },
+  {
+    "case": "instruction",
+    "run": 3,
+    "firstTextS": 0.06699489999982688,
+    "totalS": 0.08520959999987099,
+    "finish": "stop",
+    "usage": null,
+    "text": "blue"
+  },
+  {
+    "case": "explain",
+    "run": 1,
+    "firstTextS": 0.1575995000000603,
+    "totalS": 1.358993099999907,
+    "finish": "stop",
+    "usage": null,
+    "text": "The model gives 'e' a probability of 0.8 after 'h' because in the training text, the character 'h' was followed by 'e' four times and by 'a' once. Since the model only looks at how often characters appear after 'h', it sees 'e' much more often than 'a'. This makes 'e' much more likely, so the probability is 0.8."
+  },
+  {
+    "case": "explain",
+    "run": 2,
+    "firstTextS": 0.15691839999999502,
+    "totalS": 1.3539550999998937,
+    "finish": "stop",
+    "usage": null,
+    "text": "The model gives 'e' a probability of 0.8 after 'h' because in the training text, the character 'h' was followed by 'e' four times and by 'a' once. Since the model only looks at how often characters appear after 'h', it sees 'e' much more often than 'a'. This makes 'e' much more likely, so the probability is 0.8."
+  },
+  {
+    "case": "explain",
+    "run": 3,
+    "firstTextS": 0.14896620000013172,
+    "totalS": 1.3483834000001025,
+    "finish": "stop",
+    "usage": null,
+    "text": "The model gives 'e' a probability of 0.8 after 'h' because in the training text, the character 'h' was followed by 'e' four times and by 'a' once. Since the model only looks at how often characters appear after 'h', it sees 'e' much more often than 'a'. This makes 'e' much more likely, so the probability is 0.8."
+  },
+  {
+    "case": "follow-up",
+    "run": 1,
+    "firstTextS": 0.0488397999999961,
+    "totalS": 1.780703399999993,
+    "finish": "stop",
+    "usage": null,
+    "text": "If the text had one more 'ha' pair, then 'h' would be followed by 'a' one more time. So the total number of times 'h' is followed by a character becomes 6 (5 original + 1 new), and the number of times 'h' is followed by 'e' stays at 4.  \n\nSo P(e | h) = 4 / 6 = 2/3 ≈ 0.67.  \n\nThe probability decreases because 'a' now appears more often after 'h'."
+  },
+  {
+    "case": "follow-up",
+    "run": 2,
+    "firstTextS": 0.2928726000000097,
+    "totalS": 2.0462797999998656,
+    "finish": "stop",
+    "usage": null,
+    "text": "If the text had one more 'ha' pair, then 'h' would be followed by 'a' one more time. So the total number of times 'h' is followed by something becomes 6 (5 old + 1 new), and the number of times 'h' is followed by 'e' stays at 4.  \n\nSo P(e | h) = 4 / 6 = 2/3 ≈ 0.67.  \n\nThe probability decreases because 'a' now appears more often after 'h'."
+  },
+  {
+    "case": "follow-up",
+    "run": 3,
+    "firstTextS": 0.27067269999997734,
+    "totalS": 1.9767776999997295,
+    "finish": "stop",
+    "usage": null,
+    "text": "If the text had one more 'ha' pair, then 'h' would be followed by 'a' one more time. So the total number of times 'h' is followed by something becomes 6 (5 old + 1 new), and the number of times 'h' is followed by 'e' stays at 4.  \n\nSo P(e | h) = 4 / 6 = 2/3 ≈ 0.67.  \n\nThe probability decreases because 'a' now appears more often after 'h'."
+  }
+]

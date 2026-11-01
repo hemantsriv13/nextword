@@ -14,11 +14,13 @@ import { useRoute } from "@/lib/hooks"
 
 const PAGES: Record<Route, ComponentType> = {
   home: lazy(() => import("@/workspaces/Home")),
+  learn: lazy(() => import("@/workspaces/Learn")),
   journey: lazy(() => import("@/workspaces/Journey")),
   playground: lazy(() => import("@/workspaces/Playground")),
   data: lazy(() => import("@/workspaces/DataStudio")),
   counts: lazy(() => import("@/workspaces/Counts")),
   neural: lazy(() => import("@/workspaces/Neural")),
+  mlp: lazy(() => import("@/workspaces/MlpJourney")),
   attention: lazy(() => import("@/workspaces/Attention")),
   decoding: lazy(() => import("@/workspaces/Decoding")),
   evaluation: lazy(() => import("@/workspaces/Evaluation")),

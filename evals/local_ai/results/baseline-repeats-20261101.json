@@ -1,0 +1,167 @@
+[
+ {
+  "id": "H5-seed-change",
+  "rep": 1,
+  "first": "In step 1, the model looks at the last character of the prompt, which is \"h\". It checks all possible next characters, finding only two: \"e\" (80% chance) and \"a\" (20% chance). These are combined into a range: \"e\" from 0.0 to 0.8, \"a\" from 0.8 to 1.0. A random draw of 0.956 falls in the \"a\" range (0.8 to 1.0), so \"a\" is chosen. Even though \"e\" is more likely (80% vs. 20%), the random draw picked \"a\", which is less likely. This shows the model samples randomly based on probabilities, not always choosing the most probable character.",
+  "answer": "Changing only the seed affects the random draw but not the probabilities. The probabilities (like 0.8 for \"e\") are fixed from the training data. A new seed might make the random draw fall into a different range—e.g., 0.956 could become 0.721, possibly picking \"e\" instead. So, the first character could change. Later characters depend on the sequence built from the first choice, so the generated text might also change. However, the probabilities at each step remain the same. The seed only changes randomness, not the model’s learned probabilities.",
+  "timingsMs": {
+   "queue": 0.0,
+   "firstText": 546.8229999996765,
+   "total": 2729.227899999387
+  }
+ },
+ {
+  "id": "H5-seed-change",
+  "rep": 2,
+  "first": "In step 1, the model looks at the last character of the prompt, which is \"h\". It checks all possible next characters, finding only two: \"e\" (80% chance) and \"a\" (20% chance). These are combined into a range: \"e\" from 0.0 to 0.8, \"a\" from 0.8 to 1.0. A random draw of 0.956 falls in the \"a\" range (0.8 to 1.0), so \"a\" is chosen. Even though \"e\" is more likely (80% vs. 20%), the random draw picked \"a\", which is less likely. This shows the model samples randomly based on probabilities, not always choosing the most probable character.",
+  "answer": "Changing only the seed affects the random draw but not the probabilities. The probabilities (like 0.8 for \"e\") are fixed from the training data. A new seed might make the random draw fall into a different range—e.g., 0.956 could become 0.721, possibly picking \"e\" instead. So, the first character could change. Later characters depend on the sequence built from the first choice, so the generated text might also change. However, the probabilities at each step remain the same. The seed only changes randomness, not the model’s learned probabilities.",
+  "timingsMs": {
+   "queue": 0.0,
+   "firstText": 544.7018000004391,
+   "total": 2732.7910000003612
+  }
+ },
+ {
+  "id": "H5-seed-change",
+  "rep": 3,
+  "first": "In step 1, the model looks at the last character of the prompt, which is \"h\". It checks all possible next characters, finding only two: \"e\" (80% chance) and \"a\" (20% chance). These are combined into a range: \"e\" from 0.0 to 0.8, \"a\" from 0.8 to 1.0. A random draw of 0.956 falls in the \"a\" range (0.8 to 1.0), so \"a\" is chosen. Even though \"e\" is more likely (80% vs. 20%), the random draw picked \"a\", which is less likely. This shows the model samples randomly based on probabilities, not always choosing the most probable character.",
+  "answer": "Changing only the seed affects the random draw but not the probabilities. The probabilities (like 0.8 for \"e\") are fixed from the training data. A new seed might make the random draw fall into a different range—e.g., 0.956 could become 0.721, possibly picking \"e\" instead. So, the first character could change. Later characters depend on the sequence built from the first choice, so the generated text might also change. However, the probabilities at each step remain the same. The seed only changes randomness, not the model’s learned probabilities.",
+  "timingsMs": {
+   "queue": 0.0,
+   "firstText": 548.3975999995891,
+   "total": 2756.0230999997657
+  }
+ },
+ {
+  "id": "H6-stopped",
+  "rep": 1,
+  "first": "In step 2 of \"Append and repeat,\" the model looks at the last character, which is \"d\" (from \"bc\"). Since \"d\" was the last character in the training text \"dead_end,\" it had no following character. The model sees that \"d\" never had a successor, so it stops. The step shows that when \"d\" is the current character, no next character exists in training. Thus, the model cannot generate anything after \"d\" — it stops. This is a limitation: if a character has no successor, the model halts.",
+  "answer": "The generated text stopped after 2 characters because \"d\" (the third character) never had a successor in the training text \"dead_end\". The model only looks at the previous character to decide what comes next. Since \"d\" was the last character in the training text and had no following character, the model assigns it a probability of 0 for any next character. Thus, it stops generating after \"d\". The model does not generate beyond this point, even though 10 characters were requested. This is a key limitation: if a character has no successor, the model stops.",
+  "timingsMs": {
+   "queue": 0.0,
+   "firstText": 447.3381000007066,
+   "total": 2208.642000000509
+  }
+ },
+ {
+  "id": "H6-stopped",
+  "rep": 2,
+  "first": "In step 2 of \"Append and repeat,\" the model looks at the last character, which is \"d\" (from \"bc\"). Since \"d\" was the last character in the training text \"dead_end,\" it had no following character. The model sees that \"d\" never had a successor, so it stops. The step shows that when \"d\" is the current character, no next character exists in training. Thus, the model cannot generate anything after \"d\" — it stops. This is a limitation: if a character has no successor, the model halts.",
+  "answer": "The generated text stopped after 2 characters because \"d\" (the third character) never had a successor in the training text \"dead_end\". The model only looks at the previous character to decide what comes next. Since \"d\" was the last character in the training text and had no following character, the model assigns it a probability of 0 for any next character. Thus, it stops generating after \"d\". The model does not generate beyond this point, even though 10 characters were requested. This is a key limitation: if a character has no successor, the model stops.",
+  "timingsMs": {
+   "queue": 0.0,
+   "firstText": 437.08669999978156,
+   "total": 2245.0385000001916
+  }
+ },
+ {
+  "id": "H6-stopped",
+  "rep": 3,
+  "first": "In step 2 of \"Append and repeat,\" the model looks at the last character, which is \"d\" (from \"bc\"). Since \"d\" was the last character in the training text \"dead_end,\" it had no following character. The model sees that \"d\" never had a successor, so it stops. The step shows that when \"d\" is the current character, no next character exists in training. Thus, the model cannot generate anything after \"d\" — it stops. This is a limitation: if a character has no successor, the model halts.",
+  "answer": "The generated text stopped after 2 characters because \"d\" (the third character) never had a successor in the training text \"dead_end\". The model only looks at the previous character to decide what comes next. Since \"d\" was the last character in the training text and had no following character, the model assigns it a probability of 0 for any next character. Thus, it stops generating after \"d\". The model does not generate beyond this point, even though 10 characters were requested. This is a key limitation: if a character has no successor, the model stops.",
+  "timingsMs": {
+   "queue": 0.0,
+   "firstText": 443.0045999997674,
+   "total": 2230.1443000005747
+  }
+ },
+ {
+  "id": "H7-unseen-context",
+  "rep": 1,
+  "first": "The step \"Calculate probabilities\" involves turning counts of character pairs into probabilities. For the character \"z\", the training text has no pair starting with \"z\". So, the count of followers after \"z\" is 0. Since no pair exists, the model cannot predict what comes next after \"z\". The rule says: if a pair is never seen, its probability is 0. Thus, the probability of any character following \"z\" is 0. This is because the model only looks at the previous character and has no data for \"z\". No probabilities are calculated for \"z\" — the row is empty and the engine cannot predict from it.",
+  "answer": "The step \"Calculate probabilities\" involves turning counts of character pairs into probabilities. For the character \"z\", the training text has no pair starting with \"z\". So, the count of followers after \"z\" is 0. Since no pair exists, the model cannot predict what comes next after \"z\". The rule says: if a pair is never seen, its probability is 0. Thus, the probability of any character following \"z\" is 0. This is because the model only looks at the previous character and has no data for \"z\". No probabilities are calculated for \"z\" — the row is empty and the engine cannot predict from it.",
+  "timingsMs": {
+   "queue": 0.0,
+   "firstText": 411.6324999995413,
+   "total": 2666.2823999995453
+  }
+ },
+ {
+  "id": "H7-unseen-context",
+  "rep": 2,
+  "first": "The step \"Calculate probabilities\" involves turning counts of character pairs into probabilities. For the character \"z\", the training text has no pair starting with \"z\". So, the count of followers after \"z\" is 0. Since no pair exists, the model cannot predict what comes next after \"z\". The rule says: if a pair is never seen, its probability is 0. Thus, the probability of any character following \"z\" is 0. This is because the model only looks at the previous character and has no data for \"z\". No probabilities are calculated for \"z\" — the row is empty and the engine cannot predict from it.",
+  "answer": "The step \"Calculate probabilities\" involves turning counts of character pairs into probabilities. For the character \"z\", the training text has no pair starting with \"z\". So, the count of followers after \"z\" is 0. Since no pair exists, the model cannot predict what comes next after \"z\". The rule says: if a pair is never seen, its probability is 0. Thus, the probability of any character following \"z\" is 0. This is because the model only looks at the previous character and has no data for \"z\". No probabilities are calculated for \"z\" — the row is empty and the engine cannot predict from it.",
+  "timingsMs": {
+   "queue": 0.0,
+   "firstText": 416.85039999993023,
+   "total": 2758.4395000003497
+  }
+ },
+ {
+  "id": "H7-unseen-context",
+  "rep": 3,
+  "first": "The step \"Calculate probabilities\" involves turning counts of character pairs into probabilities. For the character \"z\", the training text has no pair starting with \"z\". So, the count of followers after \"z\" is 0. Since no pair exists, the model cannot predict what comes next after \"z\". The rule says: if a pair is never seen, its probability is 0. Thus, the probability of any character following \"z\" is 0. This is because the model only looks at the previous character and has no data for \"z\". No probabilities are calculated for \"z\" — the row is empty and the engine cannot predict from it.",
+  "answer": "The step \"Calculate probabilities\" involves turning counts of character pairs into probabilities. For the character \"z\", the training text has no pair starting with \"z\". So, the count of followers after \"z\" is 0. Since no pair exists, the model cannot predict what comes next after \"z\". The rule says: if a pair is never seen, its probability is 0. Thus, the probability of any character following \"z\" is 0. This is because the model only looks at the previous character and has no data for \"z\". No probabilities are calculated for \"z\" — the row is empty and the engine cannot predict from it.",
+  "timingsMs": {
+   "queue": 0.0,
+   "firstText": 418.686400000297,
+   "total": 2682.6123000000734
+  }
+ },
+ {
+  "id": "H9-claims-meaning",
+  "rep": 1,
+  "first": "The \"Read the context\" step means the model looks only at the last character of the prompt, which is \"h\". This is because a bigram model uses only the previous character to predict the next one. Here, the prompt ends with \"th\", so the model sees \"h\" as the last character.  \n\nIn the training text, after \"h\", the character \"e\" appears 4 times and \"a\" appears 1 time. So, P(e|h) = 4/5 = 0.8, and P(a|h) = 1/5 = 0.2.  \n\nOnly \"h\" is used because the model ignores words or meaning and only sees one character at a time. It does not look at \"th\" as a word or consider grammar. The model simply counts how often each character follows \"h\" in the training data.",
+  "answer": "No. The model did not understand that the sentence is about a cat. It only looks at the single previous character, \"h\", and does not understand words, meaning, or context.  \n\nIt did not use the whole prompt or recognize \"cat\" as a concept. Instead, it counted how often characters follow \"h\" in the training text. The generated text \"an cat sat\" starts with \"an\", which follows \"a\", not \"h\".  \n\nThe model has no comprehension of meaning or grammar. It only makes predictions based on character patterns. So, it did not use the whole sentence to pick the next letter. The facts show it only used the last character, \"h\".",
+  "timingsMs": {
+   "queue": 0.0,
+   "firstText": 539.275699999962,
+   "total": 3039.647999999943
+  }
+ },
+ {
+  "id": "H9-claims-meaning",
+  "rep": 2,
+  "first": "The \"Read the context\" step means the model looks only at the last character of the prompt, which is \"h\". This is because a bigram model uses only the previous character to predict the next one. Here, the prompt ends with \"th\", so the model sees \"h\" as the last character.  \n\nIn the training text, after \"h\", the character \"e\" appears 4 times and \"a\" appears 1 time. So, P(e|h) = 4/5 = 0.8, and P(a|h) = 1/5 = 0.2.  \n\nOnly \"h\" is used because the model ignores words or meaning and only sees one character at a time. It does not look at \"th\" as a word or consider grammar. The model simply counts how often each character follows \"h\" in the training data.",
+  "answer": "No. The model did not understand that the sentence is about a cat. It only looks at the single previous character, \"h\", and does not understand words, meaning, or context.  \n\nIt did not use the whole prompt or recognize \"cat\" as a concept. Instead, it counted how often characters follow \"h\" in the training text. The generated text \"an cat sat\" starts with \"an\", which follows \"a\", not \"h\".  \n\nThe model has no comprehension of meaning or grammar. It only makes predictions based on character patterns. So, it did not use the whole sentence to pick the next letter. The facts show it only used the last character, \"h\".",
+  "timingsMs": {
+   "queue": 0.0,
+   "firstText": 53.82960000042658,
+   "total": 2548.993400000654
+  }
+ },
+ {
+  "id": "H9-claims-meaning",
+  "rep": 3,
+  "first": "The \"Read the context\" step means the model looks only at the last character of the prompt, which is \"h\". This is because a bigram model uses only the previous character to predict the next one. Here, the prompt ends with \"th\", so the model sees \"h\" as the last character.  \n\nIn the training text, after \"h\", the character \"e\" appears 4 times and \"a\" appears 1 time. So, P(e|h) = 4/5 = 0.8, and P(a|h) = 1/5 = 0.2.  \n\nOnly \"h\" is used because the model ignores words or meaning and only sees one character at a time. It does not look at \"th\" as a word or consider grammar. The model simply counts how often each character follows \"h\" in the training data.",
+  "answer": "No. The model did not understand that the sentence is about a cat. It only looks at the single previous character, \"h\", and does not understand words, meaning, or context.  \n\nIt did not use the whole prompt or recognize \"cat\" as a concept. Instead, it counted how often characters follow \"h\" in the training text. The generated text \"an cat sat\" starts with \"an\", which follows \"a\", not \"h\".  \n\nThe model has no comprehension of meaning or grammar. It only makes predictions based on character patterns. So, it did not use the whole sentence to pick the next letter. The facts show it only used the last character, \"h\".",
+  "timingsMs": {
+   "queue": 0.0,
+   "firstText": 75.0783000003139,
+   "total": 2591.610400000718
+  }
+ },
+ {
+  "id": "H13-example",
+  "rep": 1,
+  "first": "In step 1, the model looks at the last character of the prompt, which is \"h\". It checks all possible next characters, finding only two: \"e\" (80% chance) and \"a\" (20% chance). These are combined into a range: \"e\" from 0.0 to 0.8, \"a\" from 0.8 to 1.0. A random draw of 0.956 falls in the \"a\" range (0.8 to 1.0), so \"a\" is chosen. Even though \"e\" is more likely (80% vs. 20%), the random draw picked \"a\", which is less likely. This shows the model samples randomly based on probabilities, not always choosing the most probable character.",
+  "answer": "Made-up example (not from this run):  \nPrompt ends with \"h\". The model sees two possible next characters:  \n- \"e\" with 80% probability (range 0.0 to 0.8)  \n- \"a\" with 20% probability (range 0.8 to 1.0)  \n\nA random number is drawn: 0.956. Since 0.956 is between 0.8 and 1.0, it picks \"a\".  \n\nNumbers from this run:  \n- Prompt last character: \"h\"  \n- Probability of \"e\": 0.8  \n- Probability of \"a\": 0.2  \n- Random draw: 0.956  \n- Chosen character: \"a\"  \n\nThis shows that even if \"e\" is more likely, the random draw selects \"a\", proving the model samples based on probability ranges, not always picking the most likely option.",
+  "timingsMs": {
+   "queue": 0.0,
+   "firstText": 74.1161000005377,
+   "total": 3215.142100000776
+  }
+ },
+ {
+  "id": "H13-example",
+  "rep": 2,
+  "first": "In step 1, the model looks at the last character of the prompt, which is \"h\". It checks all possible next characters, finding only two: \"e\" (80% chance) and \"a\" (20% chance). These are combined into a range: \"e\" from 0.0 to 0.8, \"a\" from 0.8 to 1.0. A random draw of 0.956 falls in the \"a\" range (0.8 to 1.0), so \"a\" is chosen. Even though \"e\" is more likely (80% vs. 20%), the random draw picked \"a\", which is less likely. This shows the model samples randomly based on probabilities, not always choosing the most probable character.",
+  "answer": "Made-up example (not from this run):  \nPrompt ends with \"h\". The model sees two possible next characters:  \n- \"e\" with 80% chance (range 0.0 to 0.8)  \n- \"a\" with 20% chance (range 0.8 to 1.0)  \n\nA random number is drawn: 0.956. Since 0.956 is between 0.8 and 1.0, it picks \"a\".  \n\nNumbers from this run:  \n- Prompt last character: \"h\"  \n- Probability of \"e\": 0.8  \n- Probability of \"a\": 0.2  \n- Random draw: 0.956  \n- Chosen character: \"a\"  \n\nThis shows how a random draw selects a character based on probability ranges, even if it's not the most likely.",
+  "timingsMs": {
+   "queue": 0.0,
+   "firstText": 555.5800000001909,
+   "total": 3492.8822000001674
+  }
+ },
+ {
+  "id": "H13-example",
+  "rep": 3,
+  "first": "In step 1, the model looks at the last character of the prompt, which is \"h\". It checks all possible next characters, finding only two: \"e\" (80% chance) and \"a\" (20% chance). These are combined into a range: \"e\" from 0.0 to 0.8, \"a\" from 0.8 to 1.0. A random draw of 0.956 falls in the \"a\" range (0.8 to 1.0), so \"a\" is chosen. Even though \"e\" is more likely (80% vs. 20%), the random draw picked \"a\", which is less likely. This shows the model samples randomly based on probabilities, not always choosing the most probable character.",
+  "answer": "Made-up example (not from this run):  \nPrompt ends with \"h\". The model sees two possible next characters:  \n- \"e\" with 80% chance (range 0.0 to 0.8)  \n- \"a\" with 20% chance (range 0.8 to 1.0)  \n\nA random number is drawn: 0.956. Since 0.956 is between 0.8 and 1.0, it picks \"a\".  \n\nNumbers from this run:  \n- Prompt last character: \"h\"  \n- Probability of \"e\": 0.8  \n- Probability of \"a\": 0.2  \n- Random draw: 0.956  \n- Chosen character: \"a\"  \n\nThis shows how a random draw selects a character based on probability ranges, even if it's not the most likely.",
+  "timingsMs": {
+   "queue": 0.0,
+   "firstText": 551.5561000001981,
+   "total": 3525.544899999659
+  }
+ }
+]

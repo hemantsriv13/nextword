@@ -45,6 +45,8 @@ interface CheckpointApi {
   /** The section was shown. Visiting is recorded on its own and never counts as a pass. */
   visit: (id: string) => void
   open: boolean
+  /** A question is in progress, shown or minimised to revisit. Local AI help is off meanwhile. */
+  active: boolean
 }
 
 const CheckpointContext = createContext<CheckpointApi | null>(null)
@@ -74,6 +76,7 @@ export function CheckpointProvider({ children }: { children: ReactNode }) {
       if (def) actions.recordCheckpoint(id, def.version, "", "visited")
     },
     open: !!session && !session.minimized,
+    active: !!session && session.phase !== "passed" && session.phase !== "empty",
   }), [start, session])
 
   return (

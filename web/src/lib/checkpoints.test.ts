@@ -99,13 +99,33 @@ describe("answers are checked fairly", () => {
 
   it("hints guide without giving the solution away", () => {
     for (const def of CHECKPOINTS) {
-      const q = questionFor(def, def.id.startsWith("journey.") ? ctx() : {}, 0)!
+      const q = questionFor(def, def.id.startsWith("journey.") ? ctx() : def.id.startsWith("mlp.") ? MLP_CTX : {}, 0)!
       for (const h of q.hints) {
         expect(h).not.toContain(q.solution.working)
         if (q.kind === "number") expect(h).not.toMatch(new RegExp(`(=|≈)\\s*${String(q.answer).replace(".", "\\.")}\\b`))
       }
       if (q.kind === "choice") expect(q.choices!.some((c) => c.id === q.answer)).toBe(true)
     }
+  })
+})
+
+// One inspected example, shaped like the MLP backend's answer (nextword/lab/mlp_service.py inspect()).
+const MLP_CTX = { mlp: { run: "m1", fingerprint: "abc123abc123", context: 3, inspection: {
+  index: 2, split: "train", target: "c", probs: { target: 0.2341 },
+  update: { lr: 0.1, embedding: { token: "a", before: [0.4123, -0.2], grad: [-0.0532, 0.01], after: [0.4176, -0.201] } },
+} } } as unknown as Parameters<typeof questionFor>[1]
+
+describe("the MLP journey's checkpoints use the run's own numbers", () => {
+  it("builds the loss and update questions from the inspected example, and never without one", () => {
+    const loss = questionFor(CHECKPOINT_BY_ID.get("mlp.loss")!, MLP_CTX, 0)!
+    expect(loss.source).toBe("Your model")
+    expect(loss.answer).toBeCloseTo(-Math.log(0.2341), 2)
+    const update = questionFor(CHECKPOINT_BY_ID.get("mlp.update")!, MLP_CTX, 0)!
+    expect(update.answer).toBeCloseTo(0.4123 - 0.1 * -0.0532, 4)
+    expect(questionFor(CHECKPOINT_BY_ID.get("mlp.loss")!, {}, 0)).toBeNull()
+    const ex = questionFor(CHECKPOINT_BY_ID.get("mlp.examples")!, MLP_CTX, 0)!
+    expect(ex.prompt).toContain("window of 3")
+    expect(ex.answer).toBe("b") // "cabbage": after "cab" comes "b"
   })
 })
 

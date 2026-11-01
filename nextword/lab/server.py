@@ -17,19 +17,48 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from nextword import bigram
-from nextword.lab import service
+from nextword.lab import assist, lessons, mlp_service, service
 from nextword.lab.service import LabError
 
 WEB_DIST = service.ROOT / "web" / "dist"
 MAX_BODY_BYTES = 8 * 1024 * 1024
+MAX_ASSIST_BODY_BYTES = 16 * 1024
 
 store = service.CorpusStore()
+assistant: assist.Assistant | None = None  # created by main(), or on first use with the default settings
 
 
-def _body(handler: "LabHandler") -> dict:
+def _assistant() -> assist.Assistant:
+    global assistant
+    if assistant is None:
+        assistant = assist.Assistant(store, mlps=_mlps(), lessons=_lessons())
+    return assistant
+
+
+lesson_results: lessons.Lessons | None = None
+
+
+def _lessons() -> lessons.Lessons:
+    global lesson_results
+    if lesson_results is None:
+        lesson_results = lessons.Lessons(store)
+    return lesson_results
+
+
+mlps: mlp_service.MLPService | None = None
+
+
+def _mlps() -> mlp_service.MLPService:
+    global mlps
+    if mlps is None:
+        mlps = mlp_service.MLPService(store)
+    return mlps
+
+
+def _body(handler: "LabHandler", limit: int = MAX_BODY_BYTES) -> dict:
     length = int(handler.headers.get("Content-Length") or 0)
-    if length > MAX_BODY_BYTES:
-        raise LabError("the request is larger than 8 MB", 413, "too_large")
+    if length > limit:
+        raise LabError(f"the request is larger than {limit:,} bytes", 413, "too_large")
     raw = handler.rfile.read(length) if length else b"{}"
     try:
         data = json.loads(raw.decode("utf-8"))
@@ -118,7 +147,9 @@ def r_benchmark(data):
 
 
 def r_evaluate(data):
-    return service.evaluate(_corpus_text(data), data.get("train", 0.8), data.get("val", 0.1), data.get("on", "val"), data.get("k", 0))
+    # A dataset has fixed parts; any other text is split by the fractions given.
+    parts = store.parts(data["corpus"]) if isinstance(data.get("corpus"), str) and not isinstance(data.get("corpusText"), str) else None
+    return service.evaluate(_corpus_text(data), data.get("train", 0.8), data.get("val", 0.1), data.get("on", "val"), data.get("k", 0), parts)
 
 
 def r_adapt(data):
@@ -129,11 +160,68 @@ def r_source(data):
     return service.source(data.get("path", ""))
 
 
+def r_assist_status(_):
+    return assist.status(_assistant().cfg)
+
+
+def r_mlp_status(_):
+    return _mlps().status()
+
+
+def r_mlp_run(data):
+    return _mlps().get(data.get("id")).summary()
+
+
+def r_mlp_start(data):
+    return _mlps().start(data)
+
+
+def r_mlp_stop(data):
+    return _mlps().stop(data.get("id"))
+
+
+def r_mlp_reset(data):
+    return _mlps().reset(data.get("id"))
+
+
+def r_mlp_inspect(data):
+    return _mlps().inspect(data)
+
+
+def r_mlp_examples(data):
+    return _mlps().examples_list(data)
+
+
+def r_mlp_generate(data):
+    return _mlps().generate(data)
+
+
+def r_mlp_history(data):
+    return _mlps().history(data)
+
+
+def r_mlp_replay(data):
+    return _mlps().replay_update(data)
+
+
+def r_lesson_result(data):
+    return _lessons().result(data)
+
+
+def r_mlp_compare(data):
+    return _mlps().compare(data)
+
+
 GET_ROUTES = {"/api/health": r_health, "/api/engines": r_engines, "/api/corpora": r_corpora,
-              "/api/corpus": r_corpus, "/api/source": r_source}
+              "/api/corpus": r_corpus, "/api/source": r_source, "/api/assist/status": r_assist_status,
+              "/api/mlp/status": r_mlp_status, "/api/mlp/run": r_mlp_run}
+ASSIST_ROUTE = "/api/assist/explain"
 POST_ROUTES = {"/api/corpora": r_corpus_add, "/api/corpora/delete": r_corpus_delete, "/api/stats": r_stats,
                "/api/bigram/table": r_table, "/api/bigram/row": r_row, "/api/generate": r_generate, "/api/journey": r_journey,
-               "/api/benchmark": r_benchmark, "/api/evaluate": r_evaluate, "/api/adapt": r_adapt}
+               "/api/benchmark": r_benchmark, "/api/evaluate": r_evaluate, "/api/adapt": r_adapt,
+               "/api/mlp/start": r_mlp_start, "/api/mlp/stop": r_mlp_stop, "/api/mlp/reset": r_mlp_reset,
+               "/api/mlp/inspect": r_mlp_inspect, "/api/mlp/examples": r_mlp_examples, "/api/mlp/generate": r_mlp_generate, "/api/mlp/compare": r_mlp_compare,
+               "/api/mlp/history": r_mlp_history, "/api/mlp/replay": r_mlp_replay, "/api/lessons/result": r_lesson_result}
 
 
 class LabHandler(BaseHTTPRequestHandler):
@@ -172,7 +260,63 @@ class LabHandler(BaseHTTPRequestHandler):
         self._static(parsed.path)
 
     def do_POST(self):  # noqa: N802
+        if urlparse(self.path).path == ASSIST_ROUTE:
+            self._assist()
+            return
         self._api(POST_ROUTES, lambda: _body(self))
+
+    def _assist(self) -> None:
+        """Ask local AI, streamed as one JSON object per line: start, delta…, then done or error.
+
+        Anything wrong with the request is a normal JSON error before streaming starts. Once it has
+        started, a failure arrives as an error line. If the page cancels, writing fails, the
+        upstream request to Colibri is closed, and nothing is added to the conversation.
+        """
+        started = time.perf_counter()
+        a = _assistant()
+        streaming = False
+
+        def send(event: dict) -> None:
+            self.wfile.write((json.dumps(event, ensure_ascii=False) + "\n").encode("utf-8"))
+            self.wfile.flush()
+
+        try:
+            data = _body(self, MAX_ASSIST_BODY_BYTES)
+            with a.busy:
+                conv, messages, user, max_tokens = a.prepare(data)
+                self.send_response(200)
+                self.send_header("Content-Type", "application/x-ndjson; charset=utf-8")
+                self.send_header("Cache-Control", "no-store")
+                self.end_headers()
+                self.close_connection = True
+                streaming = True
+                send({"type": "start", "conversation": conv["id"], "key": conv["key"], "action": data["action"],
+                      "turn": conv["turns"] + 1, "maxTurns": assist.MAX_TURNS, "model": conv.get("model") or a.cfg.model,
+                      "url": a.cfg.url, "maxTokens": max_tokens, "facts": a.facts_of(conv),
+                      "calculations": conv["calculations"]})
+                result = assist.stream_answer(a.cfg, messages, max_tokens, lambda piece: send({"type": "delta", "text": piece}),
+                                              model=conv.get("model"))
+                if result["answer"]:
+                    a.conversations.add(conv, user, result["answer"])
+                send({"type": "done", "finish": result["finish"], "timingsMs": result["timingsMs"],
+                      "turns": conv["turns"], "maxTurns": assist.MAX_TURNS, "empty": not result["answer"], "room": a.room(conv)})
+        except ConnectionError:
+            pass  # the page cancelled or went away; the upstream request was closed on the way out
+        except LabError as err:
+            if streaming:
+                try:
+                    send({"type": "error", "code": err.code, "message": str(err)})
+                except ConnectionError:
+                    pass
+            else:
+                self._send_json(err.status, {"error": {"code": err.code, "message": str(err)}}, started)
+        except Exception as err:  # noqa: BLE001 - report, never crash the server
+            self.log_error("unhandled error on %s: %r", ASSIST_ROUTE, err)
+            payload = {"code": "server_error", "message": f"{type(err).__name__}: {err}"}
+            try:
+                send({"type": "error", **payload}) if streaming else self._send_json(500, {"error": payload}, started)
+            except ConnectionError:
+                pass
 
     def _static(self, path: str) -> None:
         if not WEB_DIST.exists():
@@ -203,12 +347,20 @@ def main() -> int:
     parser = argparse.ArgumentParser(prog="nextword.lab", description="Run the NextWord Lab locally.")
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--open", action="store_true", help="open the Lab in your browser")
+    parser.add_argument("--ai-url", default=None, help=f"Colibri's OpenAI-compatible address, on this computer only (default {assist.DEFAULT_URL}, or NEXTWORD_AI_URL)")
+    parser.add_argument("--ai-model", default=None, help=f"the model id Colibri serves (default {assist.DEFAULT_MODEL}, or NEXTWORD_AI_MODEL)")
     args = parser.parse_args()
+    global assistant
+    try:
+        assistant = assist.Assistant(store, assist.AssistConfig(args.ai_url, args.ai_model), mlps=_mlps(), lessons=_lessons())
+    except ValueError as err:
+        parser.error(str(err))
     mimetypes.add_type("application/javascript", ".js")
     mimetypes.add_type("text/css", ".css")
     server = ThreadingHTTPServer(("127.0.0.1", args.port), LabHandler)
     url = f"http://127.0.0.1:{args.port}"
     print(f"NextWord Lab running at {url}  (Ctrl+C to stop)")
+    print(f"Ask local AI uses {assistant.cfg.model} at {assistant.cfg.url} (only when you ask; start Colibri separately)")
     if not WEB_DIST.exists():
         print("The interface isn't built yet. Run: npm --prefix web install && npm --prefix web run build")
     if args.open:
