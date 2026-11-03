@@ -90,13 +90,17 @@ model quality, factual reliability, or production readiness.
 **My progress check:** Can I predict what a change will do, make the
 change, and explain the result—including when my prediction was wrong?
 
-## Two models, kept apart
+## Your engines and the tutor, kept apart
 
+- **Your bigram engine** counts which character follows which in the training text and samples the next
+  character from those counts with a seed. Every count, probability and random draw on the Bigram journey comes
+  from it.
 - **Your trainable MLP** is a small character-level neural network (4,520 weights at the default settings). You
   train it here, on this computer's CPU with PyTorch, from random weights. Every number the Lab shows about it is
   computed from its real weights.
 - **The local AI tutor** is Qwen3-4B-Instruct-2507, a pretrained model downloaded once and served on this computer
-  by Colibri. NextWord never trains or changes it. It only puts the MLP's numbers into words, and it can be wrong.
+  by Colibri. NextWord never trains or changes it. It only puts your engines' numbers into words, and it can be
+  wrong.
 
 ## Architecture
 
@@ -106,10 +110,10 @@ change, and explain the result—including when my prediction was wrong?
 | Character MLP | Embeddings → tanh hidden layer → softmax; trained by plain gradient descent | `nextword/mlp.py` |
 | MLP service | Trains in a background thread with progress saves; runs, checkpoints (initial, trained, validation-selected), resume, inspection of one example, generation, fair bigram comparison | `nextword/lab/mlp_service.py` |
 | Lab server | Local HTTP API on 127.0.0.1 and the built web interface | `nextword/lab/server.py` |
-| Tutor bridge | Rebuilds the facts from the selected run, sends them to Colibri, streams the answer, checks its numbers | `nextword/lab/assist.py`, `assist_mlp.py` |
-| Web interface | React + TypeScript: Home, learning paths, lessons, Bigram and MLP journeys, Playground, tools | `web/` |
+| Tutor bridge | Rebuilds the facts from the selected run, sends them to Colibri, streams the answer, checks its numbers | [`assist.py`](nextword/lab/assist.py) (Bigram), [`assist_mlp.py`](nextword/lab/assist_mlp.py) (MLP), [`assist_lesson.py`](nextword/lab/assist_lesson.py) (lessons) |
+| Web interface | React + TypeScript: Home, learning paths, lessons, Bigram and MLP journeys, Playground, tools | `web/` (tutor panel: [`ask-ai.tsx`](web/src/components/lab/ask-ai.tsx); quizzes: [`checkpoint.tsx`](web/src/components/lab/checkpoint.tsx)) |
 | Local AI | Colibri v2.1.0 serving Qwen3-4B on 127.0.0.1:8000 (outside this repository) | `..\local-ai\` |
-| Evaluations | Engine tests; tutor evaluations with frozen fresh sets | `tests/`, `evals/` |
+| Evaluations | Engine tests; tutor evaluations with frozen fresh sets | `tests/`, [`evals/local_ai/`](evals/local_ai/) |
 
 ## Start on Windows (one command)
 
@@ -167,6 +171,19 @@ It opens on **Home**: your next lesson (from your saved progress only), the lear
 and what is running on this computer. **Learning paths** orders the lessons into twelve steps; **How
 NextWord Works** explains the parts, the data, the tutor, hardware, evaluations and the roadmap.
 
+### Bigram journey
+
+Follow one prediction through your bigram engine ([`web/src/workspaces/Journey.tsx`](web/src/workspaces/Journey.tsx),
+backed by [`nextword/bigram.py`](nextword/bigram.py) and [`nextword/lab/service.py`](nextword/lab/service.py)):
+
+- the counts for each character pair;
+- the probabilities in the current character's row;
+- the seeded random draw that picks each generated character, and which row it was drawn from.
+
+The journey has six steps, from the training text to appending each character and repeating. To experiment,
+change the prompt, length or seed and watch which steps change. Every step after the first ends with a quiz
+checkpoint, built from your run and graded by the app; the tutor is switched off while one is open.
+
 ### Beginner lessons
 
 Start here if the words are new: thirteen short lessons from characters, pairs and counts to embeddings,
@@ -199,6 +216,45 @@ had an error after the accuracy fixes; on 12 fresh tutor questions 2 were wrong.
 was compared and was not more accurate. The written lessons stay the reference, and the AI is off during
 quizzes. Setup, request flow, measurements and evaluation: [docs/LOCAL_AI.md](docs/LOCAL_AI.md).
 
+### Tutor evaluation: code and evidence
+
+Each evaluation sends real requests through the same code the page uses to the real Qwen3-4B in Colibri. It
+expects the numbers the engine computes for that run, never hand-written ones, and records the raw answers in
+[`evals/local_ai/results/`](evals/local_ai/results/). Mocked replies are used only in unit tests and aren't
+counted here.
+
+Besides ordinary questions, every set includes adversarial cases:
+
+- **False premises and misleading follow-ups:** a follow-up asks the tutor to confirm a wrong count, or that the
+  model "understood" the sentence (for example `T4-contradict-count`, `H9-claims-meaning`, `F04`, `F13`, `d11`).
+- **Unsupported claims:** a question the facts can't answer, such as training time or test accuracy (`T6`, `H8`,
+  `F11`, `d10`, `f12`).
+- **Planted instructions:** the training text, its name, or the prompt tells the tutor to ignore the facts
+  (`H10`, `H11`, `F14`, `C14`, `d13`, `f14`).
+- **Answers tied to the wrong run:** a stale weight fingerprint, or the initial weights instead of the trained ones
+  (`d12`, `f13`).
+- **Factual errors:** a check runs on every answer. It compares claims about which row a character came from with
+  the engine's trace, catches "probability 0" for a character that has no row, and lists any number that isn't
+  in the facts.
+
+Three kinds of review are kept separate. The **automatic checks** are narrow: they miss some errors and raise
+some false alarms. The **AI review** was done by Claude, the coding assistant that built the feature, reading each
+answer against the facts; it is not a human review. **Human review** has not been done for any set.
+
+| Tutor and set | Cases | Automatic: all checks pass | AI review | Human review | Report |
+|---|---|---|---|---|---|
+| Bigram, round 1 held-out (prompt frozen first) | 13 | 13 | 8 correct, 5 wrong | not done | [RESULTS.md](evals/local_ai/RESULTS.md) |
+| Bigram, round 2 fresh (frozen before the fixes) | 16 | 8 before → 12 after | 9 → 13 correct; 3 wrong after | not done | [ROUND2.md](evals/local_ai/ROUND2.md) |
+| Bigram, 4B vs 9B comparison (frozen first) | 16 | 4B 13, 9B 13 | 4B 13 correct; 9B 12 correct | not done | [COMPARE.md](evals/local_ai/COMPARE.md) |
+| Beginner-lesson tutor, fresh (×3 repeats) | 12 | 33 of 36 runs | 7 correct, 3 minor, 2 wrong | not done | [TUTOR.md](evals/local_ai/TUTOR.md) |
+| MLP tutor, fresh (frozen first, run once) | 15 | 12 | 9 correct, 6 minor, 0 wrong | not done | [MLP_TUTOR.md](evals/local_ai/MLP_TUTOR.md) |
+| MLP tutor, development (used for fixes) | 13 | 10 | 9 correct, 3 minor, 1 wrong | not done | [MLP_TUTOR.md](evals/local_ai/MLP_TUTOR.md) |
+
+The fresh sets' frozen hashes are in [FROZEN.md](evals/local_ai/FROZEN.md). The runners are
+[`run_eval.py`](evals/local_ai/run_eval.py) (Bigram), [`run_tutor_eval.py`](evals/local_ai/run_tutor_eval.py)
+(lessons) and [`run_mlp_eval.py`](evals/local_ai/run_mlp_eval.py) (MLP). These are small sets for one model and
+one setting, so they show the kinds of mistakes that remain, not a general accuracy figure.
+
 ## Current capabilities (implemented)
 
 - Character-bigram engine (`nextword/bigram.py`): predicts the next character from the current one only.
@@ -209,6 +265,8 @@ quizzes. Setup, request flow, measurements and evaluation: [docs/LOCAL_AI.md](do
 - The Lab: a local web app with your engine behind a small API (generation traces, held-out
   evaluation, continued training, timings) and labelled browser simulations for neural networks,
   attention, decoding and retrieval.
+- Bigram journey: the counts, probabilities and seeded draws behind each generated character, with five
+  app-graded quiz checkpoints.
 - Beginner lessons: 13 lessons, each with a prediction, the real result, the term after the idea, and an
   app-graded check; saved place; skipped / with help / on your own statuses.
 - Training texts at three levels (tiny in the repository; medium and large prepared from public-domain
