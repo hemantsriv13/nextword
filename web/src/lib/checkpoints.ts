@@ -8,6 +8,7 @@
 import type { Journey } from "@/lib/api"
 import { contextBefore, engineRow, intervals, pairOccurrences, topPairs } from "@/lib/journey"
 import { charTokens, visible } from "@/sim/tokenize"
+import { LESSON_CHECKS } from "./lesson-checks"
 
 export interface Choice { id: string; label: string }
 
@@ -43,7 +44,14 @@ export interface JourneyContext {
   sel: number
 }
 
-export type Context = JourneyContext | Record<string, never>
+/** The MLP journey: one inspected example of one checkpoint of one trained run. */
+export interface MlpContext {
+  mlp: { run: string; fingerprint: string; context: number; inspection: import("@/lib/mlp").Inspection }
+}
+
+export type Context = JourneyContext | MlpContext | Record<string, never>
+
+const isMlp = (ctx: Context): ctx is MlpContext => "mlp" in ctx
 
 export interface CheckpointDef {
   id: string
@@ -435,11 +443,86 @@ const retrievalLexical: CheckpointDef = {
   },
 }
 
-export const CHECKPOINTS: CheckpointDef[] = [count, context, probs, sample, repeat, neuralLoss, neuralUpdate, attentionMask, decodingOrder, evaluationSplit, retrievalLexical]
+// ----------------------------------------------------------------------------- the MLP journey
+
+const mlpBasis = (ctx: MlpContext) => `Your MLP, run ${ctx.mlp.run}, weights ${ctx.mlp.fingerprint}: example ${ctx.mlp.inspection.index + 1} of the ${ctx.mlp.inspection.split === "train" ? "training" : "validation"} part.`
+
+const mlpExamples: CheckpointDef = {
+  id: "mlp.examples", version: 1, section: "Training examples",
+  build: (ctx, variant) => {
+    const n = isMlp(ctx) ? ctx.mlp.context : 3
+    const text = ["cabbage", "banana", "letters"][variant % 3]
+    const at = Math.min(text.length - 1, n)
+    const window = text.slice(Math.max(0, at - n), at)
+    const answer = text[at]
+    const pad = n - window.length
+    const shown = [...Array(pad).fill("⟨start⟩"), ...charTokens(window).map((c) => q(c))].join(" ")
+    const others = shuffle([...new Set(charTokens(text).filter((c) => c !== answer))], text + variant).slice(0, 3)
+    const choices = shuffle([answer, ...others].map((c) => ({ id: c, label: q(c) })), `${text}${n}${variant}`)
+    return {
+      checkpoint: "mlp.examples", version: 1, variant, instance: `${text}:${n}`, kind: "choice",
+      ...worked(`A worked example with your run's window size, ${n} ${n === 1 ? "character" : "characters"}.`),
+      prompt: `A training text is “${text}”. With a window of ${n}, one training example has the window ${shown}. Which character should the MLP learn to predict for it?`,
+      choices, answer,
+      hints: ["An example pairs a window of previous characters with the character that comes right after them in the text.",
+              "Find the window's characters in the text, in order, and look one place to the right.",
+              `The window ends with ${q(window.at(-1) ?? "⟨start⟩")}; the answer is the character after that position in “${text}”.`],
+      solution: { answer: q(answer), explanation: "Training examples are made by sliding a window along the text: the window is the input and the next character is the correct answer.", working: `“${text}”: after “${window}” comes ${q(answer)}.` },
+      notYet: "Not quite yet. Revisit how a window and its next character are taken from the text.",
+      passed: "You turned text into a training example.",
+    }
+  },
+}
+
+const mlpLoss: CheckpointDef = {
+  id: "mlp.loss", version: 1, section: "Loss",
+  build: (ctx, variant) => {
+    if (!isMlp(ctx)) return null
+    const ins = ctx.mlp.inspection
+    const p = round(ins.probs.target, 4)
+    if (!(p > 0)) return null
+    const loss = round(-Math.log(p), 2)
+    return {
+      checkpoint: "mlp.loss", version: 1, variant, instance: `${ctx.mlp.fingerprint}:${ins.split}:${ins.index}`, kind: "number",
+      source: "Your model", basis: mlpBasis(ctx),
+      prompt: `For this example your MLP gives the correct next character ${q(ins.target)} the probability p = ${p}. What is the loss, −ln p?`,
+      answer: loss, tolerance: 0.011, rounding: "A decimal rounded to 2 places.",
+      hints: ["The loss looks only at the probability given to the correct character.", "Take the natural logarithm of p and change its sign.", `Set it up as −ln(${p}). For p below 1 the result is positive.`],
+      solution: { answer: loss.toFixed(2), explanation: "The loss is 0 when the correct character gets probability 1 and grows as that probability shrinks. Training lowers the average of this over many examples.", working: `−ln(${p}) = ${(-Math.log(p)).toFixed(4)} ≈ ${loss.toFixed(2)}.` },
+      notYet: "Not quite yet. Revisit how the loss is computed from the correct character's probability.",
+      passed: "You computed your MLP's loss for a real example.",
+    }
+  },
+}
+
+const mlpUpdate: CheckpointDef = {
+  id: "mlp.update", version: 1, section: "Weight update",
+  build: (ctx, variant) => {
+    if (!isMlp(ctx)) return null
+    const u = ctx.mlp.inspection.update
+    const d = variant % u.embedding.before.length
+    const [w, g, lr] = [u.embedding.before[d], u.embedding.grad[d], u.lr]
+    const after = round(w - lr * g, 4)
+    return {
+      checkpoint: "mlp.update", version: 1, variant, instance: `${ctx.mlp.fingerprint}:${ctx.mlp.inspection.index}:${d}`, kind: "number",
+      source: "Your model", basis: mlpBasis(ctx),
+      prompt: `Number ${d + 1} of ${q(u.embedding.token)}'s embedding is ${w}. Its gradient for this example is ${g}, and the learning rate is ${lr}. What is the number after one update?`,
+      answer: after, tolerance: 0.0006, rounding: "A decimal rounded to 4 places.",
+      hints: ["An update moves each weight a small step against its gradient.", "Multiply the gradient by the learning rate, then subtract that from the weight.", `Set it up as ${w} − ${lr} × (${g}).`],
+      solution: { answer: after.toFixed(4), explanation: "Gradient descent: weight − learning rate × gradient. A negative gradient makes the weight grow.", working: `${w} − ${lr} × (${g}) = ${w} − ${(lr * g).toFixed(5)} = ${after.toFixed(4)}.` },
+      notYet: "Not quite yet. Revisit the before, gradient and after columns of the update.",
+      passed: "You applied one real gradient-descent update from your MLP.",
+    }
+  },
+}
+
+export const CHECKPOINTS: CheckpointDef[] = [count, context, probs, sample, repeat, neuralLoss, neuralUpdate, attentionMask, decodingOrder, evaluationSplit, retrievalLexical, mlpExamples, mlpLoss, mlpUpdate, ...LESSON_CHECKS]
 export const CHECKPOINT_BY_ID = new Map(CHECKPOINTS.map((c) => [c.id, c]))
 
 /** The journey stage whose Next opens each checkpoint (stage index → checkpoint id). */
 export const JOURNEY_CHECKPOINTS: Record<number, string> = { 1: "journey.count", 2: "journey.context", 3: "journey.probs", 4: "journey.sample", 5: "journey.repeat" }
+/** MLP journey: the checkpoint that closes a stage, by stage index (examples, loss, update). */
+export const MLP_CHECKPOINTS: Record<number, string> = { 1: "mlp.examples", 5: "mlp.loss", 6: "mlp.update" }
 
 /** A question for this checkpoint, trying further examples if one can't be built from the data. */
 export function questionFor(def: CheckpointDef, ctx: Context, variant: number): Question | null {

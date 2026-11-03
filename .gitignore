@@ -7,3 +7,8 @@ data/lab/
 .taste-skill/
 web/node_modules/
 web/dist/
+
+# Local AI: model weights and Colibri live outside the repo (../local-ai); never commit them here
+*.gguf
+*.safetensors
+local-ai/

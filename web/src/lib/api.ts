@@ -49,11 +49,19 @@ async function request<T>(path: string, body?: unknown, timeoutMs = 20000): Prom
 export interface Corpus {
   id: string
   name: string
-  origin: "sample" | "example" | "upload"
+  origin: "sample" | "example" | "upload" | "dataset"
   file: string
   chars: number
   distinct: number
   fingerprint: string
+  /** Datasets only (nextword/datasets.py): their level, fixed parts and where they come from. */
+  level?: "tiny" | "medium" | "large"
+  about?: string
+  license?: string
+  sources?: { title: string; author: string; url: string; split: Record<string, string> }[]
+  preprocessing?: string[]
+  overlapRemoved?: Record<string, { repeatedParagraphs: number; shared12WordRuns: number }>
+  parts?: { train: number; val: number; test: number }
 }
 
 export interface FrequencyRow {
@@ -178,13 +186,20 @@ export interface Adaptation {
   note: string
 }
 
+/** A prediction engine and its real state on this computer (from /api/engines). */
 export interface Engine {
   id: string
   name: string
   source: "model"
-  status: string
-  version: string
-  file: string
+  status: "available" | "unavailable" | "planned"
+  version: string | null
+  file: string | null
+  /** The page where it runs, if any. */
+  route: string | null
+  savedRuns?: number
+  /** Why it can't run here, and what to do about it. */
+  reason?: string | null
+  nextAction?: string | null
   decoding: string[]
 }
 

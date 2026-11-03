@@ -1,0 +1,37 @@
+F01 r1 PASS 
+F02 r1 PASS 
+F03 r1 PASS 
+F04 r1 PASS 
+F05 r1 PASS 
+F06 r1 PASS 
+F07 r1 PASS 
+F08 r1 PASS 
+F09 r1 PASS 
+F10 r1 FAIL says these are saved moments: ['one of: saved, recorded, replay']
+F11 r1 PASS 
+F12 r1 PASS 
+F01 r2 PASS 
+F02 r2 PASS 
+F03 r2 PASS 
+F04 r2 PASS 
+F05 r2 PASS 
+F06 r2 PASS 
+F07 r2 PASS 
+F08 r2 PASS 
+F09 r2 PASS 
+F10 r2 FAIL says these are saved moments: ['one of: saved, recorded, replay']
+F11 r2 PASS 
+F12 r2 PASS 
+F01 r3 PASS 
+F02 r3 PASS 
+F03 r3 PASS 
+F04 r3 PASS 
+F05 r3 PASS 
+F06 r3 PASS 
+F07 r3 PASS 
+F08 r3 PASS 
+F09 r3 PASS 
+F10 r3 FAIL says these are saved moments: ['one of: saved, recorded, replay']
+F11 r3 PASS 
+F12 r3 PASS 
+33/36 case runs passed every automatic check. Saved evals\local_ai\results\tutor_cases-4b-fixed-20261101-175354.json

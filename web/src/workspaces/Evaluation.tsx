@@ -89,7 +89,8 @@ export default function Evaluation() {
   const [config, setConfig] = useState<Config>({ corpus: "sample", train: 0.8, val: 0.1, on: "val", k: 0 })
   const request = useCallback((c: Config) => api.evaluate({ corpus: c.corpus, train: c.train, val: c.val, on: c.on, k: c.k }), [])
   const bench = useSnapshotRun(request)
-  const { corpora } = useCorpora()
+  // Datasets have fixed parts, which these split controls can't change; the MLP journey compares on them instead.
+  const corpora = useCorpora().corpora?.filter((c) => c.origin !== "dataset")
   const nameOf = (id: string) => corpora?.find((c) => c.id === id)?.name
   const measured = bench.run
   const stale = !!measured && !sameConfig(measured.config, config)

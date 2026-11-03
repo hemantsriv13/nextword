@@ -18,7 +18,7 @@ export const JOURNEY: Stage[] = [
   { id: "text", title: "Text", question: "What does the model learn from?", route: "data", source: "model", roadmap: "Stage 1", concepts: ["corpus"] },
   { id: "tokens", title: "Tokenization", question: "How does text become units?", route: "data", source: "mixed", roadmap: "Stage 1", concepts: ["token", "tokenization", "vocabulary", "token-id", "bpe", "context-window", "training-pair"] },
   { id: "prediction", title: "Prediction from counts", question: "How do counts become a next-token guess?", route: "counts", source: "model", roadmap: "Stage 1", concepts: ["bigram", "conditional-probability", "normalization", "distribution", "sampling", "seed", "unseen-context", "smoothing", "n-gram"] },
-  { id: "training", title: "Training", question: "How does a network learn from its mistakes?", route: "neural", source: "simulation", roadmap: "Stage 2", concepts: ["parameter", "tensor", "embedding", "forward-pass", "exp", "ln", "logits", "softmax", "nll", "cross-entropy", "nats", "gradient", "backpropagation", "learning-rate", "optimizer", "batch", "epoch", "overfitting"] },
+  { id: "training", title: "Training", question: "How does a network learn from its mistakes?", route: "neural", source: "simulation", roadmap: "Stage 2", concepts: ["parameter", "tensor", "embedding", "hidden-layer", "activation", "forward-pass", "exp", "ln", "logits", "softmax", "nll", "cross-entropy", "nats", "gradient", "backpropagation", "learning-rate", "optimizer", "batch", "epoch", "overfitting"] },
   { id: "attention", title: "Attention", question: "How can each position use the others?", route: "attention", source: "simulation", roadmap: "Stage 3", concepts: ["attention", "qkv", "causal-mask", "multi-head", "positional-encoding", "residual", "layer-norm", "feedforward", "transformer"] },
   { id: "generation", title: "Generation", question: "How do probabilities become text?", route: "decoding", source: "mixed", roadmap: "Stage 4", concepts: ["autoregressive", "greedy", "temperature", "top-k", "top-p", "training-vs-inference", "confidence"] },
   { id: "evaluation", title: "Evaluation", question: "How do we know if a model is better?", route: "evaluation", source: "model", roadmap: "Stages 1 and 4", concepts: ["split", "leakage", "loss", "perplexity", "baseline", "ablation", "error-analysis", "reproducibility"] },
@@ -35,12 +35,16 @@ export interface Workspace {
 }
 
 export const WORKSPACES: Workspace[] = [
-  { route: "home", title: "Home", short: "Home", description: "Your learning map and next step", group: "start" },
+  { route: "home", title: "Home", short: "Home", description: "What NextWord is, where to start, and your next step", group: "start" },
+  { route: "paths", title: "Learning paths", short: "Learning paths", description: "The order to learn in, with your progress and an optional session plan", group: "start" },
+  { route: "how", title: "How NextWord Works", short: "How it works", description: "The models, the data, the tutor and the hardware, explained", group: "keep" },
+  { route: "learn", title: "Beginner lessons", short: "Beginner lessons", description: "Start here: one idea at a time, from characters to weight updates", group: "start" },
   { route: "journey", title: "Bigram journey", short: "Bigram journey", description: "One example from text to generated characters, step by step", group: "start" },
   { route: "playground", title: "Writing playground", short: "Playground", description: "Write with your bigram engine and trace each step", group: "start" },
   { route: "data", title: "Data and tokens", short: "Data and tokens", description: "Corpus, tokenizers, windows and splits", group: "build" },
   { route: "counts", title: "Counts and probability", short: "Counts", description: "Your engine's count table, normalization and sampling", group: "build" },
   { route: "neural", title: "Neural network training", short: "Neural training", description: "Embeddings, loss, gradients and overfitting", group: "simulate" },
+  { route: "mlp", title: "Neural MLP journey", short: "MLP journey", description: "Train a real character MLP and follow one example through it", group: "simulate" },
   { route: "attention", title: "Attention explorer", short: "Attention", description: "Queries, keys, values and the causal mask", group: "simulate" },
   { route: "decoding", title: "Decoding sandbox", short: "Decoding", description: "Softmax, temperature, top-k and top-p", group: "simulate" },
   { route: "evaluation", title: "Evaluation bench", short: "Evaluation", description: "Held-out loss, baselines and ablations", group: "measure" },

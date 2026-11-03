@@ -40,6 +40,12 @@ async function open(data: JourneyData = EX) {
 beforeEach(() => { actions.reset(); journey.mockReset() })
 afterEach(() => cleanup())
 
+/** Narrow screens (as in these tests) open the explanation full screen from a labelled button. */
+async function openLearning() {
+  const b = screen.queryAllByRole("button", { name: /^understand this step$/i })[0]
+  if (b) await act(async () => { fireEvent.click(b) })
+}
+
 describe("the lesson header", () => {
   it("runs the example once, and summarizes the run with the provenance in a disclosure", async () => {
     await open()
@@ -182,6 +188,7 @@ describe("modes, details and replay keep the same run", () => {
 
   it("the detail levels show plain words, this run's calculation and the code", async () => {
     await goToStage(/sample a character/i)
+    await openLearning()
     expect(within(explanation()).getByText("What is happening")).toBeTruthy()
     expect(within(explanation()).getByText("Try this")).toBeTruthy()
     expect(explanation().textContent).toMatch(/the first probability distribution is unchanged/i)
@@ -196,6 +203,7 @@ describe("modes, details and replay keep the same run", () => {
 
   it("the words used in a stage are in a disclosure, closed until opened, at every detail level", async () => {
     await open()
+    await openLearning()
     const panel = () => screen.getByTestId("stage-explanation")
     expect(within(panel()).getByText(/words used here \(2\)/i).closest("details")!.hasAttribute("open")).toBe(false)
     await act(async () => { fireEvent.click(screen.getByRole("radio", { name: /show the calculation/i })) })
@@ -204,6 +212,7 @@ describe("modes, details and replay keep the same run", () => {
 
   it("the explanation is one labelled panel: header with the lesson name, levels, content, Try this", async () => {
     await open()
+    await openLearning()
     const panel = screen.getByTestId("stage-explanation")
     expect(within(panel).getByText("Step explained")).toBeTruthy()
     expect(within(panel).getByRole("heading", { level: 2, name: "Training text" })).toBeTruthy()

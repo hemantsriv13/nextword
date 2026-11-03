@@ -1,0 +1,173 @@
+{
+  "about": "Beginner lessons. Authored text: shown offline by the page and given to the tutor as reviewed definitions. Results come from nextword/lab/lessons.py.",
+  "parts": [
+    { "id": "counting", "title": "Part 1: Counting", "about": "How a very simple model guesses the next character by counting what it has seen." },
+    { "id": "learning", "title": "Part 2: Learning", "about": "How a small neural network learns the same job by adjusting numbers." }
+  ],
+  "steps": [
+    { "id": "question", "label": "Question" },
+    { "id": "predict", "label": "Your prediction" },
+    { "id": "result", "label": "What happened" },
+    { "id": "why", "label": "Why" },
+    { "id": "term", "label": "The word for it" },
+    { "id": "check", "label": "Check" }
+  ],
+  "lessons": [
+    {
+      "id": "characters", "part": "counting", "title": "Characters",
+      "question": "What does a language model actually read?",
+      "setup": "Here is a very short text. A model doesn't see words or meaning. It sees one small piece at a time.",
+      "lookAt": "Look at the boxes under the text. Each box is one piece the model reads. Find the box for the space.",
+      "matters": "Everything later (counting, probabilities, learning) works on these pieces. If you know what the pieces are, you know what the model can and can't notice.",
+      "why": "The model splits the text into single characters: letters, spaces and punctuation. A space is a character too, so it gets its own box.",
+      "simpler": "The model reads one letter at a time. A space counts as one letter too.",
+      "term": { "name": "character (token)", "glossary": "token", "definition": "One piece of text the model reads. In this app a token is a single character: a letter, a space, a punctuation mark or a line break." },
+      "detail": "Big models like the one that explains things here use tokens that are often whole words or parts of words. The idea is the same: text becomes a list of pieces, and the model only ever sees that list.",
+      "deeper": { "route": "data", "label": "See how a whole text becomes tokens" }
+    },
+    {
+      "id": "pairs", "part": "counting", "title": "Pairs",
+      "question": "How can a model learn what comes after a character?",
+      "setup": "Take a word and look at each character together with the one right after it.",
+      "lookAt": "Look at the arrows. Each one joins a character to the character that follows it.",
+      "matters": "Pairs are the model's only evidence. Every guess it makes later comes from pairs like these.",
+      "why": "Each pair starts where the previous one ended. So a text with n characters has n − 1 pairs: the last character has nothing after it.",
+      "simpler": "Join each letter to the next letter. That gives one pair fewer than there are letters.",
+      "term": { "name": "pair (bigram)", "glossary": "bigram", "definition": "Two characters that sit next to each other in the text: one character and the character right after it. A bigram model learns only from these pairs." },
+      "detail": "Looking only at the previous character is the simplest choice. Models that look further back (two, three or a thousand characters) can use more of the text, which is what the neural network in Part 2 starts to do.",
+      "deeper": { "route": "journey", "label": "See pairs in a longer text" }
+    },
+    {
+      "id": "counts", "part": "counting", "title": "Counts",
+      "question": "Which character usually comes after this one?",
+      "setup": "Count the pairs that start with the same character. That tells you what tends to follow it.",
+      "lookAt": "Look at the row of counts. Each number says how many times that character came right after the highlighted one.",
+      "matters": "These counts are the whole bigram model. When it writes, it only uses these numbers.",
+      "why": "The model counts every pair that starts with this character. The follower with the biggest count is the one it has seen most often.",
+      "simpler": "Count what comes after the letter. The biggest number wins most often.",
+      "term": { "name": "count table (row)", "glossary": "training-pair", "definition": "A table with one row per character. Each row lists the characters that followed it in the training text and how many times. The training text is the text the model learns from." },
+      "detail": "A full count table has one row for every character the text contains. A character that never appears with a follower has no row, so the model can't continue after it.",
+      "deeper": { "route": "counts", "label": "Explore the full count table" }
+    },
+    {
+      "id": "probability", "part": "counting", "title": "Probability",
+      "question": "How sure can the model be about the next character?",
+      "setup": "Turn one row of counts into fractions: how often each follower appeared, out of all the times something followed.",
+      "lookAt": "Look at the fraction for the highlighted follower: its count on top, the row's total underneath.",
+      "matters": "Probabilities let the model say not just what is likely, but how likely, so it can choose sensibly.",
+      "why": "Divide a follower's count by the total of its row. The fractions of one row always add up to 1, because together they cover every time something followed.",
+      "simpler": "Count for this letter, divided by the count for all letters in the row. All the answers in a row add up to 1.",
+      "term": { "name": "probability, written P(next | current)", "glossary": "conditional-probability", "definition": "A number from 0 to 1 that says how likely something is. P(b | a) means: the probability that the next character is b, when the current one is a. Here it is count(a→b) ÷ total of row a." },
+      "detail": "A follower that never appeared gets probability 0, so the model can never write it after this character. Smoothing gives every follower a little probability so that doesn't happen; the Evaluation page shows it.",
+      "deeper": { "route": "counts", "label": "See probabilities for every row" }
+    },
+    {
+      "id": "sampling", "part": "counting", "title": "Random selection",
+      "question": "When several characters are possible, which one does the model write?",
+      "setup": "Lay the probabilities end to end on a line from 0 to 1. Then pick a random point on the line.",
+      "lookAt": "Look at where the random number lands on the line. The stretch it lands in is the character that gets written.",
+      "matters": "Choosing at random, but in proportion to the probabilities, lets the model write varied text that still follows what it learned.",
+      "why": "Each character owns a stretch of the line as long as its probability. A random number between 0 and 1 lands in one stretch. Likely characters own long stretches, so they are picked more often, but not always.",
+      "simpler": "Bigger chance means a bigger piece of the line. A random number picks the piece.",
+      "term": { "name": "sampling (with a seed)", "glossary": "sampling", "definition": "Choosing the next character at random, with each character's chance equal to its probability. A seed is a starting number for the random numbers: the same seed gives the same choices again." },
+      "detail": "Always taking the most likely character is called greedy decoding. It repeats itself easily. Sampling with temperature, top-k or top-p changes how adventurous the choice is; the Decoding page lets you try them.",
+      "deeper": { "route": "decoding", "label": "Try other ways of choosing" }
+    },
+    {
+      "id": "generation", "part": "counting", "title": "Writing text",
+      "question": "How does the model write more than one character?",
+      "setup": "Start from one character. Choose the next one from its row, then repeat with the character just written.",
+      "lookAt": "Look at each step: which row it read, the random number, and the character it wrote. Then look at which row the next step reads.",
+      "matters": "Every model that writes text, including large ones, writes one piece at a time like this and feeds its own choice back in.",
+      "why": "After writing a character, the model treats it as the current character. So the next step reads that character's row. Nothing else from earlier in the text is used.",
+      "simpler": "Write one letter. Then use that letter to choose the next one. Repeat.",
+      "term": { "name": "generation (one step at a time)", "glossary": "autoregressive", "definition": "Writing text by repeating one step: look at the current context, choose the next character, add it, and use the new text as the context for the next step." },
+      "detail": "Because a bigram model only remembers one character, it can't keep a word or sentence going on purpose. It often produces word-like pieces that don't add up. Looking further back fixes part of this.",
+      "deeper": { "route": "journey", "label": "Follow a full bigram run" }
+    },
+    {
+      "id": "learning", "part": "learning", "title": "From counting to learning",
+      "question": "Can a model learn what comes next, instead of counting?",
+      "setup": "A small neural network looks at the last few characters (its window) and gives every possible next character a probability. At first its numbers are random.",
+      "lookAt": "Compare the probability of the right character before training and after training.",
+      "matters": "This is how all modern language models work: they don't store counts, they learn numbers that make the right next piece more likely.",
+      "why": "Random numbers give every character roughly the same small chance, like a blind guess. Training changes the numbers again and again until the right character gets a high probability on the training examples.",
+      "simpler": "At first the network guesses blindly. Practice changes its numbers so it guesses right more often.",
+      "term": { "name": "neural network, weights and training example", "glossary": "parameter", "definition": "A neural network is a calculation with many adjustable numbers, called weights. A training example is one window of characters plus the character that really came next. Training adjusts the weights to fit the examples." },
+      "detail": "This network is a multilayer perceptron (MLP), trained here with PyTorch on your computer's processor. The training text is a tiny teaching text written for this app. It trains only this small network; it does not train or change Qwen, the AI that explains things.",
+      "deeper": { "route": "mlp", "label": "Train your own network" }
+    },
+    {
+      "id": "embeddings", "part": "learning", "title": "Characters as numbers",
+      "question": "How does a network turn characters into something it can calculate with?",
+      "setup": "Each character is given a short list of numbers. Here each list has just 2 numbers, so you can read them all.",
+      "lookAt": "Look at the numbers for the same character before and after training.",
+      "matters": "Calculations need numbers, not letters. Learned numbers let characters that behave alike end up with similar lists.",
+      "why": "The lists start as random numbers. Training changes them, just like every other weight, so they become useful for predicting the next character. They are not alphabet positions or sounds.",
+      "simpler": "Each letter gets a few numbers. They start random and practice changes them.",
+      "term": { "name": "embedding", "glossary": "embedding", "definition": "The list of numbers that stands for a character inside the network. It is learned during training. The window's lists are put side by side into one longer list for the next layer." },
+      "detail": "Real models use hundreds or thousands of numbers per token. Two numbers is far too few for a real model, but it is enough to see the idea.",
+      "deeper": { "route": "mlp", "label": "See embeddings in the MLP journey" }
+    },
+    {
+      "id": "hidden", "part": "learning", "title": "Combining the numbers",
+      "question": "How does the network combine the window's numbers?",
+      "setup": "A hidden value multiplies each input number by its own weight, adds the results, adds one more number (a bias), and then squeezes the total.",
+      "lookAt": "Look at the sum before squeezing, and the value after. Notice that the sign stays the same.",
+      "matters": "Squeezing (a non-linear step) is what lets a network learn patterns that a simple weighted sum can't.",
+      "why": "tanh turns any number into a number between −1 and 1 with the same sign. Big positive sums come out close to 1; big negative sums close to −1; sums near 0 stay near 0.",
+      "simpler": "Multiply, add up, then squash the answer to between −1 and 1.",
+      "term": { "name": "hidden layer and activation (tanh)", "glossary": "hidden-layer", "definition": "The hidden layer is a set of values computed from the embeddings, each as a weighted sum plus a bias. The activation, here tanh, then squeezes each value into the range −1 to 1." },
+      "detail": "There are 8 hidden values here; each has its own weights. Other activations (ReLU, GELU) squeeze differently, but all of them are non-linear.",
+      "deeper": { "route": "mlp", "label": "See the hidden layer in the MLP journey" }
+    },
+    {
+      "id": "softmax", "part": "learning", "title": "Scores to probabilities",
+      "question": "How does the network turn its numbers into a guess?",
+      "setup": "From the hidden values, the network computes one score for every possible next character. Then it turns the scores into probabilities.",
+      "lookAt": "Look at the order of the scores and the order of the probabilities. Do they match?",
+      "matters": "Probabilities that add up to 1 can be compared with the right answer, and can be sampled from, just like the bigram's.",
+      "why": "Softmax makes every score positive and divides by the total, so the probabilities add up to 1. A higher score always gives a higher probability, and no character ever gets exactly 0.",
+      "simpler": "The highest score becomes the biggest chance. All the chances add up to 1.",
+      "term": { "name": "score (logit) and softmax", "glossary": "softmax", "definition": "A score, or logit, is the network's raw number for one possible next character. Softmax turns all the scores into probabilities between 0 and 1 that add up to 1, keeping their order." },
+      "detail": "Softmax computes e raised to each score, then divides each by their sum. Because e to any power is above 0, every character keeps some probability, unlike an unsmoothed bigram.",
+      "deeper": { "route": "decoding", "label": "Try softmax with your own scores" }
+    },
+    {
+      "id": "loss", "part": "learning", "title": "Measuring mistakes",
+      "question": "How do we measure how wrong a guess was?",
+      "setup": "Look only at the probability the network gave the character that really came next. Turn it into a penalty.",
+      "lookAt": "Compare the two probabilities, then the two penalties. Which way does the penalty move?",
+      "matters": "Training needs one number to make smaller. The loss is that number.",
+      "why": "The penalty is −ln(p): minus the natural logarithm of the probability given to the right character. If p is 1 the penalty is 0. The smaller p is, the bigger the penalty grows.",
+      "simpler": "Sure and right: small penalty. Unsure: big penalty.",
+      "term": { "name": "loss (cross-entropy)", "glossary": "cross-entropy", "definition": "A number that measures how wrong a prediction is: −ln(p), where p is the probability given to the right next character. Training tries to make the average loss over many examples smaller." },
+      "detail": "Averaged over all the examples in a text, this is called cross-entropy. A blind guess among V characters scores ln(V), which is a useful baseline.",
+      "deeper": { "route": "mlp", "label": "See the loss in the MLP journey" }
+    },
+    {
+      "id": "update", "part": "learning", "title": "Getting better",
+      "question": "How does the network know which way to change a weight?",
+      "setup": "For every weight, the network works out which direction would make the loss bigger. Then it moves the weight a small step the other way.",
+      "lookAt": "Look at the sign of the gradient, then at whether the weight went up or down.",
+      "matters": "Repeating this tiny step thousands of times is all that training is.",
+      "why": "The gradient points the way the loss grows. Subtracting learning rate × gradient moves the weight the opposite way, so the loss shrinks a little. A negative gradient makes the weight go up.",
+      "simpler": "The gradient says which way is worse. Take a small step the other way.",
+      "term": { "name": "gradient, learning rate and weight update", "glossary": "gradient", "definition": "A gradient says how much the loss would change if one weight changed a little, and in which direction. The learning rate is the size of the step. Each update sets: new weight = weight − learning rate × gradient." },
+      "detail": "This is a recorded update: the weights before and after, and the batch of examples it used, were saved while the network trained. The page recomputes the update from those records and checks that it matches. Working out every gradient at once is called backpropagation.",
+      "deeper": { "route": "mlp", "label": "See an update in the MLP journey" }
+    },
+    {
+      "id": "training", "part": "learning", "title": "Many updates",
+      "question": "What happens over many updates?",
+      "setup": "Training repeats the update thousands of times, each time on a small batch of examples. It is so fast that you can't watch it live, so this lesson replays saved moments from a real training run.",
+      "lookAt": "Look at the two lines: loss on the training text and on held-out validation text. Do both keep falling?",
+      "matters": "Validation text tells you whether the network learned something general, or only memorised its training text.",
+      "why": "Training loss falls because every update fits the training examples a bit better. Validation loss falls too while the network learns general patterns. If it stops falling, or rises, the network is memorising.",
+      "simpler": "Practice lowers the mistakes. New text shows if the learning is real.",
+      "term": { "name": "training and validation", "glossary": "overfitting", "definition": "Training is many updates on the training text. Validation text is kept apart and never trained on; its loss checks whether learning carries over to new text. Overfitting is when training loss keeps falling but validation loss doesn't." },
+      "detail": "The other examples train on a medium practice passage (three chapters of Alice's Adventures in Wonderland) and a larger corpus (Pride and Prejudice and The Adventures of Sherlock Holmes). These texts train only this small network, never Qwen. Their sources, licences and splits are listed on the MLP page.",
+      "deeper": { "route": "mlp", "label": "Train on a bigger text" }
+    }
+  ]
+}

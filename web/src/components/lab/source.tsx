@@ -1,12 +1,15 @@
-import { CodeIcon, CpuIcon, OpenBookIcon } from "@/components/icons"
+import { CodeIcon, CpuIcon, OpenBookIcon, ServerIcon } from "@/components/icons"
 import { cn } from "@/lib/utils"
 
-export type SourceKind = "model" | "simulation" | "example"
+export type SourceKind = "model" | "simulation" | "example" | "ai" | "recorded" | "lesson"
 
 const SOURCES: Record<SourceKind, { label: string; title: string; Icon: typeof CpuIcon; cls: string }> = {
   model: { label: "Your model", title: "Computed by your Python engine (nextword/bigram.py) through the local backend", Icon: CpuIcon, cls: "bg-src-model text-src-model-ink" },
   simulation: { label: "Interactive simulation", title: "Computed in the browser by a simplified educational model, not by your engine", Icon: CodeIcon, cls: "bg-src-sim text-src-sim-ink ring-1 ring-inset ring-src-sim-edge" },
   example: { label: "Worked example", title: "An illustrative calculation with explicitly stated values", Icon: OpenBookIcon, cls: "bg-src-example text-src-example-ink" },
+  recorded: { label: "Recorded training (replay)", title: "Weights and batches saved while your network trained, measured again now. A replay of what happened, not live training.", Icon: CpuIcon, cls: "bg-src-model text-src-model-ink ring-1 ring-inset ring-src-sim-edge" },
+  lesson: { label: "Written lesson", title: "Text written and maintained in the project (content/lessons.json and the explanation panels): the reference, available offline.", Icon: OpenBookIcon, cls: "bg-card text-foreground ring-1 ring-inset ring-companion-edge" },
+  ai: { label: "Experimental AI explanation", title: "Written by a pretrained model running on this computer through Colibri. Experimental and possibly incorrect: the written explanation is the reference.", Icon: ServerIcon, cls: "bg-card text-foreground ring-1 ring-inset ring-border" },
 }
 
 /** The label that sits next to every result, saying where the numbers came from. */

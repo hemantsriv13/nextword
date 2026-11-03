@@ -1,0 +1,61 @@
+T01 r1 PASS 
+T02 r1 PASS 
+T03 r1 PASS 
+T04 r1 PASS 
+T05 r1 FAIL says smaller is better: ['one of: smaller, lower, less, close to 0, closer to 0']
+T06 r1 PASS 
+T07 r1 PASS 
+T08 r1 FAIL the turn was answered: ['conversation_full']
+T09 r1 PASS 
+T10 r1 PASS 
+T11 r1 FAIL at most 70 words: ['75 words']
+T12 r1 FAIL at most 3 sentences: ['4 sentences']
+T13 r1 PASS 
+T14 r1 FAIL the turn was answered: ['unknown_corpus']
+T15 r1 PASS 
+T16 r1 PASS 
+T17 r1 PASS 
+T18 r1 PASS 
+T19 r1 PASS 
+T20 r1 FAIL the turn was answered: ['conversation_full']
+T01 r2 PASS 
+T02 r2 PASS 
+T03 r2 PASS 
+T04 r2 PASS 
+T05 r2 FAIL says smaller is better: ['one of: smaller, lower, less, close to 0, closer to 0']
+T06 r2 PASS 
+T07 r2 PASS 
+T08 r2 FAIL the turn was answered: ['conversation_full']
+T09 r2 PASS 
+T10 r2 PASS 
+T11 r2 FAIL at most 70 words: ['75 words']
+T12 r2 FAIL at most 3 sentences: ['4 sentences']
+T13 r2 PASS 
+T14 r2 FAIL the turn was answered: ['unknown_corpus']
+T15 r2 PASS 
+T16 r2 PASS 
+T17 r2 PASS 
+T18 r2 PASS 
+T19 r2 PASS 
+T20 r2 FAIL the turn was answered: ['conversation_full']
+T01 r3 PASS 
+T02 r3 PASS 
+T03 r3 PASS 
+T04 r3 PASS 
+T05 r3 FAIL says smaller is better: ['one of: smaller, lower, less, close to 0, closer to 0']
+T06 r3 PASS 
+T07 r3 PASS 
+T08 r3 FAIL the turn was answered: ['conversation_full']
+T09 r3 PASS 
+T10 r3 PASS 
+T11 r3 FAIL at most 70 words: ['75 words']
+T12 r3 FAIL at most 3 sentences: ['4 sentences']
+T13 r3 PASS 
+T14 r3 FAIL the turn was answered: ['unknown_corpus']
+T15 r3 PASS 
+T16 r3 PASS 
+T17 r3 PASS 
+T18 r3 PASS 
+T19 r3 PASS 
+T20 r3 FAIL the turn was answered: ['conversation_full']
+42/60 case runs passed every automatic check. Saved evals\local_ai\results\tutor_cases-4b-20261101-174946.json

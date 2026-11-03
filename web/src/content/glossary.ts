@@ -3,7 +3,7 @@
 // "example" = a worked example with stated values, "discussed" = explained only.
 
 export type Route =
-  | "home" | "journey" | "playground" | "data" | "counts" | "neural" | "attention" | "decoding"
+  | "home" | "paths" | "how" | "learn" | "journey" | "playground" | "data" | "counts" | "neural" | "mlp" | "attention" | "decoding"
   | "evaluation" | "adapt" | "serving" | "glossary" | "notebook" | "toolkit"
 
 export type StageId = "text" | "tokens" | "prediction" | "training" | "attention" | "generation" | "evaluation" | "serving" | "adaptation"
@@ -233,6 +233,24 @@ export const GLOSSARY: GlossaryEntry[] = [
     misconception: "Embeddings come with meaning built in. They start random; any structure is learned from data.",
     experiment: { route: "neural", label: "Look up embeddings for a context" },
     related: ["token-id", "tensor", "parameter"],
+  },
+  {
+    id: "hidden-layer", term: "Hidden layer", stage: "training", where: "model",
+    plain: "The middle step of a neural network: it mixes the input numbers into new ones the output layer can use.",
+    technical: "h = tanh(x·W1 + b1): a weight matrix W1 and bias b1 map the joined embeddings x to H values, then an activation function is applied to each.",
+    example: "With a window of 3 characters, 8 numbers each, the 24 joined numbers become 64 hidden values between −1 and 1.",
+    misconception: "Each hidden value stands for a known feature like 'vowel'. Some may line up with such ideas after training, but they are learned, unlabelled numbers.",
+    experiment: { route: "mlp", label: "See one example's hidden values before and after tanh" },
+    related: ["activation", "embedding", "parameter"],
+  },
+  {
+    id: "activation", term: "Activation function", aliases: ["tanh", "nonlinearity"], stage: "training", where: "model",
+    plain: "A simple curve applied to each hidden value, so the network can learn more than straight-line relationships.",
+    technical: "A nonlinear function applied elementwise; tanh(z) = (e^z − e^−z) / (e^z + e^−z) maps any number into (−1, 1).",
+    example: "tanh(0) = 0, tanh(1) ≈ 0.762, tanh(3) ≈ 0.995, tanh(−2) ≈ −0.964.",
+    misconception: "It is optional decoration. Without it, stacked layers collapse into a single linear map.",
+    experiment: { route: "mlp", label: "Compare hidden values before and after tanh" },
+    related: ["hidden-layer", "forward-pass"],
   },
   {
     id: "forward-pass", term: "Forward pass", stage: "training", where: "simulation",

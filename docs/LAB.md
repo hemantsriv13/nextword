@@ -27,8 +27,22 @@ For frontend development, run the backend as above and `npm --prefix web run dev
 
 ## Where to begin
 
-Open **Bigram journey** (second item in the sidebar, or *Start here* on Home). It follows one short
-example through your engine and needs nothing from you. Every workspace starts with **How this workspace
+The Lab opens on **Home** (direct links such as `#/mlp` still open their page). Home shows one next step,
+worked out only from your saved lesson progress: lesson 1 if you are new, otherwise the lesson you were in
+or the first one you haven't started. It also lists your lessons by status (on your own, with help, with
+the solution, check skipped, skipped, in progress), the learning paths, every tool with when to use it, and
+what is running on this computer. Opening Home never asks the AI to write: it only lists which model
+Colibri serves. **Learning paths** orders the lessons and tools into twelve foundation steps (what to
+understand first, what you'll use, what you'll be able to explain, your statuses, start or resume) plus
+deeper paths, with an optional one-sitting plan; you can start anywhere. **How NextWord Works** is the
+technical reference: the parts, the two workflows (training changes the MLP's weights; asking the tutor
+changes nothing), the MLP's live defaults, the data, the tutor's limits, hardware, evaluations and the
+roadmap. Project documents open from the Lab at `/docs/<name>.md` (a fixed list, read-only).
+
+If the words are new, open **Beginner lessons** (second item in the sidebar): thirteen short lessons, from
+characters to weight updates, each with a prediction, the real result, the idea's name and a check. See
+[LESSONS.md](LESSONS.md). Then **Bigram journey** follows one short example through your engine and needs
+nothing from you. Every workspace starts with **How this workspace
 works**: the question it answers, a flow diagram, and **Read and watch**.
 
 ## How the screens are laid out
@@ -118,15 +132,43 @@ works**: the question it answers, a flow diagram, and **Read and watch**.
   them. Changing a control marks them stale instead of reinterpreting them; you recompute explicitly.
   Replaying or inspecting never draws new random numbers.
 
+### The explanation panel (Bigram journey, MLP journey, Beginner lessons)
+
+- **Two tabs.** *Understand this step* holds the written explanation, its detail levels and the words
+  used (works without the local AI). *Ask your tutor* holds the local AI's answers and the question box.
+  Switching keeps both: the conversation, any answer still arriving, and where you were reading. Showing
+  the tutor tab only checks that the model is running; nothing is generated until you press a button.
+- **Never stretches the page.** On a wide screen the panel sits beside the experiment, under the app
+  bar, as tall as the window but never past the bottom of the experiment. Its title, tabs, Expand and
+  question box stay put; everything else scrolls in one area inside it. Answers arriving, switching tabs
+  and opening help change nothing outside the panel.
+- **Following an answer.** While text arrives, the panel follows it only if you are at the end. Scroll
+  up to read and it stays where you are, with **Jump to latest**.
+- **Expand** shows the same panel wider, over the page; **Close** or Escape returns, with the same
+  conversation, position and answer in progress.
+- **Narrow screens.** Where the panel would be, two labelled buttons open it full screen (*Understand
+  this step*, *Ask your tutor*). **Back to the experiment** (or Escape) returns you to the same place.
+  The view follows the visible part of the screen, so the question box should stay above a phone keyboard
+  (not yet tested on a real phone).
+- **Short first, more on request.** *Explain this step* gives a short answer with a small example;
+  *Explain in more detail* asks for the full one. When a conversation is too long for the model's
+  context the panel says so before you ask, and a new conversation keeps the earlier answers above it.
+- **Quiz protection** is unchanged: while a checkpoint question is open (even minimised, and in the
+  expanded or full-screen view) the tutor is off and its earlier answers are hidden.
+
 ## Feature map
 
 | Workspace | Your model (Python engine) | Interactive simulation (browser) | Worked example |
 |---|---|---|---|
-| Home | Engine version | | |
-| Bigram journey | One snapshot from `/api/journey`: the example text (or one of yours), its count table and one traced run. Pairs highlighted in the text, counts, normalization, the prompt's last character, the draw and its interval, append-and-repeat with trace-back for any generated character | | |
+| Home | Next step from saved lessons, lesson statuses, learning paths, tools, what is running (backend, bigram, PyTorch MLP, tutor) | | |
+| Learning paths | Twelve foundation steps over the Beginner lessons and tools, your statuses, start or resume links, deeper paths, an optional session plan | | |
+| How NextWord Works | Live MLP defaults and limits, datasets on this computer, tutor limits and status | | Dated evaluation summaries and one-off laptop measurements, labelled as such |
+| Bigram journey | One snapshot from `/api/journey`: the example text (or one of yours), its count table and one traced run. Pairs highlighted in the text, counts, normalization, the prompt's last character, the draw and its interval, append-and-repeat with trace-back for any generated character. **Ask local AI** (optional): a pretrained model on this computer words an explanation of the step from facts the backend recomputes; labelled "AI-generated explanation", see [LOCAL_AI.md](LOCAL_AI.md) | | |
 | Writing playground | Suggestions, seeded generation, the step trace (context, distribution, draw, chosen character), accept and regenerate, A/B comparison, request timings | | |
 | Data and tokens | Corpus list, upload and paste (saved to `data/lab/`), preview, statistics, character frequency | Character tokens and IDs (same rule as `tokenize()`), word splitter, BPE merges, sliding windows, training pairs, split and leakage demo | |
 | Counts and probability | Count table heatmap, one row normalized with real counts, a seeded draw, unseen-context refusal, recounting an edited text | 1,000 repeated draws (browser generator), add-k smoothing | |
+| Beginner lessons | Thirteen lessons (counting, then learning): question, prediction, real result, why, the term, a check with a different example. Simpler wording, another example, what to look at, why it matters, back one step. Saved place; skipped / with help / on your own statuses; a local tutor from the result step on. See [LESSONS.md](LESSONS.md) | Your model | |
+| Neural MLP journey | A real character MLP trained with PyTorch on the CPU: start, stop, reset, saved runs, train/validation curves, eight stages for one example (embeddings, hidden layer, softmax, loss, one real gradient update), generation, initial vs trained, bigram comparison on the same split. See [MLP.md](MLP.md) | | |
 | Neural network training | | Gradient descent on one number, one fully visible training step (embeddings, forward pass, loss, backprop, SGD), training runs in a Web Worker with train/validation curves and the overfitting experiment | |
 | Attention explorer | | Toy embeddings and positions, Q/K/V, scores, scaling, causal mask, softmax weights, weighted sum, two heads, live mask check, one transformer block | |
 | Decoding sandbox | | Softmax, temperature, greedy, top-k, top-p, renormalization, repeated seeded draws | The editable logits |
@@ -136,7 +178,7 @@ works**: the question it answers, a flow diagram, and **Read and watch**.
 | Glossary | | | 75 terms, each with plain and precise definitions, an example, a misconception, an experiment, related terms and code references |
 | Notebook | | | Notes, questions, predictions, explanations, bookmarks, evidence table, experiment history, export, import and reset |
 
-**Not built (and not faked):** a neural engine in Python (Stage 2), a transformer engine (Stage 3),
+**Not built (and not faked):** a transformer engine (Stage 3),
 temperature/top-k in your engine (Stage 4), semantic search with a real embedding model, reranking,
 answer generation for RAG. Where these appear, the page says they are not built.
 
@@ -192,6 +234,8 @@ their file name.
 - One token is one Unicode code point, as in the engine (`list(text)`). Many emoji are a single code
   point, but some symbols you see as one are several: flags, skin tones, families joined with U+200D,
   and a letter typed as letter + combining accent. Each of those code points is its own token.
+- Ask local AI's answers come from a pretrained model (not your engine) and can be wrong; it is off
+  while a checkpoint question is open. See [LOCAL_AI.md](LOCAL_AI.md).
 - Evaluation results, saved runs and sweeps keep the settings they were measured with. Changing a
   control marks them stale rather than relabelling them; measure again to replace them.
 
@@ -211,8 +255,6 @@ their file name.
 Exit any walkthrough with *Exit* or Esc whenever you like. Nothing is marked as learned.
 
 ## First guided session (about 30 minutes)
-
-Also on the Home screen, where you can tick steps off.
 
 1. **Playground, 4 min.** Press Step ten times on “The rain” with seed 1. For each step, find where the
    draw u lands in the interval strip.

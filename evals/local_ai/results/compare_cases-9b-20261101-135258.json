@@ -1,0 +1,1978 @@
+{
+ "meta": {
+  "cases": "compare_cases.json",
+  "casesSha256": "8178eccf919c32f0b6c5dd913e1e03304972addc8b39db5207c4468ee38f935b",
+  "split": "all",
+  "label": "9b",
+  "repeats": 1,
+  "started": "2026-11-01T13:52:58+05:30",
+  "model": "qwen3.5-9b-q4km",
+  "contextTokens": 2048,
+  "engine": "Colibri v2.1.0 (Windows release, CUDA)",
+  "temperature": 0,
+  "maxTokens": {
+   "explain": 300,
+   "simpler": 160,
+   "example": 300,
+   "followup": 220
+  },
+  "promptFingerprint": "dacabff5fab1",
+  "engineVersion": "char-bigram@cfdad253",
+  "sealed": true
+ },
+ "cases": [
+  {
+   "id": "C01-row-i",
+   "split": "compare",
+   "covers": "count and probability",
+   "expect": "After 'i' the text has 5 pairs: s 3 times (3/5 = 0.6), p once (0.2), space once (0.2).",
+   "run": {
+    "corpus": "upload-ce580a5402a",
+    "fingerprint": "fcea1ad5",
+    "prompt": "mi",
+    "length": 8,
+    "seed": 5
+   },
+   "focus": {
+    "stage": "probs",
+    "context": "i"
+   },
+   "action": "explain",
+   "question": null,
+   "facts": {
+    "engine": "character bigram model: counts which character follows which, then samples (nextword/bigram.py)",
+    "engineVersion": "char-bigram@cfdad253",
+    "run": {
+     "trainingTextName": "miss",
+     "trainingTextContent": "not included; only the excerpts listed in lessonStep, if any",
+     "textFingerprint": "fcea1ad5",
+     "textCharacters": 17,
+     "pairsCounted": 16,
+     "prompt": "mi",
+     "promptLastCharacter": "i",
+     "charactersRequested": 8,
+     "charactersGenerated": 8,
+     "seed": 5,
+     "generatedText": "pipipiss",
+     "stoppedEarly": null
+    },
+    "trace": "1. 'i' → 'p'; 2. 'p' → 'i'; 3. 'i' → 'p'; 4. 'p' → 'i'; 5. 'i' → 'p'; 6. 'p' → 'i'; 7. 'i' → 's'; 8. 's' → 's'",
+    "lessonStep": {
+     "name": "Calculate probabilities",
+     "row": {
+      "contextCharacter": "i",
+      "rowTotal": 5,
+      "followers": [
+       {
+        "next": "s",
+        "count": 3,
+        "probability": 0.6
+       },
+       {
+        "next": "␣",
+        "count": 1,
+        "probability": 0.2
+       },
+       {
+        "next": "p",
+        "count": 1,
+        "probability": 0.2
+       }
+      ]
+     }
+    },
+    "calculations": [
+     "P(s | i) = 3 ÷ 5 = 0.6",
+     "P(␣ | i) = 1 ÷ 5 = 0.2",
+     "P(p | i) = 1 ÷ 5 = 0.2"
+    ],
+    "concepts": {
+     "unseenPair": "If a character has a row but some character never followed it, that pair's probability is 0 (count 0 ÷ the row's total). This engine does not smooth.",
+     "unseenContext": "A character that never starts a pair has no row at all. Its total is 0 and 0 ÷ 0 is not a number, so it has no probabilities, not even zeros. The engine refuses to predict after it, and generation stops there.",
+     "seed": "Changing only the seed changes the random draws, nothing else. The count table and the first step's probabilities stay the same. Later steps can read different rows, and so have different probabilities, if an earlier draw picked a different character.",
+     "context": "The model uses only the single previous character to choose the next one."
+    }
+   },
+   "turns": [
+    {
+     "action": "explain",
+     "question": null,
+     "answer": "In this step, the model looks at the character \"i\" and checks how many times it appeared in the training text. It found that \"i\" was followed by \"s\" three times, \"␣\" (space) once, and \"p\" once. This gives a total of 5 followers for \"i\".\n\nTo get probabilities, the engine divides each count by this total of 5. For example, the probability of \"s\" coming next is 3 divided by 5, which equals 0.6. Similarly, the chance for \"␣\" is 1 ÷ 5 = 0.2, and for \"p\" it is also 1 ÷ 5 = 0.2. These numbers tell the model how likely each character is to appear next when \"i\" is the current character. The model then uses these chances to randomly pick the next letter.",
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 24360.165800000686,
+      "total": 44602.67620000013
+     },
+     "maxTokens": 300,
+     "checks": [
+      {
+       "label": "states the row: total and top 2 counts and probabilities",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "claims about which row a character came from match the trace",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "unverifiedNumbers": []
+    }
+   ],
+   "checksPassed": 2,
+   "checksTotal": 2,
+   "aiReview": "not yet reviewed",
+   "humanReview": "not reviewed",
+   "repeat": 1
+  },
+  {
+   "id": "C02-pair-ss",
+   "split": "compare",
+   "covers": "count",
+   "expect": "'s' followed by 's' occurs 3 times; 's' starts 6 pairs (s 3, i 2, line break 1), so P(s | s) = 3/6 = 0.5.",
+   "run": {
+    "corpus": "upload-ce580a5402a",
+    "fingerprint": "fcea1ad5",
+    "prompt": "mi",
+    "length": 8,
+    "seed": 5
+   },
+   "focus": {
+    "stage": "count",
+    "pair": [
+     "s",
+     "s"
+    ]
+   },
+   "action": "explain",
+   "question": null,
+   "facts": {
+    "engine": "character bigram model: counts which character follows which, then samples (nextword/bigram.py)",
+    "engineVersion": "char-bigram@cfdad253",
+    "run": {
+     "trainingTextName": "miss",
+     "trainingTextContent": "not included; only the excerpts listed in lessonStep, if any",
+     "textFingerprint": "fcea1ad5",
+     "textCharacters": 17,
+     "pairsCounted": 16,
+     "prompt": "mi",
+     "promptLastCharacter": "i",
+     "charactersRequested": 8,
+     "charactersGenerated": 8,
+     "seed": 5,
+     "generatedText": "pipipiss",
+     "stoppedEarly": null
+    },
+    "trace": "1. 'i' → 'p'; 2. 'p' → 'i'; 3. 'i' → 'p'; 4. 'p' → 'i'; 5. 'i' → 'p'; 6. 'p' → 'i'; 7. 'i' → 's'; 8. 's' → 's'",
+    "lessonStep": {
+     "name": "Count pairs",
+     "selectedPair": {
+      "first": "s",
+      "next": "s",
+      "count": 3,
+      "rowTotalForFirst": 6
+     },
+     "excerptsWherePairOccurs": [
+      "mississippi␣",
+      "mississippi␣mis",
+      "sippi␣miss↵"
+     ],
+     "mostCommonPairs": [
+      {
+       "pair": "is",
+       "count": 3
+      },
+      {
+       "pair": "ss",
+       "count": 3
+      },
+      {
+       "pair": "mi",
+       "count": 2
+      },
+      {
+       "pair": "si",
+       "count": 2
+      },
+      {
+       "pair": "␣m",
+       "count": 1
+      }
+     ]
+    },
+    "calculations": [
+     "'s' followed by 's' occurs 3 times in the training text.",
+     "'s' starts 6 pairs in all.",
+     "P(s | s) = 3 ÷ 6 = 0.5"
+    ],
+    "concepts": {
+     "unseenPair": "If a character has a row but some character never followed it, that pair's probability is 0 (count 0 ÷ the row's total). This engine does not smooth.",
+     "unseenContext": "A character that never starts a pair has no row at all. Its total is 0 and 0 ÷ 0 is not a number, so it has no probabilities, not even zeros. The engine refuses to predict after it, and generation stops there.",
+     "seed": "Changing only the seed changes the random draws, nothing else. The count table and the first step's probabilities stay the same. Later steps can read different rows, and so have different probabilities, if an earlier draw picked a different character.",
+     "context": "The model uses only the single previous character to choose the next one."
+    }
+   },
+   "turns": [
+    {
+     "action": "explain",
+     "question": null,
+     "answer": "In this step, the model counts how often specific character pairs appear in the training text. The selected pair is \"s\" followed by \"s\". The engine found this pair 3 times. The character \"s\" starts a total of 6 pairs in the text. To find the probability, the engine divides the pair count by the total: 3 ÷ 6 = 0.5. This means that if the model sees an \"s\", there is a 50% chance it will pick another \"s\" next. The model looks only at the single previous character to make this choice. It does not understand words or grammar. The training text excerpts where this pair occurs include \"mississippi␣\" and \"sippi␣miss↵\".",
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 25071.01369999873,
+      "total": 42085.01519999845
+     },
+     "maxTokens": 300,
+     "checks": [
+      {
+       "label": "states the pair count 3",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "claims about which row a character came from match the trace",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "unverifiedNumbers": []
+    }
+   ],
+   "checksPassed": 2,
+   "checksTotal": 2,
+   "aiReview": "not yet reviewed",
+   "humanReview": "not reviewed",
+   "repeat": 1
+  },
+  {
+   "id": "C03-less-likely",
+   "split": "compare",
+   "covers": "sampling a less likely character",
+   "expect": "Row 'i' laid end to end: s 0–0.6, p 0.6–0.8, space 0.8–1. The draw 0.8444 lands in the space's stretch, so a space is chosen, although 's' was the most likely.",
+   "run": {
+    "corpus": "upload-ce580a5402a",
+    "fingerprint": "fcea1ad5",
+    "prompt": "mi",
+    "length": 8,
+    "seed": 0
+   },
+   "focus": {
+    "stage": "sample",
+    "step": 0
+   },
+   "action": "explain",
+   "question": null,
+   "facts": {
+    "engine": "character bigram model: counts which character follows which, then samples (nextword/bigram.py)",
+    "engineVersion": "char-bigram@cfdad253",
+    "run": {
+     "trainingTextName": "miss",
+     "trainingTextContent": "not included; only the excerpts listed in lessonStep, if any",
+     "textFingerprint": "fcea1ad5",
+     "textCharacters": 17,
+     "pairsCounted": 16,
+     "prompt": "mi",
+     "promptLastCharacter": "i",
+     "charactersRequested": 8,
+     "charactersGenerated": 8,
+     "seed": 0,
+     "generatedText": "␣misisis",
+     "stoppedEarly": null
+    },
+    "trace": "1. 'i' → '␣'; 2. '␣' → 'm'; 3. 'm' → 'i'; 4. 'i' → 's'; 5. 's' → 'i'; 6. 'i' → 's'; 7. 's' → 'i'; 8. 'i' → 's'",
+    "lessonStep": {
+     "name": "Sample a character",
+     "stepNumber": 1,
+     "contextCharacter": "i",
+     "randomDraw": 0.8444,
+     "intervalsInEngineOrder": [
+      {
+       "next": "s",
+       "probability": 0.6,
+       "from": 0.0,
+       "to": 0.6
+      },
+      {
+       "next": "p",
+       "probability": 0.2,
+       "from": 0.6,
+       "to": 0.8
+      },
+      {
+       "next": "␣",
+       "probability": 0.2,
+       "from": 0.8,
+       "to": 1.0
+      }
+     ],
+     "chosen": "␣",
+     "chosenRankByProbability": 2,
+     "candidates": 3
+    },
+    "calculations": [
+     "Step 1 reads the row for 'i'; laid end to end from 0 to 1: s from 0 to 0.6, p from 0.6 to 0.8, ␣ from 0.8 to 1.",
+     "The draw 0.8444 is in the range for '␣', 0.8 to 1, so '␣' is chosen.",
+     "'␣' was not the most likely character (rank 2 of 3 by probability); 's' was."
+    ],
+    "concepts": {
+     "unseenPair": "If a character has a row but some character never followed it, that pair's probability is 0 (count 0 ÷ the row's total). This engine does not smooth.",
+     "unseenContext": "A character that never starts a pair has no row at all. Its total is 0 and 0 ÷ 0 is not a number, so it has no probabilities, not even zeros. The engine refuses to predict after it, and generation stops there.",
+     "seed": "Changing only the seed changes the random draws, nothing else. The count table and the first step's probabilities stay the same. Later steps can read different rows, and so have different probabilities, if an earlier draw picked a different character.",
+     "context": "The model uses only the single previous character to choose the next one."
+    }
+   },
+   "turns": [
+    {
+     "action": "explain",
+     "question": null,
+     "answer": "In this step, the model looked at the last character of the prompt, which was \"i\". It checked its training data to see which characters usually follow \"i\". The model found three options: \"s\" (60% chance), \"p\" (20% chance), and a space \"␣\" (20% chance).\n\nTo pick one, the engine created a number line from 0 to 1 and assigned ranges to each option based on their probabilities. The space \"␣\" was assigned the range from 0.8 to 1.0. The engine then generated a random number, 0.8444. Since this number falls between 0.8 and 1.0, the model chose \"␣\".\n\nEven though \"␣\" was picked, it was not the most likely character. The letter \"s\" had the highest probability (60%), making it the most likely choice, but the random draw happened to land in the space's range instead.",
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 28290.528700001232,
+      "total": 51390.547799999695
+     },
+     "maxTokens": 300,
+     "checks": [
+      {
+       "label": "states the random draw and the chosen character",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "says it was not the most likely",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "claims about which row a character came from match the trace",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "unverifiedNumbers": []
+    }
+   ],
+   "checksPassed": 3,
+   "checksTotal": 3,
+   "aiReview": "not yet reviewed",
+   "humanReview": "not reviewed",
+   "repeat": 1
+  },
+  {
+   "id": "C04-contradict-more-often",
+   "split": "compare",
+   "covers": "attempt to contradict the facts",
+   "expect": "No. After 'a', 'b' comes 4 of 6 times (≈ 0.667) and a space 2 of 6 times (≈ 0.333).",
+   "run": {
+    "corpus": "upload-c55e912bd2c",
+    "fingerprint": "2b0c3801",
+    "prompt": "ba",
+    "length": 6,
+    "seed": 1
+   },
+   "focus": {
+    "stage": "probs",
+    "context": "a"
+   },
+   "action": "followup",
+   "question": "So after 'a', a space comes next more often than 'b', right?",
+   "facts": {
+    "engine": "character bigram model: counts which character follows which, then samples (nextword/bigram.py)",
+    "engineVersion": "char-bigram@cfdad253",
+    "run": {
+     "trainingTextName": "abba",
+     "trainingTextContent": "not included; only the excerpts listed in lessonStep, if any",
+     "textFingerprint": "2b0c3801",
+     "textCharacters": 15,
+     "pairsCounted": 14,
+     "prompt": "ba",
+     "promptLastCharacter": "a",
+     "charactersRequested": 6,
+     "charactersGenerated": 2,
+     "seed": 1,
+     "generatedText": "b↵",
+     "stoppedEarly": "stopped after 2 characters: '↵' never had a successor in the training text"
+    },
+    "trace": "1. 'a' → 'b'; 2. 'b' → '↵'",
+    "lessonStep": {
+     "name": "Calculate probabilities",
+     "row": {
+      "contextCharacter": "a",
+      "rowTotal": 6,
+      "followers": [
+       {
+        "next": "b",
+        "count": 4,
+        "probability": 0.6667
+       },
+       {
+        "next": "␣",
+        "count": 2,
+        "probability": 0.3333
+       }
+      ]
+     }
+    },
+    "calculations": [
+     "P(b | a) = 4 ÷ 6 = 0.6667",
+     "P(␣ | a) = 2 ÷ 6 = 0.3333"
+    ],
+    "concepts": {
+     "unseenPair": "If a character has a row but some character never followed it, that pair's probability is 0 (count 0 ÷ the row's total). This engine does not smooth.",
+     "unseenContext": "A character that never starts a pair has no row at all. Its total is 0 and 0 ÷ 0 is not a number, so it has no probabilities, not even zeros. The engine refuses to predict after it, and generation stops there.",
+     "seed": "Changing only the seed changes the random draws, nothing else. The count table and the first step's probabilities stay the same. Later steps can read different rows, and so have different probabilities, if an earlier draw picked a different character.",
+     "context": "The model uses only the single previous character to choose the next one."
+    }
+   },
+   "turns": [
+    {
+     "action": "explain",
+     "question": null,
+     "answer": "In this step, the model looks at the character 'a' and counts how many times each character followed it in the training text. The data shows 'a' appeared 6 times total. Specifically, 'b' followed 'a' 4 times, and a space (␣) followed 'a' 2 times.\n\nTo get probabilities, the engine divides each count by the total (6). This gives a 0.6667 chance for 'b' and a 0.3333 chance for a space. These numbers tell the model how likely each option is when 'a' is the current character. The model then uses these chances to randomly pick the next character. In this run, it picked 'b' based on these calculated odds.",
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 23495.996400000877,
+      "total": 40066.70960000156
+     },
+     "maxTokens": 300,
+     "checks": [
+      {
+       "label": "states the row: total and top 2 counts and probabilities",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "claims about which row a character came from match the trace",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "does not give '↵', which has no row, a probability of 0",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "unverifiedNumbers": []
+    },
+    {
+     "action": "followup",
+     "question": "So after 'a', a space comes next more often than 'b', right?",
+     "answer": "No, that is not correct. The facts show that 'b' comes next more often than a space after 'a'.\n\nThe counts are:\n- 'b' followed 'a' 4 times.\n- A space (␣) followed 'a' 2 times.\n\nBecause 4 is greater than 2, the probability for 'b' (0.6667) is higher than the probability for a space (0.3333). Therefore, the model is more likely to pick 'b' next.",
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 28320.52339999973,
+      "total": 40772.0104
+     },
+     "maxTokens": 220,
+     "checks": [
+      {
+       "label": "gives b's share",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "says the claim is wrong",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "claims about which row a character came from match the trace",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "does not give '↵', which has no row, a probability of 0",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "unverifiedNumbers": []
+    }
+   ],
+   "checksPassed": 7,
+   "checksTotal": 7,
+   "aiReview": "not yet reviewed",
+   "humanReview": "not reviewed",
+   "repeat": 1
+  },
+  {
+   "id": "C05-tab-row",
+   "split": "compare",
+   "covers": "tabs",
+   "expect": "After a tab the text has 2 pairs: 'b' once and 'c' once, so each has probability 1/2 = 0.5.",
+   "run": {
+    "corpus": "upload-cadcfd5f819",
+    "fingerprint": "01a21a5b",
+    "prompt": "a",
+    "length": 4,
+    "seed": 3
+   },
+   "focus": {
+    "stage": "probs",
+    "context": "\t"
+   },
+   "action": "explain",
+   "question": null,
+   "facts": {
+    "engine": "character bigram model: counts which character follows which, then samples (nextword/bigram.py)",
+    "engineVersion": "char-bigram@cfdad253",
+    "run": {
+     "trainingTextName": "tabs",
+     "trainingTextContent": "not included; only the excerpts listed in lessonStep, if any",
+     "textFingerprint": "01a21a5b",
+     "textCharacters": 8,
+     "pairsCounted": 7,
+     "prompt": "a",
+     "promptLastCharacter": "a",
+     "charactersRequested": 4,
+     "charactersGenerated": 3,
+     "seed": 3,
+     "generatedText": "⇥c↵",
+     "stoppedEarly": "stopped after 3 characters: '↵' never had a successor in the training text"
+    },
+    "trace": "1. 'a' → '⇥'; 2. '⇥' → 'c'; 3. 'c' → '↵'",
+    "lessonStep": {
+     "name": "Calculate probabilities",
+     "row": {
+      "contextCharacter": "⇥",
+      "rowTotal": 2,
+      "followers": [
+       {
+        "next": "b",
+        "count": 1,
+        "probability": 0.5
+       },
+       {
+        "next": "c",
+        "count": 1,
+        "probability": 0.5
+       }
+      ]
+     }
+    },
+    "calculations": [
+     "P(b | ⇥) = 1 ÷ 2 = 0.5",
+     "P(c | ⇥) = 1 ÷ 2 = 0.5"
+    ],
+    "concepts": {
+     "unseenPair": "If a character has a row but some character never followed it, that pair's probability is 0 (count 0 ÷ the row's total). This engine does not smooth.",
+     "unseenContext": "A character that never starts a pair has no row at all. Its total is 0 and 0 ÷ 0 is not a number, so it has no probabilities, not even zeros. The engine refuses to predict after it, and generation stops there.",
+     "seed": "Changing only the seed changes the random draws, nothing else. The count table and the first step's probabilities stay the same. Later steps can read different rows, and so have different probabilities, if an earlier draw picked a different character.",
+     "context": "The model uses only the single previous character to choose the next one."
+    }
+   },
+   "turns": [
+    {
+     "action": "explain",
+     "question": null,
+     "answer": "In this step, the model looks at the character `⇥` (tab) and checks how many times it appeared in the training text. It found `⇥` twice total. Once it was followed by `b`, and once by `c`. To get probabilities, the engine divides each count by the total count for `⇥`. Since both `b` and `c` appeared once out of two total times, the probability for each is 0.5. The calculation is: P(b | ⇥) = 1 ÷ 2 = 0.5, and P(c | ⇥) = 1 ÷ 2 = 0.5. This means if the model sees `⇥`, it has an equal chance of picking `b` or `c` next. The model only uses the single previous character to make this choice, ignoring any other context.",
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 22925.186099999337,
+      "total": 41260.888999999224
+     },
+     "maxTokens": 300,
+     "checks": [
+      {
+       "label": "states the row: total and top 2 counts and probabilities",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "names the tab character",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "claims about which row a character came from match the trace",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "does not give '↵', which has no row, a probability of 0",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "unverifiedNumbers": []
+    }
+   ],
+   "checksPassed": 4,
+   "checksTotal": 4,
+   "aiReview": "not yet reviewed",
+   "humanReview": "not reviewed",
+   "repeat": 1
+  },
+  {
+   "id": "C06-accent",
+   "split": "compare",
+   "covers": "Unicode characters",
+   "expect": "After 'l': 'é' twice and 'e' once (total 3), so P(é | l) = 2/3 ≈ 0.667 and P(e | l) = 1/3 ≈ 0.333; 'é' and 'e' are different characters.",
+   "run": {
+    "corpus": "upload-c8058b81c6c",
+    "fingerprint": "6b194139",
+    "prompt": "ol",
+    "length": 5,
+    "seed": 1
+   },
+   "focus": {
+    "stage": "probs",
+    "context": "l"
+   },
+   "action": "explain",
+   "question": null,
+   "facts": {
+    "engine": "character bigram model: counts which character follows which, then samples (nextword/bigram.py)",
+    "engineVersion": "char-bigram@cfdad253",
+    "run": {
+     "trainingTextName": "ole",
+     "trainingTextContent": "not included; only the excerpts listed in lessonStep, if any",
+     "textFingerprint": "6b194139",
+     "textCharacters": 12,
+     "pairsCounted": 11,
+     "prompt": "ol",
+     "promptLastCharacter": "l",
+     "charactersRequested": 5,
+     "charactersGenerated": 5,
+     "seed": 1,
+     "generatedText": "é␣olé",
+     "stoppedEarly": null
+    },
+    "trace": "1. 'l' → 'é (U+00E9)'; 2. 'é (U+00E9)' → '␣'; 3. '␣' → 'o'; 4. 'o' → 'l'; 5. 'l' → 'é (U+00E9)'",
+    "lessonStep": {
+     "name": "Calculate probabilities",
+     "row": {
+      "contextCharacter": "l",
+      "rowTotal": 3,
+      "followers": [
+       {
+        "next": "é (U+00E9)",
+        "count": 2,
+        "probability": 0.6667
+       },
+       {
+        "next": "e",
+        "count": 1,
+        "probability": 0.3333
+       }
+      ]
+     }
+    },
+    "calculations": [
+     "P(é (U+00E9) | l) = 2 ÷ 3 = 0.6667",
+     "P(e | l) = 1 ÷ 3 = 0.3333"
+    ],
+    "concepts": {
+     "unseenPair": "If a character has a row but some character never followed it, that pair's probability is 0 (count 0 ÷ the row's total). This engine does not smooth.",
+     "unseenContext": "A character that never starts a pair has no row at all. Its total is 0 and 0 ÷ 0 is not a number, so it has no probabilities, not even zeros. The engine refuses to predict after it, and generation stops there.",
+     "seed": "Changing only the seed changes the random draws, nothing else. The count table and the first step's probabilities stay the same. Later steps can read different rows, and so have different probabilities, if an earlier draw picked a different character.",
+     "context": "The model uses only the single previous character to choose the next one."
+    }
+   },
+   "turns": [
+    {
+     "action": "explain",
+     "question": null,
+     "answer": "In this step, the model looks only at the last character of the prompt, which is \"l\". It checks how many times each character followed \"l\" in the training text. The counts show that \"é\" appeared 2 times and \"e\" appeared 1 time, for a total of 3 pairs.\n\nTo get probabilities, the engine divides each count by the total (3). This gives \"é\" a probability of 0.6667 (2 ÷ 3) and \"e\" a probability of 0.3333 (1 ÷ 3). These numbers tell the model how likely each character is to come next. The trace shows that when the model needed to pick the next character, it read the row for \"l\" and drew \"é\" based on these chances. This process repeats for every new character, always using only the single previous one to decide the next.",
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 24225.465100000292,
+      "total": 45023.218199999974
+     },
+     "maxTokens": 300,
+     "checks": [
+      {
+       "label": "states the row: total and top 2 counts and probabilities",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "keeps é distinct from e",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "claims about which row a character came from match the trace",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "unverifiedNumbers": []
+    }
+   ],
+   "checksPassed": 3,
+   "checksTotal": 3,
+   "aiReview": "not yet reviewed",
+   "humanReview": "not reviewed",
+   "repeat": 1
+  },
+  {
+   "id": "C07-same-ending",
+   "split": "compare",
+   "covers": "same ending character, different prompt",
+   "expect": "No. Both end in 'i', and only the last character is used, so the first step reads the same row for 'i' (s 3, p 1, space 1).",
+   "run": {
+    "corpus": "upload-ce580a5402a",
+    "fingerprint": "fcea1ad5",
+    "prompt": "mi",
+    "length": 8,
+    "seed": 5
+   },
+   "focus": {
+    "stage": "context"
+   },
+   "action": "followup",
+   "question": "Would my first probabilities change if the prompt were 'pi' instead of 'mi'?",
+   "facts": {
+    "engine": "character bigram model: counts which character follows which, then samples (nextword/bigram.py)",
+    "engineVersion": "char-bigram@cfdad253",
+    "run": {
+     "trainingTextName": "miss",
+     "trainingTextContent": "not included; only the excerpts listed in lessonStep, if any",
+     "textFingerprint": "fcea1ad5",
+     "textCharacters": 17,
+     "pairsCounted": 16,
+     "prompt": "mi",
+     "promptLastCharacter": "i",
+     "charactersRequested": 8,
+     "charactersGenerated": 8,
+     "seed": 5,
+     "generatedText": "pipipiss",
+     "stoppedEarly": null
+    },
+    "trace": "1. 'i' → 'p'; 2. 'p' → 'i'; 3. 'i' → 'p'; 4. 'p' → 'i'; 5. 'i' → 'p'; 6. 'p' → 'i'; 7. 'i' → 's'; 8. 's' → 's'",
+    "lessonStep": {
+     "name": "Read the context",
+     "row": {
+      "contextCharacter": "i",
+      "rowTotal": 5,
+      "followers": [
+       {
+        "next": "s",
+        "count": 3,
+        "probability": 0.6
+       },
+       {
+        "next": "␣",
+        "count": 1,
+        "probability": 0.2
+       },
+       {
+        "next": "p",
+        "count": 1,
+        "probability": 0.2
+       }
+      ]
+     }
+    },
+    "calculations": [
+     "The prompt ends in 'i', so the first step reads the row for 'i'; the earlier characters are not used.",
+     "P(s | i) = 3 ÷ 5 = 0.6",
+     "P(␣ | i) = 1 ÷ 5 = 0.2",
+     "P(p | i) = 1 ÷ 5 = 0.2"
+    ],
+    "concepts": {
+     "unseenPair": "If a character has a row but some character never followed it, that pair's probability is 0 (count 0 ÷ the row's total). This engine does not smooth.",
+     "unseenContext": "A character that never starts a pair has no row at all. Its total is 0 and 0 ÷ 0 is not a number, so it has no probabilities, not even zeros. The engine refuses to predict after it, and generation stops there.",
+     "seed": "Changing only the seed changes the random draws, nothing else. The count table and the first step's probabilities stay the same. Later steps can read different rows, and so have different probabilities, if an earlier draw picked a different character.",
+     "context": "The model uses only the single previous character to choose the next one."
+    }
+   },
+   "turns": [
+    {
+     "action": "explain",
+     "question": null,
+     "answer": "This step shows how the bigram model chooses the next character. A bigram model is a simple system that looks only at the single previous character to decide what comes next; it ignores everything before that. Because the prompt ends with \"i\", the model reads only the row for \"i\". It does not use the earlier characters in the prompt.\n\nIn this row, there are 5 total times \"i\" appeared. The model counts how many times each character followed \"i\": \"s\" followed it 3 times, a space followed it 1 time, and \"p\" followed it 1 time. This gives probabilities of 0.6 for \"s\", 0.2 for a space, and 0.2 for \"p\". The engine then picks one of these based on those chances. In this run, it picked \"p\". This process repeats for every new character generated.",
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 25147.129299999506,
+      "total": 45227.56610000033
+     },
+     "maxTokens": 300,
+     "checks": [
+      {
+       "label": "states the row: total and top 1 counts and probabilities",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "claims about which row a character came from match the trace",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "unverifiedNumbers": []
+    },
+    {
+     "action": "followup",
+     "question": "Would my first probabilities change if the prompt were 'pi' instead of 'mi'?",
+     "answer": "Yes, your first probabilities would change. The model uses only the last character of the prompt to start. With the prompt \"mi\", it reads the row for \"i\". But with the prompt \"pi\", it would read the row for \"p\" instead.\n\nThe facts show the row for \"i\" has 5 total followers with probabilities 0.6 for \"s\", 0.2 for a space, and 0.2 for \"p\". We don't have the counts for the row of \"p\" in the facts, so we can't give those numbers. But the point is: the starting character changes which row is read, so the probabilities change. The model does not look at the whole prompt, just the very last character.",
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 1203.4527999985585,
+      "total": 18184.990199999447
+     },
+     "maxTokens": 220,
+     "checks": [
+      {
+       "label": "says they stay the same",
+       "pass": false,
+       "missing": [
+        "one of: same, no,, no., not change, wouldn't change, would not change"
+       ]
+      },
+      {
+       "label": "gives the last character as the reason",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "claims about which row a character came from match the trace",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "unverifiedNumbers": []
+    }
+   ],
+   "checksPassed": 4,
+   "checksTotal": 5,
+   "aiReview": "not yet reviewed",
+   "humanReview": "not reviewed",
+   "repeat": 1
+  },
+  {
+   "id": "C08-seed-later-row",
+   "split": "compare",
+   "covers": "changed seed and later divergence",
+   "expect": "Yes. Step 1 always reads row 'i'; but a different seed can draw a different first character, and step 2 reads that character's row.",
+   "run": {
+    "corpus": "upload-ce580a5402a",
+    "fingerprint": "fcea1ad5",
+    "prompt": "mi",
+    "length": 8,
+    "seed": 5
+   },
+   "focus": {
+    "stage": "sample",
+    "step": 0
+   },
+   "action": "followup",
+   "question": "If I rerun with seed 6, could step 2 use a different row than this run did?",
+   "facts": {
+    "engine": "character bigram model: counts which character follows which, then samples (nextword/bigram.py)",
+    "engineVersion": "char-bigram@cfdad253",
+    "run": {
+     "trainingTextName": "miss",
+     "trainingTextContent": "not included; only the excerpts listed in lessonStep, if any",
+     "textFingerprint": "fcea1ad5",
+     "textCharacters": 17,
+     "pairsCounted": 16,
+     "prompt": "mi",
+     "promptLastCharacter": "i",
+     "charactersRequested": 8,
+     "charactersGenerated": 8,
+     "seed": 5,
+     "generatedText": "pipipiss",
+     "stoppedEarly": null
+    },
+    "trace": "1. 'i' → 'p'; 2. 'p' → 'i'; 3. 'i' → 'p'; 4. 'p' → 'i'; 5. 'i' → 'p'; 6. 'p' → 'i'; 7. 'i' → 's'; 8. 's' → 's'",
+    "lessonStep": {
+     "name": "Sample a character",
+     "stepNumber": 1,
+     "contextCharacter": "i",
+     "randomDraw": 0.6229,
+     "intervalsInEngineOrder": [
+      {
+       "next": "s",
+       "probability": 0.6,
+       "from": 0.0,
+       "to": 0.6
+      },
+      {
+       "next": "p",
+       "probability": 0.2,
+       "from": 0.6,
+       "to": 0.8
+      },
+      {
+       "next": "␣",
+       "probability": 0.2,
+       "from": 0.8,
+       "to": 1.0
+      }
+     ],
+     "chosen": "p",
+     "chosenRankByProbability": 3,
+     "candidates": 3
+    },
+    "calculations": [
+     "Step 1 reads the row for 'i'; laid end to end from 0 to 1: s from 0 to 0.6, p from 0.6 to 0.8, ␣ from 0.8 to 1.",
+     "The draw 0.6229 is in the range for 'p', 0.6 to 0.8, so 'p' is chosen.",
+     "'p' was not the most likely character (rank 3 of 3 by probability); 's' was."
+    ],
+    "concepts": {
+     "unseenPair": "If a character has a row but some character never followed it, that pair's probability is 0 (count 0 ÷ the row's total). This engine does not smooth.",
+     "unseenContext": "A character that never starts a pair has no row at all. Its total is 0 and 0 ÷ 0 is not a number, so it has no probabilities, not even zeros. The engine refuses to predict after it, and generation stops there.",
+     "seed": "Changing only the seed changes the random draws, nothing else. The count table and the first step's probabilities stay the same. Later steps can read different rows, and so have different probabilities, if an earlier draw picked a different character.",
+     "context": "The model uses only the single previous character to choose the next one."
+    }
+   },
+   "turns": [
+    {
+     "action": "explain",
+     "question": null,
+     "answer": "In this step, the model looked at the last character of the prompt, which was \"i\". It checked its training data to see what characters usually follow \"i\". It found three options: \"s\", \"p\", and a space. The model assigned probabilities to each: \"s\" had 0.6, \"p\" had 0.2, and the space had 0.2.\n\nTo pick a character, the engine created a number line from 0 to 1 and divided it based on these probabilities. It then made a random draw of 0.6229. This number fell between 0.6 and 0.8, which is the range assigned to \"p\", so \"p\" was chosen. Even though \"p\" was picked, it was not the most likely character; \"s\" was the most likely because it had the highest probability. This shows that the model simply samples from probabilities rather than always picking the best guess.",
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 27553.32129999988,
+      "total": 49553.64030000055
+     },
+     "maxTokens": 300,
+     "checks": [
+      {
+       "label": "states the random draw and the chosen character",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "claims about which row a character came from match the trace",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "unverifiedNumbers": []
+    },
+    {
+     "action": "followup",
+     "question": "If I rerun with seed 6, could step 2 use a different row than this run did?",
+     "answer": "Yes, step 2 could use a different row if you rerun the experiment with seed 6. The facts explain that changing only the seed changes the random draws, but the count table and the first step's probabilities stay the same. Because the random draw in step 1 determines which character is generated next, a different seed could lead to a different character being picked in step 1. Since the model only looks at the single previous character to choose the next one, a different character in step 1 means step 2 will look at a different row. This results in different probabilities and potentially a different character being drawn in step 2 as well.",
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 1348.0984000016178,
+      "total": 15600.786900000458
+     },
+     "maxTokens": 220,
+     "checks": [
+      {
+       "label": "says yes, it could",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "does not say every step's probabilities stay the same",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "claims about which row a character came from match the trace",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "unverifiedNumbers": []
+    }
+   ],
+   "checksPassed": 5,
+   "checksTotal": 5,
+   "aiReview": "not yet reviewed",
+   "humanReview": "not reviewed",
+   "repeat": 1
+  },
+  {
+   "id": "C09-stopped-r",
+   "split": "compare",
+   "covers": "stopped generation",
+   "expect": "Step 1 read 'p' and drew 'q'; step 2 read 'q' and drew 'r'. Nothing ever follows 'r', so 'r' has no row and no probabilities (not zeros); generation stops after 2 of 6.",
+   "run": {
+    "corpus": "upload-c899f11ec5f",
+    "fingerprint": "836b9b95",
+    "prompt": "p",
+    "length": 6,
+    "seed": 0
+   },
+   "focus": {
+    "stage": "repeat",
+    "step": 1
+   },
+   "action": "followup",
+   "question": "Why are there only 2 generated characters?",
+   "facts": {
+    "engine": "character bigram model: counts which character follows which, then samples (nextword/bigram.py)",
+    "engineVersion": "char-bigram@cfdad253",
+    "run": {
+     "trainingTextName": "dead3",
+     "trainingTextContent": "not included; only the excerpts listed in lessonStep, if any",
+     "textFingerprint": "836b9b95",
+     "textCharacters": 3,
+     "pairsCounted": 2,
+     "prompt": "p",
+     "promptLastCharacter": "p",
+     "charactersRequested": 6,
+     "charactersGenerated": 2,
+     "seed": 0,
+     "generatedText": "qr",
+     "stoppedEarly": "stopped after 2 characters: 'r' never had a successor in the training text"
+    },
+    "trace": "1. 'p' → 'q'; 2. 'q' → 'r'",
+    "lessonStep": {
+     "name": "Append and repeat",
+     "stepNumber": 2,
+     "contextCharacter": "q",
+     "chosen": "r",
+     "contextForNextStep": "r",
+     "textSoFar": "pqr"
+    },
+    "calculations": [
+     "Step 2 read 'q' and drew 'r'; 'r' is the context for step 3.",
+     "'r' has no row (nothing ever followed it in the training text), so there are no probabilities and generation stopped after 2 of 6 characters."
+    ],
+    "concepts": {
+     "unseenContext": "A character that never starts a pair has no row at all. Its total is 0 and 0 ÷ 0 is not a number, so it has no probabilities, not even zeros. The engine refuses to predict after it, and generation stops there.",
+     "seed": "Changing only the seed changes the random draws, nothing else. The count table and the first step's probabilities stay the same. Later steps can read different rows, and so have different probabilities, if an earlier draw picked a different character.",
+     "context": "The model uses only the single previous character to choose the next one."
+    }
+   },
+   "turns": [
+    {
+     "action": "explain",
+     "question": null,
+     "answer": "In this step, the model looked at the last character, 'q', and randomly chose 'r' to add to the text. Now 'r' is the new context for the next step. However, the training text never had 'r' followed by anything else. Because 'r' has no row in the model's memory, it has no probabilities at all—not even probabilities of zero. Without any probabilities, the engine cannot predict the next character. This is why generation stopped after just two characters, even though six were requested. The model simply cannot continue once it reaches a character it has never seen as a starting point for a pair.",
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 22410.530299999664,
+      "total": 37930.32999999923
+     },
+     "maxTokens": 300,
+     "checks": [
+      {
+       "label": "names 'q', the row step 2 was drawn from",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "claims about which row a character came from match the trace",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "does not give 'r', which has no row, a probability of 0",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "unverifiedNumbers": []
+    },
+    {
+     "action": "followup",
+     "question": "Why are there only 2 generated characters?",
+     "answer": "There are only 2 generated characters because the model stopped early. It started with the prompt 'p', generated 'q', and then generated 'r'. When the model tried to find what comes after 'r', it found nothing. The facts state that \"'r' has no row (nothing ever followed it in the training text), so there are no probabilities and generation stopped after 2 of 6 characters.\" Since the model cannot predict the next character when there is no history for it, the process ends immediately.",
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 26466.3103999992,
+      "total": 37658.036199998605
+     },
+     "maxTokens": 220,
+     "checks": [
+      {
+       "label": "says r has no follower",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "claims about which row a character came from match the trace",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "does not give 'r', which has no row, a probability of 0",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "unverifiedNumbers": []
+    }
+   ],
+   "checksPassed": 6,
+   "checksTotal": 6,
+   "aiReview": "not yet reviewed",
+   "humanReview": "not reviewed",
+   "repeat": 1
+  },
+  {
+   "id": "C10-stopped-newline",
+   "split": "compare",
+   "covers": "stopped generation on a line break",
+   "expect": "Step 1 read 'b' and drew a line break. Nothing follows the line break at the end of the text, so it has no row; generation stops after 1 of 6 characters.",
+   "run": {
+    "corpus": "upload-c55e912bd2c",
+    "fingerprint": "2b0c3801",
+    "prompt": "ab",
+    "length": 6,
+    "seed": 2
+   },
+   "focus": {
+    "stage": "repeat",
+    "step": 0
+   },
+   "action": "explain",
+   "question": null,
+   "facts": {
+    "engine": "character bigram model: counts which character follows which, then samples (nextword/bigram.py)",
+    "engineVersion": "char-bigram@cfdad253",
+    "run": {
+     "trainingTextName": "abba",
+     "trainingTextContent": "not included; only the excerpts listed in lessonStep, if any",
+     "textFingerprint": "2b0c3801",
+     "textCharacters": 15,
+     "pairsCounted": 14,
+     "prompt": "ab",
+     "promptLastCharacter": "b",
+     "charactersRequested": 6,
+     "charactersGenerated": 1,
+     "seed": 2,
+     "generatedText": "↵",
+     "stoppedEarly": "stopped after 1 characters: '↵' never had a successor in the training text"
+    },
+    "trace": "1. 'b' → '↵'",
+    "lessonStep": {
+     "name": "Append and repeat",
+     "stepNumber": 1,
+     "contextCharacter": "b",
+     "chosen": "↵",
+     "contextForNextStep": "↵",
+     "textSoFar": "ab↵"
+    },
+    "calculations": [
+     "Step 1 read 'b' and drew '↵'; '↵' is the context for step 2.",
+     "'↵' has no row (nothing ever followed it in the training text), so there are no probabilities and generation stopped after 1 of 6 characters."
+    ],
+    "concepts": {
+     "unseenContext": "A character that never starts a pair has no row at all. Its total is 0 and 0 ÷ 0 is not a number, so it has no probabilities, not even zeros. The engine refuses to predict after it, and generation stops there.",
+     "seed": "Changing only the seed changes the random draws, nothing else. The count table and the first step's probabilities stay the same. Later steps can read different rows, and so have different probabilities, if an earlier draw picked a different character.",
+     "context": "The model uses only the single previous character to choose the next one."
+    }
+   },
+   "turns": [
+    {
+     "action": "explain",
+     "question": null,
+     "answer": "In this experiment, the model learned from the text \"abba\" and started with the prompt \"ab\". In Step 1, the model looked at the last character, 'b', and randomly chose the next character: a line break (↵). This action \"appended\" the break to the text, making '↵' the new context for the next step.\n\nHowever, the training text never had a character follow the line break. Because nothing ever followed it, the model has no record (no row) for '↵'. Without a row, there are no counts to calculate probabilities. The facts state that \"0 ÷ 0 is not a number,\" so the model cannot predict what comes next. Since it has no probabilities—not even zeros—it stops generating immediately after just one character.",
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 22312.97099999938,
+      "total": 40350.41009999986
+     },
+     "maxTokens": 300,
+     "checks": [
+      {
+       "label": "names the line break",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "says it has no row",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "claims about which row a character came from match the trace",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "does not give '↵', which has no row, a probability of 0",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "unverifiedNumbers": []
+    }
+   ],
+   "checksPassed": 4,
+   "checksTotal": 4,
+   "aiReview": "not yet reviewed",
+   "humanReview": "not reviewed",
+   "repeat": 1
+  },
+  {
+   "id": "C11-which-row",
+   "split": "compare",
+   "covers": "trace: which row a character came from",
+   "expect": "The row for 'i': the trace is i→p, p→i, i→p, so the third character 'p' was drawn from row 'i' (the second generated character).",
+   "run": {
+    "corpus": "upload-ce580a5402a",
+    "fingerprint": "fcea1ad5",
+    "prompt": "mi",
+    "length": 8,
+    "seed": 5
+   },
+   "focus": {
+    "stage": "repeat",
+    "step": 2
+   },
+   "action": "followup",
+   "question": "Which character's row was used to choose the third generated character?",
+   "facts": {
+    "engine": "character bigram model: counts which character follows which, then samples (nextword/bigram.py)",
+    "engineVersion": "char-bigram@cfdad253",
+    "run": {
+     "trainingTextName": "miss",
+     "trainingTextContent": "not included; only the excerpts listed in lessonStep, if any",
+     "textFingerprint": "fcea1ad5",
+     "textCharacters": 17,
+     "pairsCounted": 16,
+     "prompt": "mi",
+     "promptLastCharacter": "i",
+     "charactersRequested": 8,
+     "charactersGenerated": 8,
+     "seed": 5,
+     "generatedText": "pipipiss",
+     "stoppedEarly": null
+    },
+    "trace": "1. 'i' → 'p'; 2. 'p' → 'i'; 3. 'i' → 'p'; 4. 'p' → 'i'; 5. 'i' → 'p'; 6. 'p' → 'i'; 7. 'i' → 's'; 8. 's' → 's'",
+    "lessonStep": {
+     "name": "Append and repeat",
+     "stepNumber": 3,
+     "contextCharacter": "i",
+     "chosen": "p",
+     "contextForNextStep": "p",
+     "textSoFar": "mipip"
+    },
+    "calculations": [
+     "Step 3 read 'i' and drew 'p'; 'p' is the context for step 4."
+    ],
+    "concepts": {
+     "unseenPair": "If a character has a row but some character never followed it, that pair's probability is 0 (count 0 ÷ the row's total). This engine does not smooth.",
+     "unseenContext": "A character that never starts a pair has no row at all. Its total is 0 and 0 ÷ 0 is not a number, so it has no probabilities, not even zeros. The engine refuses to predict after it, and generation stops there.",
+     "seed": "Changing only the seed changes the random draws, nothing else. The count table and the first step's probabilities stay the same. Later steps can read different rows, and so have different probabilities, if an earlier draw picked a different character.",
+     "context": "The model uses only the single previous character to choose the next one."
+    }
+   },
+   "turns": [
+    {
+     "action": "explain",
+     "question": null,
+     "answer": "In this step, the model uses only the single previous character to choose the next one. At step 3, the model read the character 'i' and drew 'p' from its list of options. Because the model looks only at the immediate predecessor, 'p' immediately becomes the new context for step 4. This means the model will now decide the next character based solely on how often characters followed 'p' in the training text. The engine calculated that after reading 'i' and drawing 'p', 'p' serves as the context for the following step. This process repeats, using the most recently generated character to determine the next choice, without understanding words or meaning.",
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 23734.597999999096,
+      "total": 38666.884300000675
+     },
+     "maxTokens": 300,
+     "checks": [
+      {
+       "label": "names 'i', the row step 3 was drawn from",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "claims about which row a character came from match the trace",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "unverifiedNumbers": []
+    },
+    {
+     "action": "followup",
+     "question": "Which character's row was used to choose the third generated character?",
+     "answer": "The third generated character was 'p'. According to the trace, this character was drawn when the model read the character 'i'. Therefore, the row for 'i' was used to choose the third generated character. The model looked at how often characters followed 'i' in the training text and selected 'p' from that list.",
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 27320.10579999951,
+      "total": 34666.24149999916
+     },
+     "maxTokens": 220,
+     "checks": [
+      {
+       "label": "names 'i', the row step 3 was drawn from",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "claims about which row a character came from match the trace",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "unverifiedNumbers": []
+    }
+   ],
+   "checksPassed": 4,
+   "checksTotal": 4,
+   "aiReview": "not yet reviewed",
+   "humanReview": "not reviewed",
+   "repeat": 1
+  },
+  {
+   "id": "C12-example",
+   "split": "compare",
+   "covers": "show a small example",
+   "expect": "A labelled invented example with consistent numbers, kept apart from the real run: row 'l' (é 0–0.667, e 0.667–1), draw 0.134, chose 'é'.",
+   "run": {
+    "corpus": "upload-c8058b81c6c",
+    "fingerprint": "6b194139",
+    "prompt": "ol",
+    "length": 5,
+    "seed": 1
+   },
+   "focus": {
+    "stage": "sample",
+    "step": 0
+   },
+   "action": "example",
+   "question": null,
+   "facts": {
+    "engine": "character bigram model: counts which character follows which, then samples (nextword/bigram.py)",
+    "engineVersion": "char-bigram@cfdad253",
+    "run": {
+     "trainingTextName": "ole",
+     "trainingTextContent": "not included; only the excerpts listed in lessonStep, if any",
+     "textFingerprint": "6b194139",
+     "textCharacters": 12,
+     "pairsCounted": 11,
+     "prompt": "ol",
+     "promptLastCharacter": "l",
+     "charactersRequested": 5,
+     "charactersGenerated": 5,
+     "seed": 1,
+     "generatedText": "é␣olé",
+     "stoppedEarly": null
+    },
+    "trace": "1. 'l' → 'é (U+00E9)'; 2. 'é (U+00E9)' → '␣'; 3. '␣' → 'o'; 4. 'o' → 'l'; 5. 'l' → 'é (U+00E9)'",
+    "lessonStep": {
+     "name": "Sample a character",
+     "stepNumber": 1,
+     "contextCharacter": "l",
+     "randomDraw": 0.1344,
+     "intervalsInEngineOrder": [
+      {
+       "next": "é (U+00E9)",
+       "probability": 0.6667,
+       "from": 0.0,
+       "to": 0.6667
+      },
+      {
+       "next": "e",
+       "probability": 0.3333,
+       "from": 0.6667,
+       "to": 1.0
+      }
+     ],
+     "chosen": "é (U+00E9)",
+     "chosenRankByProbability": 1,
+     "candidates": 2
+    },
+    "calculations": [
+     "Step 1 reads the row for 'l'; laid end to end from 0 to 1: é (U+00E9) from 0 to 0.6667, e from 0.6667 to 1.",
+     "The draw 0.1344 is in the range for 'é (U+00E9)', 0 to 0.6667, so 'é (U+00E9)' is chosen.",
+     "'é (U+00E9)' was the most likely character."
+    ],
+    "concepts": {
+     "unseenPair": "If a character has a row but some character never followed it, that pair's probability is 0 (count 0 ÷ the row's total). This engine does not smooth.",
+     "unseenContext": "A character that never starts a pair has no row at all. Its total is 0 and 0 ÷ 0 is not a number, so it has no probabilities, not even zeros. The engine refuses to predict after it, and generation stops there.",
+     "seed": "Changing only the seed changes the random draws, nothing else. The count table and the first step's probabilities stay the same. Later steps can read different rows, and so have different probabilities, if an earlier draw picked a different character.",
+     "context": "The model uses only the single previous character to choose the next one."
+    }
+   },
+   "turns": [
+    {
+     "action": "explain",
+     "question": null,
+     "answer": "In this step, the model looked only at the last character of the prompt, which was \"l\". It checked its table to see what characters usually follow \"l\". There were two options: \"é (U+00E9)\" and \"e\". The model calculated that \"é (U+00E9)\" had a probability of 0.6667, while \"e\" had 0.3333. This means \"é (U+00E9)\" was the most likely character to appear next.\n\nTo pick one, the engine made a random draw, getting the number 0.1344. It then checked which range this number fell into. Since 0.1344 is between 0.0 and 0.6667, it selected \"é (U+00E9)\". The model did not understand the meaning of the text; it simply followed the math based on the previous character.",
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 28362.712699999975,
+      "total": 50365.399100001014
+     },
+     "maxTokens": 300,
+     "checks": [
+      {
+       "label": "states the random draw and the chosen character",
+       "pass": false,
+       "missing": [
+        "chosen é (U+00E9)"
+       ]
+      },
+      {
+       "label": "claims about which row a character came from match the trace",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "unverifiedNumbers": []
+    },
+    {
+     "action": "example",
+     "question": null,
+     "answer": "**Made-up example (not from this run)**\nImagine a text where 'q' is followed by 'u' three times and 'o' once. The model calculates that 'u' is more likely (0.75) than 'o' (0.25). However, if a random draw of 0.88 falls in the range for 'o', the model picks 'o' even though it was less likely.\n\n**In this run**\nThe model looked at the character 'l' and found that 'é (U+00E9)' was the most likely next character with a probability of 0.6667. Because the random draw of 0.1344 fell within that range, 'é (U+00E9)' was chosen.",
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 39573.73710000138,
+      "total": 58028.88180000082
+     },
+     "maxTokens": 300,
+     "checks": [
+      {
+       "label": "invented example is labelled, consistent and separate from the run",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "claims about which row a character came from match the trace",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "unverifiedNumbers": [
+      "0.25",
+      "0.75",
+      "0.88"
+     ]
+    }
+   ],
+   "checksPassed": 3,
+   "checksTotal": 4,
+   "aiReview": "not yet reviewed",
+   "humanReview": "not reviewed",
+   "repeat": 1
+  },
+  {
+   "id": "C13-simpler",
+   "split": "compare",
+   "covers": "explain more simply",
+   "expect": "After 'b': 'a' 4 times out of 6, 'b' once, a line break once.",
+   "run": {
+    "corpus": "upload-c55e912bd2c",
+    "fingerprint": "2b0c3801",
+    "prompt": "ba",
+    "length": 6,
+    "seed": 1
+   },
+   "focus": {
+    "stage": "probs",
+    "context": "b"
+   },
+   "action": "simpler",
+   "question": null,
+   "facts": {
+    "engine": "character bigram model: counts which character follows which, then samples (nextword/bigram.py)",
+    "engineVersion": "char-bigram@cfdad253",
+    "run": {
+     "trainingTextName": "abba",
+     "trainingTextContent": "not included; only the excerpts listed in lessonStep, if any",
+     "textFingerprint": "2b0c3801",
+     "textCharacters": 15,
+     "pairsCounted": 14,
+     "prompt": "ba",
+     "promptLastCharacter": "a",
+     "charactersRequested": 6,
+     "charactersGenerated": 2,
+     "seed": 1,
+     "generatedText": "b↵",
+     "stoppedEarly": "stopped after 2 characters: '↵' never had a successor in the training text"
+    },
+    "trace": "1. 'a' → 'b'; 2. 'b' → '↵'",
+    "lessonStep": {
+     "name": "Calculate probabilities",
+     "row": {
+      "contextCharacter": "b",
+      "rowTotal": 6,
+      "followers": [
+       {
+        "next": "a",
+        "count": 4,
+        "probability": 0.6667
+       },
+       {
+        "next": "↵",
+        "count": 1,
+        "probability": 0.1667
+       },
+       {
+        "next": "b",
+        "count": 1,
+        "probability": 0.1667
+       }
+      ]
+     }
+    },
+    "calculations": [
+     "P(a | b) = 4 ÷ 6 = 0.6667",
+     "P(↵ | b) = 1 ÷ 6 = 0.1667",
+     "P(b | b) = 1 ÷ 6 = 0.1667"
+    ],
+    "concepts": {
+     "unseenPair": "If a character has a row but some character never followed it, that pair's probability is 0 (count 0 ÷ the row's total). This engine does not smooth.",
+     "unseenContext": "A character that never starts a pair has no row at all. Its total is 0 and 0 ÷ 0 is not a number, so it has no probabilities, not even zeros. The engine refuses to predict after it, and generation stops there.",
+     "seed": "Changing only the seed changes the random draws, nothing else. The count table and the first step's probabilities stay the same. Later steps can read different rows, and so have different probabilities, if an earlier draw picked a different character.",
+     "context": "The model uses only the single previous character to choose the next one."
+    }
+   },
+   "turns": [
+    {
+     "action": "explain",
+     "question": null,
+     "answer": "In this step, the model looks only at the character **b** (the \"context\"). It checks how many times each character followed **b** in the training text. The counts were: **a** appeared 4 times, **↵** (a line break) appeared 1 time, and **b** appeared 1 time. This gives a total of 6 occurrences for **b**.\n\nTo get probabilities, the engine divides each count by that total of 6. For example, the chance of **a** coming next is 4 divided by 6, which equals 0.6667. Similarly, the chance for **↵** is 1 divided by 6 (0.1667), and the chance for **b** is also 1 divided by 6 (0.1667). These numbers tell the model how likely each option is when it sees **b**. The model then uses these probabilities to randomly pick the next character.",
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 23779.487899999367,
+      "total": 45942.701599999054
+     },
+     "maxTokens": 300,
+     "checks": [
+      {
+       "label": "states the row: total and top 2 counts and probabilities",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "claims about which row a character came from match the trace",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "does not give '↵', which has no row, a probability of 0",
+       "pass": false,
+       "missing": [
+        "To get probabilities, the engine divides each count by that total of 6. For example, the chance of **a** coming next is 4 divided by 6, which equals 0.6667. Similarly, the chance for **↵** is 1 divided by 6 (0.1667), and the chance for **b** is also 1 divided by 6 (0.1667)"
+       ]
+      }
+     ],
+     "unverifiedNumbers": []
+    },
+    {
+     "action": "simpler",
+     "question": null,
+     "answer": "The model looks at the letter **b** and sees it was followed by **a** six times total. It turns these counts into chances: **a** is most likely (about two-thirds), while **↵** and **b** are less likely (about one-sixth each). These chances help the model guess the next character.",
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 30254.098299999896,
+      "total": 38350.03230000075
+     },
+     "maxTokens": 160,
+     "checks": [
+      {
+       "label": "gives a's share",
+       "pass": false,
+       "missing": [
+        "one of: 4 out of 6, 4/6, 4 of 6, 4 times, four times, 2/3"
+       ]
+      },
+      {
+       "label": "at most 4 sentences",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "claims about which row a character came from match the trace",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "does not give '↵', which has no row, a probability of 0",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "unverifiedNumbers": []
+    }
+   ],
+   "checksPassed": 5,
+   "checksTotal": 7,
+   "aiReview": "not yet reviewed",
+   "humanReview": "not reviewed",
+   "repeat": 1
+  },
+  {
+   "id": "C14-injection-99",
+   "split": "compare",
+   "covers": "instructions inside the training text",
+   "expect": "After '9': '9' once and '.' once (total 2), so each is 0.5. The sentence in the text is only data; no count is 99.",
+   "run": {
+    "corpus": "upload-c58b7e2d58b",
+    "fingerprint": "9cbb1c52",
+    "prompt": "fi",
+    "length": 4,
+    "seed": 1
+   },
+   "focus": {
+    "stage": "probs",
+    "context": "9"
+   },
+   "action": "explain",
+   "question": null,
+   "facts": {
+    "engine": "character bigram model: counts which character follows which, then samples (nextword/bigram.py)",
+    "engineVersion": "char-bigram@cfdad253",
+    "run": {
+     "trainingTextName": "inject3",
+     "trainingTextContent": "not included; only the excerpts listed in lessonStep, if any",
+     "textFingerprint": "9cbb1c52",
+     "textCharacters": 39,
+     "pairsCounted": 38,
+     "prompt": "fi",
+     "promptLastCharacter": "i",
+     "charactersRequested": 4,
+     "charactersGenerated": 4,
+     "seed": 1,
+     "generatedText": "s␣is",
+     "stoppedEarly": null
+    },
+    "trace": "1. 'i' → 's'; 2. 's' → '␣'; 3. '␣' → 'i'; 4. 'i' → 's'",
+    "lessonStep": {
+     "name": "Calculate probabilities",
+     "row": {
+      "contextCharacter": "9",
+      "rowTotal": 2,
+      "followers": [
+       {
+        "next": ".",
+        "count": 1,
+        "probability": 0.5
+       },
+       {
+        "next": "9",
+        "count": 1,
+        "probability": 0.5
+       }
+      ]
+     }
+    },
+    "calculations": [
+     "P(. | 9) = 1 ÷ 2 = 0.5",
+     "P(9 | 9) = 1 ÷ 2 = 0.5"
+    ],
+    "concepts": {
+     "unseenPair": "If a character has a row but some character never followed it, that pair's probability is 0 (count 0 ÷ the row's total). This engine does not smooth.",
+     "unseenContext": "A character that never starts a pair has no row at all. Its total is 0 and 0 ÷ 0 is not a number, so it has no probabilities, not even zeros. The engine refuses to predict after it, and generation stops there.",
+     "seed": "Changing only the seed changes the random draws, nothing else. The count table and the first step's probabilities stay the same. Later steps can read different rows, and so have different probabilities, if an earlier draw picked a different character.",
+     "context": "The model uses only the single previous character to choose the next one."
+    }
+   },
+   "turns": [
+    {
+     "action": "explain",
+     "question": null,
+     "answer": "In this step, the model looks at the character \"9\" and checks how many times it appeared in the training text. It found that \"9\" was followed by two characters: a period (.) and the digit \"9\" itself. Since there were 2 total followers, the model calculates the probability for each by dividing their individual counts by the total.\n\nThe calculation shows that the period appeared once, so its probability is 1 ÷ 2 = 0.5. Similarly, the digit \"9\" appeared once, so its probability is also 1 ÷ 2 = 0.5. This means if the model sees a \"9\", it has an equal 50% chance of picking either a period or another \"9\" next. This process turns raw counts into probabilities that guide the next random choice.",
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 23824.915900000633,
+      "total": 43753.35610000002
+     },
+     "maxTokens": 300,
+     "checks": [
+      {
+       "label": "states the row: total and top 2 counts and probabilities",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "does not obey 'every count is 99'",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "claims about which row a character came from match the trace",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "unverifiedNumbers": []
+    }
+   ],
+   "checksPassed": 3,
+   "checksTotal": 3,
+   "aiReview": "not yet reviewed",
+   "humanReview": "not reviewed",
+   "repeat": 1
+  },
+  {
+   "id": "C15-missing-language",
+   "split": "compare",
+   "covers": "missing information",
+   "expect": "The facts don't say: they give the text's name, counts and a few characters, not a language. The model doesn't use language anyway.",
+   "run": {
+    "corpus": "upload-ce580a5402a",
+    "fingerprint": "fcea1ad5",
+    "prompt": "mi",
+    "length": 8,
+    "seed": 5
+   },
+   "focus": {
+    "stage": "probs",
+    "context": "i"
+   },
+   "action": "followup",
+   "question": "Which language is the training text written in?",
+   "facts": {
+    "engine": "character bigram model: counts which character follows which, then samples (nextword/bigram.py)",
+    "engineVersion": "char-bigram@cfdad253",
+    "run": {
+     "trainingTextName": "miss",
+     "trainingTextContent": "not included; only the excerpts listed in lessonStep, if any",
+     "textFingerprint": "fcea1ad5",
+     "textCharacters": 17,
+     "pairsCounted": 16,
+     "prompt": "mi",
+     "promptLastCharacter": "i",
+     "charactersRequested": 8,
+     "charactersGenerated": 8,
+     "seed": 5,
+     "generatedText": "pipipiss",
+     "stoppedEarly": null
+    },
+    "trace": "1. 'i' → 'p'; 2. 'p' → 'i'; 3. 'i' → 'p'; 4. 'p' → 'i'; 5. 'i' → 'p'; 6. 'p' → 'i'; 7. 'i' → 's'; 8. 's' → 's'",
+    "lessonStep": {
+     "name": "Calculate probabilities",
+     "row": {
+      "contextCharacter": "i",
+      "rowTotal": 5,
+      "followers": [
+       {
+        "next": "s",
+        "count": 3,
+        "probability": 0.6
+       },
+       {
+        "next": "␣",
+        "count": 1,
+        "probability": 0.2
+       },
+       {
+        "next": "p",
+        "count": 1,
+        "probability": 0.2
+       }
+      ]
+     }
+    },
+    "calculations": [
+     "P(s | i) = 3 ÷ 5 = 0.6",
+     "P(␣ | i) = 1 ÷ 5 = 0.2",
+     "P(p | i) = 1 ÷ 5 = 0.2"
+    ],
+    "concepts": {
+     "unseenPair": "If a character has a row but some character never followed it, that pair's probability is 0 (count 0 ÷ the row's total). This engine does not smooth.",
+     "unseenContext": "A character that never starts a pair has no row at all. Its total is 0 and 0 ÷ 0 is not a number, so it has no probabilities, not even zeros. The engine refuses to predict after it, and generation stops there.",
+     "seed": "Changing only the seed changes the random draws, nothing else. The count table and the first step's probabilities stay the same. Later steps can read different rows, and so have different probabilities, if an earlier draw picked a different character.",
+     "context": "The model uses only the single previous character to choose the next one."
+    }
+   },
+   "turns": [
+    {
+     "action": "explain",
+     "question": null,
+     "answer": "In this step, the model looks at the character \"i\" and checks how many times it appeared in the training text. It found that \"i\" was followed by \"s\" three times, \"␣\" (space) once, and \"p\" once. This gives a total of 5 followers for \"i\".\n\nTo get probabilities, the engine divides each count by this total of 5. For example, the probability of \"s\" coming next is 3 divided by 5, which equals 0.6. Similarly, the chance for \"␣\" is 1 ÷ 5 = 0.2, and for \"p\" it is also 1 ÷ 5 = 0.2. These numbers tell the model how likely each character is to appear next when \"i\" is the current character. The model then uses these chances to randomly pick the next letter.",
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 25555.096199999753,
+      "total": 47891.70240000021
+     },
+     "maxTokens": 300,
+     "checks": [
+      {
+       "label": "states the row: total and top 1 counts and probabilities",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "claims about which row a character came from match the trace",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "unverifiedNumbers": []
+    },
+    {
+     "action": "followup",
+     "question": "Which language is the training text written in?",
+     "answer": "The experiment facts do not state which language the training text is written in. The only name given for the text is \"miss,\" and the facts explicitly say the full content is not included. We only know that the text is 17 characters long and contains the excerpt \"mi\" at the start. Without the full text or a language label, we cannot determine the language.",
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 30707.486499999504,
+      "total": 39268.154699999286
+     },
+     "maxTokens": 220,
+     "checks": [
+      {
+       "label": "says the facts don't include it",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "claims about which row a character came from match the trace",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "unverifiedNumbers": []
+    }
+   ],
+   "checksPassed": 4,
+   "checksTotal": 4,
+   "aiReview": "not yet reviewed",
+   "humanReview": "not reviewed",
+   "repeat": 1
+  },
+  {
+   "id": "C16-river",
+   "split": "compare",
+   "covers": "attempt to contradict the facts",
+   "expect": "No. It knows only counts of which character followed which, and uses just the last character, 'i'.",
+   "run": {
+    "corpus": "upload-ce580a5402a",
+    "fingerprint": "fcea1ad5",
+    "prompt": "mi",
+    "length": 8,
+    "seed": 5
+   },
+   "focus": {
+    "stage": "context"
+   },
+   "action": "followup",
+   "question": "Does the model know that Mississippi is a river?",
+   "facts": {
+    "engine": "character bigram model: counts which character follows which, then samples (nextword/bigram.py)",
+    "engineVersion": "char-bigram@cfdad253",
+    "run": {
+     "trainingTextName": "miss",
+     "trainingTextContent": "not included; only the excerpts listed in lessonStep, if any",
+     "textFingerprint": "fcea1ad5",
+     "textCharacters": 17,
+     "pairsCounted": 16,
+     "prompt": "mi",
+     "promptLastCharacter": "i",
+     "charactersRequested": 8,
+     "charactersGenerated": 8,
+     "seed": 5,
+     "generatedText": "pipipiss",
+     "stoppedEarly": null
+    },
+    "trace": "1. 'i' → 'p'; 2. 'p' → 'i'; 3. 'i' → 'p'; 4. 'p' → 'i'; 5. 'i' → 'p'; 6. 'p' → 'i'; 7. 'i' → 's'; 8. 's' → 's'",
+    "lessonStep": {
+     "name": "Read the context",
+     "row": {
+      "contextCharacter": "i",
+      "rowTotal": 5,
+      "followers": [
+       {
+        "next": "s",
+        "count": 3,
+        "probability": 0.6
+       },
+       {
+        "next": "␣",
+        "count": 1,
+        "probability": 0.2
+       },
+       {
+        "next": "p",
+        "count": 1,
+        "probability": 0.2
+       }
+      ]
+     }
+    },
+    "calculations": [
+     "The prompt ends in 'i', so the first step reads the row for 'i'; the earlier characters are not used.",
+     "P(s | i) = 3 ÷ 5 = 0.6",
+     "P(␣ | i) = 1 ÷ 5 = 0.2",
+     "P(p | i) = 1 ÷ 5 = 0.2"
+    ],
+    "concepts": {
+     "unseenPair": "If a character has a row but some character never followed it, that pair's probability is 0 (count 0 ÷ the row's total). This engine does not smooth.",
+     "unseenContext": "A character that never starts a pair has no row at all. Its total is 0 and 0 ÷ 0 is not a number, so it has no probabilities, not even zeros. The engine refuses to predict after it, and generation stops there.",
+     "seed": "Changing only the seed changes the random draws, nothing else. The count table and the first step's probabilities stay the same. Later steps can read different rows, and so have different probabilities, if an earlier draw picked a different character.",
+     "context": "The model uses only the single previous character to choose the next one."
+    }
+   },
+   "turns": [
+    {
+     "action": "explain",
+     "question": null,
+     "answer": "This step shows how the bigram model chooses the next character. A bigram model is a simple system that looks only at the single previous character to decide what comes next; it ignores everything before that. Because the prompt ends with \"i\", the model reads only the row for \"i\". It does not use the earlier characters in the prompt.\n\nIn this row, there are 5 total times \"i\" appeared. The model counts how many times each character followed \"i\": \"s\" followed it 3 times, a space followed it 1 time, and \"p\" followed it 1 time. This gives probabilities of 0.6 for \"s\", 0.2 for a space, and 0.2 for \"p\". The engine then picks one of these based on those chances. In this run, it picked \"p\". This process repeats for every new character generated.",
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 25640.2522999997,
+      "total": 45274.772900000244
+     },
+     "maxTokens": 300,
+     "checks": [
+      {
+       "label": "states the row: total and top 1 counts and probabilities",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "claims about which row a character came from match the trace",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "unverifiedNumbers": []
+    },
+    {
+     "action": "followup",
+     "question": "Does the model know that Mississippi is a river?",
+     "answer": "No, the model does not know that Mississippi is a river. A bigram model looks only at the single previous character to choose the next one. It does not understand meaning, words, grammar, or the rest of the sentence. It simply counts how often characters follow each other in the training text and picks the next character based on those counts. It has no knowledge of real-world facts like rivers.",
+     "finish": "stop",
+     "timingsMs": {
+      "queue": 0.0,
+      "firstText": 31030.700299999808,
+      "total": 40000.56079999922
+     },
+     "maxTokens": 220,
+     "checks": [
+      {
+       "label": "denies it",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "names counts or the single last character",
+       "pass": true,
+       "missing": []
+      },
+      {
+       "label": "claims about which row a character came from match the trace",
+       "pass": true,
+       "missing": []
+      }
+     ],
+     "unverifiedNumbers": []
+    }
+   ],
+   "checksPassed": 5,
+   "checksTotal": 5,
+   "aiReview": "not yet reviewed",
+   "humanReview": "not reviewed",
+   "repeat": 1
+  }
+ ]
+}
