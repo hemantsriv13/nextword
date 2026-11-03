@@ -27,9 +27,44 @@ Working notes for building the Lab, so the work can resume if a session ends. Ne
   (`tests/bigram_baseline.json`). `__main__.py` untouched, so the `--show-probs` exercise is still yours.
 
 ## Known gaps
-- No Python neural or transformer engine (Stages 2 and 3); the Neural page has an adapter contract.
+- No Python transformer engine (Stage 3); the character MLP (Stage 2) is built (see docs/MLP.md).
 - Comprehension check flags the workspaces as dense (130–170 words). Accepted for a working tool the
   user asked to be deep; copy was trimmed where it didn't carry meaning.
+
+## Done (2026-11-04): Neural MLP release (branch release/neural-mlp)
+- Found: the MLP, journey, tutor and tests existed on the unmerged branch lab-beginner-mlp-local-ai. GitHub `main`
+  (681213a) predates them, which is why it showed the MLP as unavailable.
+- Runs (`mlp_service.py`):
+  - progress saved every 3 s (one step-named file, then run.json, both atomic);
+  - "interrupted" after a server stop;
+  - exact resume (plain SGD: weights + step + generator state);
+  - validation-selected checkpoint scored once on test;
+  - explicit vocabulary, unseen-character and smoothing policies in the comparison;
+  - saved runs listed newest first.
+- Page:
+  - incomplete labels with Resume / Train again;
+  - "What the eight steps cover";
+  - "What you should see" per stage;
+  - selected-checkpoint column and fairness notes;
+  - inspections shown only for the weights they came from (fingerprint);
+  - Playground "Write with your MLP".
+- Tutor:
+  - deterministic number check after each answer, shown under it;
+  - Text-stage facts now about the split;
+  - an engine-worded gradient-direction line.
+
+  Evaluation `evals/local_ai/MLP_TUTOR.md`: fresh 12/15 automatic; AI review 9 correct, 6 minor, 0 wrong; human
+  review blank.
+- Startup: `start-nextword.cmd` (reuses a serving Colibri, never touches a loading one, asks before starting the
+  launcher). `nextword/lab/startup.py`. The Lab server no longer shares its port on Windows (two Labs on 8765 had
+  answered at random).
+- Checks:
+  - Python 119 OK; vitest 268 OK; build OK.
+  - Real kill-and-resume: identical weights.
+  - Browser: home/sidebar/paths/playground reach the MLP; train, stop, resume, 8 stages, generate, compare,
+    tutor, retrain → earlier-experiment label, reload saved runs, keyboard Next → quiz with tutor locked, 390 px
+    (iframe) light theme, no sideways scroll.
+- Not done: inspect-spacing measurement for the new components (cost); the human review.
 
 ## Done (2026-11-01, late): explanation panel layout (not committed, not pushed)
 - `components/lab/explanation.tsx`: one panel for the Bigram and MLP journeys, the lessons and the workspaces.

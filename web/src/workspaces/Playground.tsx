@@ -12,6 +12,7 @@ import { EmptyNote, ErrorNote, Explain, ExplainSection, LoadingRows, Note, Numbe
 import { Source } from "@/components/lab/source"
 import { Symbols, Teach, WorkspaceGuide, type Guide } from "@/components/lab/teach"
 import { api, type Generation } from "@/lib/api"
+import { mlpApi, type Generated, type MlpStatus } from "@/lib/mlp"
 import { useCorpora } from "@/lib/corpora"
 import { fmt, useAsync, usePrefersReducedMotion } from "@/lib/hooks"
 import { actions } from "@/lib/store"
@@ -219,9 +220,9 @@ export default function Playground() {
         <div className="mt-5 grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2 2xl:grid-cols-[minmax(11rem,1.2fr)_minmax(11rem,1.2fr)_minmax(10rem,1fr)_auto]">
           <div className="flex flex-col gap-2">
             <span className="flex items-center gap-0.5"><span id="engine-label" className="text-sm font-medium">Engine</span><InfoTip id="playground.engine" /></span>
-            {/* The playground writes with the bigram only. The MLP writes in its own journey; a transformer is planned. */}
+            {/* The trace above is the bigram's. The MLP writes in its own panel below, from a saved run. */}
             <p aria-labelledby="engine-label" data-help-id="playground.engine" className="flex min-h-9 items-center rounded-md border border-input bg-card px-3 text-sm">Character bigram <span className="ml-1 text-muted-foreground">(your engine)</span></p>
-            <p className="text-label text-muted-foreground">The character MLP writes in the <a className="underline underline-offset-2" href="#/mlp">MLP journey</a>, at its Generation step.</p>
+            <p className="text-label text-muted-foreground">To write with your trained character MLP, use <a className="underline underline-offset-2" href="#playground-mlp">Write with your MLP</a> below.</p>
           </div>
           <div className="flex flex-col gap-2">
             <span className="flex items-center gap-0.5"><span id="corpus-label" className="text-sm font-medium">Training text</span><InfoTip id="playground.corpus" /></span>
@@ -325,9 +326,62 @@ export default function Playground() {
         )}
       </Panel>
 
+      <MlpPanel prompt={prompt} length={length} seed={seed} />
+
       <ComparePanel corpus={corpus} length={length} seed={seed} />
     </Workspace>
     </Teach>
+  )
+}
+
+/** The same prompt, length and seed, written by a character MLP trained in the MLP journey (a saved run). */
+function MlpPanel({ prompt, length, seed }: { prompt: string; length: number; seed: number }) {
+  const [status, setStatus] = useState<MlpStatus | null>(null)
+  const [runId, setRunId] = useState("")
+  const [out, setOut] = useState<{ gen: Generated; prompt: string; length: number; seed: number } | null>(null)
+  const [error, setError] = useState<unknown>(null)
+  const [busy, setBusy] = useState(false)
+  useEffect(() => { mlpApi.status().then((s) => { setStatus(s); setRunId((r) => r || (s.saved[0]?.id ?? "")) }, setError) }, [])
+  const runs = status?.saved ?? []
+  const write = async () => {
+    setError(null); setBusy(true)
+    try { setOut({ gen: await mlpApi.generate({ run: runId, checkpoint: "trained", prompt, length, seed }), prompt, length, seed }) }
+    catch (e) { setError(e) } finally { setBusy(false) }
+  }
+  const stale = out && (out.gen.run !== runId || out.prompt !== prompt || out.length !== length || out.seed !== seed)
+  const chosen = runs.find((r) => r.id === runId)
+  return (
+    <section id="playground-mlp" aria-labelledby="playground-mlp-h" className="flex flex-col gap-4 rounded-2xl border border-border p-5 sm:p-6" data-testid="playground-mlp">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 id="playground-mlp-h" className="text-section font-semibold">Write with your MLP</h2>
+        {out && !stale && <Source kind="model" detail={`character MLP, run ${out.gen.run}, weights ${out.gen.fingerprint}`} />}
+      </div>
+      {status && !status.available ? (
+        <Note tone="warning">The character MLP needs PyTorch, which isn&apos;t installed. In the project folder run <code className="tok">.venv\Scripts\python -m pip install --index-url https://download.pytorch.org/whl/cpu -r requirements-mlp.txt</code>, then restart the Lab.</Note>
+      ) : status && runs.length === 0 ? (
+        <EmptyNote>No trained MLP yet. Train one in the <a className="underline underline-offset-2" href="#/mlp">Neural MLP journey</a>; it then writes here with the prompt, length and seed above.</EmptyNote>
+      ) : (
+        <>
+          <p className="text-sm text-muted-foreground">Uses the prompt, length and seed above, with a run you trained. The bigram&apos;s training-text choice doesn&apos;t apply: each run keeps its own text.</p>
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="flex flex-col gap-2">
+              <span id="playground-mlp-run" className="text-sm font-medium">Saved run</span>
+              <Select value={runId} onValueChange={(v) => setRunId(String(v))} items={runs.map((r) => ({ value: r.id, label: `${r.corpus?.name}, ${fmt.n(r.step)} updates (${r.id})` }))}>
+                <SelectTrigger aria-labelledby="playground-mlp-run" className="w-72 max-w-full"><SelectValue placeholder="Choose a run" /></SelectTrigger>
+                <SelectContent>{runs.map((r) => <SelectItem key={r.id} value={r.id}>{r.corpus?.name}, {fmt.n(r.step)} of {fmt.n(r.config.steps)} updates{r.state !== "done" ? ` (${r.state})` : ""} <span className="num text-muted-foreground">{r.id}</span></SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <Button variant="outline" onClick={write} disabled={!runId || !prompt || busy}>{busy ? "Writing…" : `Write ${length} characters`}</Button>
+            <a className="pb-2 text-sm underline underline-offset-2" href="#/mlp">See how it works, step by step</a>
+          </div>
+          {chosen && chosen.state !== "done" && <p className="text-label text-muted-foreground">This run is incomplete ({chosen.state}); it writes with the weights it reached.</p>}
+          {error != null && <ErrorNote error={error} />}
+          {out && (stale
+            ? <Note tone="warning">Hidden: this text came from earlier settings (run {out.gen.run}, seed {out.seed}). Write again to update it.</Note>
+            : <p className="tok whitespace-pre-wrap break-words rounded-xl bg-raised p-4 text-prose" data-testid="playground-mlp-text"><span className="text-muted-foreground">{out.gen.prompt}</span>{out.gen.text}</p>)}
+        </>
+      )}
+    </section>
   )
 }
 

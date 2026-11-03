@@ -21,7 +21,7 @@ export interface MlpStatus {
   limits: Record<keyof MlpConfig, [number, number]> | null
   defaults: MlpConfig | null
   training: string | null
-  saved: { id: string; state: string; step: number; config: MlpConfig; corpus: { name: string }; created: number }[]
+  saved: { id: string; state: RunState; step: number; config: MlpConfig; corpus: { name: string }; created: number }[]
 }
 
 export interface CurvePoint { step: number; train: number; val: number | null }
@@ -33,9 +33,12 @@ export interface PredictionRow {
   trained: { pTarget: number; top: { token: string; p: number }[] }
 }
 
+/** "interrupted": the server stopped while the run was training; it reloads at its last saved step. */
+export type RunState = "new" | "training" | "done" | "stopped" | "interrupted" | "error"
+
 export interface MlpRun {
   id: string
-  state: "new" | "training" | "done" | "stopped" | "error"
+  state: RunState
   error: string | null
   step: number
   config: MlpConfig
@@ -46,6 +49,12 @@ export interface MlpRun {
   curveSample?: { train: number; val: number }
   /** Steps whose weights were saved during training, for replay. */
   recorded?: number[]
+  /** The curve point with the lowest validation loss: the checkpoint chosen on validation only. */
+  best?: { step: number; val: number; how: string } | null
+  /** Trained to the end of its settings. */
+  complete?: boolean
+  /** Stopped or interrupted, with everything saved that continuing exactly needs. */
+  resumable?: boolean
   examples: { train: number; val: number; test: number }
   vocab: string[]
   vocabSize: number
@@ -53,7 +62,7 @@ export interface MlpRun {
   curve: CurvePoint[]
   msPerStep: number | null
   trainSeconds: number | null
-  fingerprints: { initial: string; trained?: string }
+  fingerprints: { initial: string; trained?: string; best?: string }
   samples: { initial?: string; trained?: string }
   predictions: PredictionRow[]
   engine: string
@@ -108,7 +117,9 @@ export interface Comparison {
   rule: string
   uniform: number
   note: string
-  rows: { part: "val" | "test"; targets: number; mlp_initial: number | null; mlp_trained?: number | null; bigram: number | null; bigram_add1: number | null; bigram_unseen: number; bigram_targets: number }[]
+  rows: { part: "val" | "test"; targets: number; unknownTargets?: number; mlp_initial: number | null; mlp_trained?: number | null; mlp_best?: number | null; bigram: number | null; bigram_add1: number | null; bigram_unseen: number; bigram_targets: number }[]
+  best?: { step: number; val: number } | null
+  policy?: { vocabulary: string; unknown: string; smoothing: string; selection: string; targets: string }
 }
 
 async function call<T>(path: string, body?: unknown): Promise<T> {
@@ -135,6 +146,7 @@ export const mlpApi = {
   run: (id: string) => call<MlpRun>(`/api/mlp/run?id=${encodeURIComponent(id)}`),
   start: (b: { corpus: string } & MlpConfig) => call<MlpRun>("/api/mlp/start", b),
   stop: (id: string) => call<{ id: string; stopping: boolean }>("/api/mlp/stop", { id }),
+  resume: (id: string) => call<MlpRun>("/api/mlp/resume", { id }),
   reset: (id: string) => call<{ removed: string }>("/api/mlp/reset", { id }),
   inspect: (b: { run: string; checkpoint: Checkpoint; split: Split; index: number }) => call<Inspection>("/api/mlp/inspect", b),
   examples: (b: { run: string; split: Split; start: number; count: number }) =>

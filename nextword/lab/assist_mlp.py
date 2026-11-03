@@ -39,7 +39,7 @@ CONCEPTS = {
     "hidden": "The hidden layer multiplies the joined embeddings by learned weights, adds a bias, and applies tanh, which squeezes every value into the range −1 to 1.",
     "softmax": "Softmax turns the output scores (logits) into probabilities that are all above 0 and add up to 1. Unlike the bigram's counts, the MLP never gives a character exactly 0.",
     "loss": "The loss for one example is −ln p(correct next character). It is 0 only if p is 1, and it grows as p shrinks.",
-    "update": "Training is gradient descent: every weight moves by −learning rate × its gradient, which nudges the weights to raise p(correct character) on the batch.",
+    "update": "Training is gradient descent: every weight moves by −learning rate × its gradient, which nudges the weights to raise p(correct character) on the batch. A positive gradient makes a weight smaller; a negative gradient makes it larger.",
     "validation": "Training loss is measured on the text the MLP learns from; validation loss on held-out text it never trains on. If training loss keeps falling while validation loss rises, the MLP is overfitting (memorising).",
     "seed": "The seed fixes the random starting weights, the order of training batches and the random draws in generation, so a run can be repeated.",
 }
@@ -70,9 +70,15 @@ def calculations(stage: str, ins: dict, gen: dict | None, summary: dict) -> list
     p = ins["probs"]["target"]
     m = ins["model"]
     lines = []
-    if stage in ("text", "examples"):
-        lines += [f"The training part has {summary['split']['train']} characters and gives {summary['examples']['train']} training examples; "
-                  f"validation gives {summary['examples']['val']} examples the MLP never trains on.",
+    s, ex = summary["split"], summary["examples"]
+    if stage == "text":
+        lines += [f"Before any example is made, the text is cut into three parts: {s['train']} characters for training, "
+                  f"{s['val']} for validation and {s['test']} for test.",
+                  f"Only the training part is learned from ({ex['train']} examples). Validation ({ex['val']} examples) is checked "
+                  f"during training but never learned from. Test ({ex['test']} examples) is kept for one final comparison.",
+                  f"The vocabulary is the {summary['vocabSize']} tokens of the training part, including ⟨start⟩ and ⟨?⟩."]
+    if stage == "examples":
+        lines += [f"The training part gives {ex['train']} training examples; validation gives {ex['val']} examples the MLP never trains on.",
                   f"This example's window is {window} and the character to predict is {_q(t)}."]
     if stage == "embeddings":
         lines.append(f"The window {window} becomes {m['context']} vectors of {m['embed']} numbers each, joined into one list of "
@@ -98,6 +104,10 @@ def calculations(stage: str, ins: dict, gen: dict | None, summary: dict) -> list
         e = u["embedding"]
         lines.append(f"One update on this example alone, learning rate {u['lr']}: each weight becomes weight − {u['lr']} × gradient.")
         lines.append(f"First number of {_q(e['token'])}'s embedding: {_n(e['before'][0])} − {u['lr']} × ({_n(e['grad'][0], 5)}) = {_n(e['after'][0])}.")
+        g = e["grad"][0]
+        if g != 0:  # the direction, worded by the engine: it is the step beginners most often get backwards
+            lines.append(f"Its gradient is {'positive' if g > 0 else 'negative'} ({_n(g, 5)}), so this number went "
+                         f"{'down' if g > 0 else 'up'}. Subtracting a positive gradient lowers a weight; subtracting a negative one raises it.")
         lines.append(f"After that one update, p({t}) goes from {_n(p, 6)} to {_n(u['pTargetAfter'], 6)} and the loss from "
                      f"{_n(ins['loss'], 4)} to {_n(u['lossAfter'], 4)}.")
     if stage == "generation" and gen:
@@ -137,7 +147,11 @@ def snapshot(mlps, mlp_data, focus) -> dict:
     summary = run.summary()
     gen = mlps.generate({"run": run.id, "checkpoint": checkpoint, "seed": int(focus.get("seed", 1)), "length": 40}) if stage == "generation" else None
     calc = calculations(stage, ins, gen, summary)
-    step_facts = {"name": STAGES[stage], "split": ins["split"], "exampleIndex": ins["index"], "window": ins["window"], "target": ins["target"]}
+    step_facts = {"name": STAGES[stage]}
+    if stage == "text":  # this step is about the whole text, not one example
+        step_facts["parts"] = {k: summary["split"][k] for k in ("train", "val", "test")}
+    else:
+        step_facts.update({"split": ins["split"], "exampleIndex": ins["index"], "window": ins["window"], "target": ins["target"]})
     if stage in ("embeddings",):
         step_facts["embeddings"] = {c: v for c, v in zip(ins["window"], ins["embeddings"])}
     if stage == "hidden":
@@ -164,7 +178,7 @@ def snapshot(mlps, mlp_data, focus) -> dict:
         "concepts": CONCEPTS,
     }
     key = "|".join(["mlp", run.id, checkpoint, ins["fingerprint"], stage, ins["split"], str(ins["index"])])
-    focus_line = {"text": "Focus on how the text becomes training examples.",
+    focus_line = {"text": "Focus on how the text is split into training, validation and test parts before any example is made, and why.",
                   "examples": "Focus on this one example: the window and the character it should predict.",
                   "embeddings": "Focus on how the window's characters become numbers.",
                   "hidden": "Focus on what the hidden layer computes for this example.",

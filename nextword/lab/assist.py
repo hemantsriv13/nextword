@@ -626,3 +626,30 @@ class Assistant:
             probe = user_message(action, conv, "x" * MAX_QUESTION_CHARS)
             out[action] = _estimate_tokens(conv["messages"] + [{"role": "user", "content": probe}]) + MAX_TOKENS[action] <= CONTEXT_TOKENS
         return out
+
+
+# ----------------------------------------------------------------------------- a deterministic check of answers
+
+def _number_forms(raw: str) -> set[str]:
+    """A number from the facts, and the shorter forms an answer may round it to."""
+    out = {raw}
+    if "." in raw:
+        p = float(raw)
+        out |= {f"{p:.4f}".rstrip("0").rstrip("."), f"{p:.3f}", f"{p:.2f}", f"{p:.1f}"}
+        if 0 <= p <= 1:
+            out |= {f"{round(p * 100)}", f"{p * 100:.1f}", f"{p * 100:.2f}"}
+    return out
+
+
+def numbers_not_in_facts(answer: str, facts, question: str | None = None) -> list[str]:
+    """Numbers in an answer that appear nowhere in the facts sent to the model (or the learner's question),
+    in any common rounding. Whole numbers 0 to 10 are always allowed. This catches invented or
+    miscopied numbers; it can't tell whether a number from the facts is used correctly."""
+    allowed = {str(i) for i in range(11)} | set(re.findall(r"\d+(?:\.\d+)?", question or ""))
+    for raw in re.findall(r"\d+(?:\.\d+)?", json.dumps(facts, ensure_ascii=False)):
+        allowed |= _number_forms(raw)
+    found = []
+    for n in re.findall(r"(?<![\w.])\d+(?:\.\d+)?", answer.replace(",", "")):
+        if n not in allowed and n.rstrip("0").rstrip(".") not in allowed:
+            found.append(n)
+    return sorted(set(found), key=float)

@@ -4,6 +4,7 @@ Every test trains a real, tiny model on the CPU; nothing here is mocked.
 """
 
 import math
+import secrets
 import tempfile
 import time
 import unittest
@@ -202,6 +203,119 @@ class EngineStatusTests(MLPTestCase):
         self.assertIn("No module named 'torch'", mlp_engine["reason"])
         self.assertIn("requirements-mlp.txt", mlp_engine["nextAction"])
         self.assertEqual(self.engines()["tiny-transformer"]["status"], "planned")
+
+
+class ResumeAndSelectionTests(MLPTestCase):
+    """Regression tests for the release: runs survive a server stop, resume exactly, and the test part
+    scores a checkpoint chosen on validation only."""
+
+    SETTINGS = {"context": 2, "embed": 4, "hidden": 16, "steps": 120, "batch": 16, "lr": 0.5, "seed": 5}
+
+    def fresh_run(self, svc=None):
+        svc = svc or self.svc
+        run = mlp_service.Run("m" + "0" * 9, self.store.describe(self.pattern), self.store.text(self.pattern),
+                              mlp.Config(**self.SETTINGS).check(), 0.0)
+        run.id = "m" + secrets.token_hex(5)
+        svc.runs[run.id] = run
+        return run
+
+    def uninterrupted(self):
+        run = self.fresh_run()
+        run.train()
+        return run
+
+    def test_stop_then_resume_gives_the_same_weights_as_no_stop(self):
+        whole = self.uninterrupted()
+        part = self.fresh_run()
+        part.train(on_done=self.svc._save, until=47)
+        self.assertEqual((part.state, part.step), ("stopped", 47))
+        self.assertTrue(part.summary()["resumable"])
+        self.assertFalse(part.summary()["complete"])
+        self.svc.resume(part.id)
+        wait(part)
+        self.assertEqual(part.state, "done")
+        self.assertEqual(part.fingerprints()["trained"], whole.fingerprints()["trained"])
+        self.assertEqual(part.history_fingerprints(), whole.history_fingerprints())
+        # The same curve, plus the point measured where training stopped.
+        self.assertEqual([p for p in part.curve if p["step"] != 47], whole.curve)
+
+    def test_a_run_interrupted_by_a_server_stop_reloads_as_interrupted_and_resumes_exactly(self):
+        whole = self.uninterrupted()
+        saved = mlp_service.PROGRESS_SECONDS
+        mlp_service.PROGRESS_SECONDS = 0  # write progress after every update
+        self.addCleanup(setattr, mlp_service, "PROGRESS_SECONDS", saved)
+        run = self.fresh_run()
+        run.train(on_progress=self.svc._progress, until=60)  # no final save: as if the server died at step 60
+        files = sorted(p.name for p in (self.svc.root / run.id).iterdir())
+        self.assertEqual([f for f in files if f.startswith("progress-")], ["progress-000060.pt"])  # older ones removed
+        restarted = mlp_service.MLPService(self.store, self.svc.root)  # a new server process
+        self.assertEqual(restarted.saved()[0]["state"], "interrupted")
+        again = restarted.get(run.id)
+        self.assertEqual((again.state, again.step), ("interrupted", 60))
+        self.assertTrue(again.summary()["resumable"])
+        self.assertEqual(again.fingerprints()["trained"], mlp.fingerprint(run.model))  # the weights at step 60
+        restarted.resume(run.id)
+        wait(again)
+        self.assertEqual(again.state, "done")
+        self.assertEqual(again.fingerprints()["trained"], whole.fingerprints()["trained"])
+
+    def test_a_partial_progress_file_is_never_described_by_run_json(self):
+        saved = mlp_service.PROGRESS_SECONDS
+        mlp_service.PROGRESS_SECONDS = 0
+        self.addCleanup(setattr, mlp_service, "PROGRESS_SECONDS", saved)
+        run = self.fresh_run()
+        run.train(on_progress=self.svc._progress, until=10)
+        d = self.svc.root / run.id
+        (d / "progress-000011.pt.tmp").write_bytes(b"half a file")  # a crash in the middle of the next write
+        again = mlp_service.MLPService(self.store, self.svc.root).get(run.id)
+        self.assertEqual((again.state, again.step), ("interrupted", 10))
+
+    def test_finished_runs_cannot_be_resumed_and_old_runs_without_state_offer_restart(self):
+        run = self.train(steps=30)
+        with self.assertRaises(LabError) as cm:
+            self.svc.resume(run.id)
+        self.assertEqual(cm.exception.code, "not_resumable")
+        stopped = self.fresh_run()
+        stopped.train(on_done=self.svc._save, until=20)
+        (self.svc.root / stopped.id / "resume.pt").unlink()  # saved before resume existed
+        old = mlp_service.MLPService(self.store, self.svc.root).get(stopped.id)
+        self.assertEqual(old.state, "stopped")
+        self.assertFalse(old.summary()["resumable"])
+
+    def test_resuming_hides_the_old_trained_checkpoint_until_training_ends(self):
+        saved = mlp_service.PROGRESS_SECONDS
+        mlp_service.PROGRESS_SECONDS = 0
+        self.addCleanup(setattr, mlp_service, "PROGRESS_SECONDS", saved)
+        run = self.fresh_run()
+        run.train(on_done=self.svc._save, until=30)
+        self.assertEqual(sorted(run.fingerprints()), ["best", "initial", "trained"])
+        seen = []
+        run.train(on_progress=lambda r: seen.append((r.state, sorted(r.fingerprints()))), until=33)
+        self.assertEqual(seen, [("training", ["initial"])] * 3)  # while weights change, only "initial" is offered
+        self.assertEqual((run.state, run.step), ("stopped", 33))
+        self.assertEqual(sorted(run.fingerprints()), ["best", "initial", "trained"])
+
+    def test_selected_checkpoint_has_the_lowest_validation_loss_and_scores_the_test_part(self):
+        run = self.train(steps=200)
+        best = run.summary()["best"]
+        self.assertEqual(best["val"], min(p["val"] for p in run.curve))
+        self.assertIn(best["step"], [p["step"] for p in run.curve if p["val"] == best["val"]])
+        cmp = self.svc.compare({"run": run.id})
+        test = next(r for r in cmp["rows"] if r["part"] == "test")
+        self.assertEqual(test["mlp_best"], round(mlp.mean_loss(run.checkpoint_model("best"), *run.data["test_eval"]), 5))
+        self.assertEqual(cmp["best"]["step"], best["step"])
+        for key in ("vocabulary", "unknown", "smoothing", "selection", "targets"):
+            self.assertIn(key, cmp["policy"])
+        reloaded = mlp_service.MLPService(self.store, self.svc.root).get(run.id)
+        self.assertEqual(reloaded.fingerprints(), run.fingerprints())
+
+    def test_unknown_targets_are_counted_for_both_models(self):
+        cid = self.store.add("tail", "ab" * 200 + "zz" * 50)["id"]
+        run = self.train(corpus=cid, steps=30)
+        cmp = self.svc.compare({"run": run.id})
+        for row in cmp["rows"]:
+            self.assertEqual(row["unknownTargets"], run.parts[row["part"]][1:].count("z"))
+            self.assertIsNotNone(row["bigram_add1"])
 
 
 if __name__ == "__main__":

@@ -214,6 +214,10 @@ def r_mlp_stop(data):
     return _mlps().stop(data.get("id"))
 
 
+def r_mlp_resume(data):
+    return _mlps().resume(data.get("id"))
+
+
 def r_mlp_reset(data):
     return _mlps().reset(data.get("id"))
 
@@ -253,7 +257,7 @@ ASSIST_ROUTE = "/api/assist/explain"
 POST_ROUTES = {"/api/corpora": r_corpus_add, "/api/corpora/delete": r_corpus_delete, "/api/stats": r_stats,
                "/api/bigram/table": r_table, "/api/bigram/row": r_row, "/api/generate": r_generate, "/api/journey": r_journey,
                "/api/benchmark": r_benchmark, "/api/evaluate": r_evaluate, "/api/adapt": r_adapt,
-               "/api/mlp/start": r_mlp_start, "/api/mlp/stop": r_mlp_stop, "/api/mlp/reset": r_mlp_reset,
+               "/api/mlp/start": r_mlp_start, "/api/mlp/stop": r_mlp_stop, "/api/mlp/resume": r_mlp_resume, "/api/mlp/reset": r_mlp_reset,
                "/api/mlp/inspect": r_mlp_inspect, "/api/mlp/examples": r_mlp_examples, "/api/mlp/generate": r_mlp_generate, "/api/mlp/compare": r_mlp_compare,
                "/api/mlp/history": r_mlp_history, "/api/mlp/replay": r_mlp_replay, "/api/lessons/result": r_lesson_result}
 
@@ -336,7 +340,8 @@ class LabHandler(BaseHTTPRequestHandler):
                 if result["answer"]:
                     a.conversations.add(conv, user, result["answer"])
                 send({"type": "done", "finish": result["finish"], "timingsMs": result["timingsMs"],
-                      "turns": conv["turns"], "maxTurns": assist.MAX_TURNS, "empty": not result["answer"], "room": a.room(conv)})
+                      "turns": conv["turns"], "maxTurns": assist.MAX_TURNS, "empty": not result["answer"], "room": a.room(conv),
+                      "unverified": assist.numbers_not_in_facts(result["answer"], a.facts_of(conv), data.get("question"))})
         except ConnectionError:
             pass  # the page cancelled or went away; the upstream request was closed on the way out
         except LabError as err:
@@ -393,6 +398,18 @@ class LabHandler(BaseHTTPRequestHandler):
         sys.stderr.write(f"[lab] {self.address_string()} {fmt % args}\n")
 
 
+class LabServer(ThreadingHTTPServer):
+    """The Lab's HTTP server. It never shares its port: Python's default SO_REUSEADDR lets a second process on
+    Windows bind a port another Lab is already using, and the two would then answer requests at random."""
+    allow_reuse_address = False
+
+    def server_bind(self):
+        import socket
+        if hasattr(socket, "SO_EXCLUSIVEADDRUSE"):  # Windows
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        super().server_bind()
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(prog="nextword.lab", description="Run the NextWord Lab locally.")
     parser.add_argument("--port", type=int, default=8765)
@@ -407,7 +424,12 @@ def main() -> int:
         parser.error(str(err))
     mimetypes.add_type("application/javascript", ".js")
     mimetypes.add_type("text/css", ".css")
-    server = ThreadingHTTPServer(("127.0.0.1", args.port), LabHandler)
+    try:
+        server = LabServer(("127.0.0.1", args.port), LabHandler)
+    except OSError:
+        print(f"Port {args.port} is already in use: a NextWord Lab (or another program) is running there. "
+              f"Open http://127.0.0.1:{args.port} to use it, close it first, or start on another port with --port.")
+        return 1
     url = f"http://127.0.0.1:{args.port}"
     print(f"NextWord Lab running at {url}  (Ctrl+C to stop)")
     print(f"Ask local AI uses {assistant.cfg.model} at {assistant.cfg.url} (only when you ask; start Colibri separately)")

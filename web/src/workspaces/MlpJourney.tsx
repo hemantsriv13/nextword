@@ -24,14 +24,14 @@ import { LEARNING_RATES, mlpApi, type RecordedHistory, type RecordedUpdate, type
 import { cn } from "@/lib/utils"
 
 export const MLP_STAGES = [
-  { id: "text", label: "Text" },
-  { id: "examples", label: "Training examples" },
-  { id: "embeddings", label: "Embeddings" },
-  { id: "hidden", label: "Hidden layer" },
-  { id: "predictions", label: "Predictions" },
-  { id: "loss", label: "Loss" },
-  { id: "update", label: "Weight update" },
-  { id: "generation", label: "Generation" },
+  { id: "text", label: "Text", purpose: "The text is split into training, validation and test parts." },
+  { id: "examples", label: "Training examples", purpose: "Each window of characters is paired with the character after it." },
+  { id: "embeddings", label: "Embeddings", purpose: "Each character becomes a list of learned numbers." },
+  { id: "hidden", label: "Hidden layer", purpose: "The numbers are mixed and squeezed by tanh." },
+  { id: "predictions", label: "Predictions", purpose: "Scores become probabilities for every next character." },
+  { id: "loss", label: "Loss", purpose: "One number says how wrong the prediction was." },
+  { id: "update", label: "Weight update", purpose: "Every weight moves a little to lower the loss." },
+  { id: "generation", label: "Generation", purpose: "The trained network writes text, compared with the bigram." },
 ] as const
 type StageId = (typeof MLP_STAGES)[number]["id"]
 
@@ -58,6 +58,7 @@ function MlpPage() {
   const [index, setIndex] = useState(0)
   const [ins, setIns] = useState<Inspection | null>(null)
   const [finished, setFinished] = useState(false)
+  const [follow, setFollow] = useState(0) // bumped to poll a run again after it resumes
 
   const refreshStatus = useCallback(() => mlpApi.status().then(setStatus, setError), [])
   useEffect(() => {
@@ -86,7 +87,7 @@ function MlpPage() {
     }, (e) => alive && setError(e))
     timer = window.setTimeout(tick, 0)
     return () => { alive = false; clearTimeout(timer) }
-  }, [runId, refreshStatus])
+  }, [runId, refreshStatus, follow])
 
   const cp: Checkpoint = checkpoint === "trained" && !run?.fingerprints.trained ? "initial" : checkpoint
   const fingerprint = run ? (cp === "trained" ? run.fingerprints.trained : run.fingerprints.initial) : undefined
@@ -101,11 +102,12 @@ function MlpPage() {
     return () => { alive = false }
   }, [run?.id, run?.state, cp, fingerprint, split, safeIndex]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const start = async () => {
+  const start = () => startWith(form)
+  const startWith = async (settings: { corpus: string } & MlpConfig) => {
     setError(null)
     setFinished(false)
     try {
-      const r = await mlpApi.start(form)
+      const r = await mlpApi.start(settings)
       setIns(null)
       setRun(r)
       setRunId(r.id)
@@ -114,6 +116,19 @@ function MlpPage() {
     } catch (e) { setError(e) }
   }
   const stop = async () => { if (run) await mlpApi.stop(run.id).catch(setError) }
+  const resume = async () => {
+    if (!run) return
+    setError(null)
+    try {
+      const r = await mlpApi.resume(run.id)
+      setIns(null)
+      setRun(r)
+      setRunId(r.id)
+      setFollow((n) => n + 1) // follow it again while it trains
+    } catch (e) { setError(e) }
+  }
+  /** Train a new run with the same text and settings as this one. */
+  const restart = () => { if (run) { setForm({ corpus: run.corpus.id, ...run.config }); void startWith({ corpus: run.corpus.id, ...run.config }) } }
   const reset = async () => {
     if (!run) return
     try {
@@ -145,7 +160,7 @@ function MlpPage() {
       )}
 
       <TrainingPanel form={form} setForm={setForm} status={status} run={run} choices={choices}
-        onStart={start} onStop={stop} onReset={reset} onOpen={(id) => { setIns(null); setRunId(id) }} />
+        onStart={start} onStop={stop} onReset={reset} onResume={resume} onRestart={restart} onOpen={(id) => { setIns(null); setRunId(id) }} />
       {error != null && <ErrorNote error={error} onRetry={() => { setError(null); void refreshStatus() }} />}
       {run && changed.length > 0 && run.state !== "training" && (
         <Note tone="warning">You changed the {changed.join(", ")}. The lesson still shows run {run.id}. Press Train to make a new run with the new settings.</Note>
@@ -155,7 +170,7 @@ function MlpPage() {
         status?.available ? <Note>Press <span className="font-medium">Train</span> to train a first run. The lesson then follows one of its examples, using its real weights.</Note> : null
       ) : (
         <Lesson run={run} cp={cp} setCheckpoint={setCheckpoint} split={split} setSplit={(s) => { setSplit(s); setIndex(0) }}
-          index={safeIndex} setIndex={setIndex} total={total} ins={ins && ins.run === run.id && ins.checkpoint === cp && ins.split === split && ins.index === safeIndex ? ins : null}
+          index={safeIndex} setIndex={setIndex} total={total} ins={ins && ins.run === run.id && ins.checkpoint === cp && ins.fingerprint === fingerprint && ins.split === split && ins.index === safeIndex ? ins : null}
           stage={stage} setStage={setStage} finished={finished} setFinished={setFinished} />
       )}
     </div>
@@ -164,7 +179,7 @@ function MlpPage() {
 
 // ----------------------------------------------------------------------------- training
 
-function TrainingPanel({ form, setForm, status, run, choices, onStart, onStop, onReset, onOpen }: {
+function TrainingPanel({ form, setForm, status, run, choices, onStart, onStop, onReset, onResume, onRestart, onOpen }: {
   form: { corpus: string } & MlpConfig
   setForm: (f: { corpus: string } & MlpConfig) => void
   status: MlpStatus | null
@@ -173,6 +188,8 @@ function TrainingPanel({ form, setForm, status, run, choices, onStart, onStop, o
   onStart: () => void
   onStop: () => void
   onReset: () => void
+  onResume: () => void
+  onRestart: () => void
   onOpen: (id: string) => void
 }) {
   const lim = status?.limits
@@ -214,7 +231,7 @@ function TrainingPanel({ form, setForm, status, run, choices, onStart, onStop, o
             <span id="mlp-saved" className="flex items-center gap-0.5 text-sm text-muted-foreground">Saved runs<InfoTip id="mlp.saved" /></span>
             <Select value={run?.id ?? ""} onValueChange={(v) => onOpen(String(v))} items={status.saved.map((s) => ({ value: s.id, label: s.id }))}>
               <SelectTrigger aria-labelledby="mlp-saved" className="w-56 bg-card" data-help-id="mlp.saved"><SelectValue placeholder="Open a saved run" /></SelectTrigger>
-              <SelectContent>{status.saved.map((s) => <SelectItem key={s.id} value={s.id}>{s.corpus?.name}, {fmt.n(s.step)} updates <span className="num text-muted-foreground">{s.id}</span></SelectItem>)}</SelectContent>
+              <SelectContent>{status.saved.map((s) => <SelectItem key={s.id} value={s.id}>{s.corpus?.name}, {fmt.n(s.step)} of {fmt.n(s.config.steps)} updates{s.state === "stopped" || s.state === "interrupted" ? ` (${s.state}, incomplete)` : ""} <span className="num text-muted-foreground">{s.id}</span></SelectItem>)}</SelectContent>
             </Select>
           </span>
         )}
@@ -231,6 +248,21 @@ function TrainingPanel({ form, setForm, status, run, choices, onStart, onStop, o
             </div>
           </div>
           {run.state === "error" && <Note tone="warning">Training failed: {run.error}</Note>}
+          {(run.state === "stopped" || run.state === "interrupted") && (
+            <div className="flex flex-col gap-3 rounded-xl bg-raised p-4" data-testid="mlp-incomplete">
+              <p className="text-sm">
+                <span className="font-medium">Incomplete run: {fmt.n(run.step)} of {fmt.n(run.config.steps)} updates.</span>{" "}
+                {run.state === "interrupted" ? "The Lab closed during training; this is its last saved step." : "You stopped this run."}{" "}
+                {run.resumable
+                  ? "Resuming continues exactly where it stopped."
+                  : "It can't be resumed exactly, so train it again from the start."}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {run.resumable && <Button variant="outline" className="bg-card" data-testid="mlp-resume" onClick={onResume} disabled={status?.training != null && status.training !== run.id}>Resume to {fmt.n(run.config.steps)} updates</Button>}
+                <Button variant="ghost" data-testid="mlp-restart" onClick={onRestart}>Train again from the start</Button>
+              </div>
+            </div>
+          )}
           {curve.length > 1 && (
             <div data-help-id="mlp.curve">
               <LineChart ariaLabel="Training and validation loss after each update" xLabel="updates" yLabel="loss (nats)" height={180} yMin={0}
@@ -239,11 +271,11 @@ function TrainingPanel({ form, setForm, status, run, choices, onStart, onStop, o
               <p className="mt-1 text-label text-muted-foreground">
                 Measured every {fmt.n(Math.max(1, Math.floor(run.config.steps / 50)))} updates on {run.curveSample && (run.curveSample.train < run.examples.train - 1 || run.curveSample.val < run.examples.val)
                   ? `a fixed sample of ${fmt.n(run.curveSample.train)} training and ${fmt.n(run.curveSample.val)} validation examples (the same for every run on this text; the comparison below uses every example)`
-                  : "every training and validation example"}. {run.vocabSize} characters, {fmt.n(run.params)} weights{run.trainSeconds != null ? `, trained in ${run.trainSeconds.toFixed(1)} s` : ""}.
+                  : "every training and validation example"}. {run.vocabSize} characters, {fmt.n(run.params)} weights{run.trainSeconds != null ? `, trained in ${run.trainSeconds.toFixed(1)} s` : ""}.{run.best && run.state !== "training" ? ` Lowest validation loss ${run.best.val.toFixed(3)} at update ${fmt.n(run.best.step)}: the checkpoint the final test scores.` : ""}
               </p>
             </div>
           )}
-          {(run.state === "done" || run.state === "stopped") && (run.recorded?.length ?? 0) > 1 && <RecordedTraining run={run} />}
+          {(run.state === "done" || run.state === "stopped" || run.state === "interrupted") && (run.recorded?.length ?? 0) > 1 && <RecordedTraining key={run.fingerprints.trained} run={run} />}
         </div>
       )}
     </section>
@@ -298,7 +330,7 @@ function RecordedTraining({ run }: { run: MlpRun }) {
 }
 
 function stateLabel(run: MlpRun) {
-  return { new: "Starting", training: "Training", done: "Finished", stopped: "Stopped early", error: "Failed" }[run.state]
+  return { new: "Starting", training: "Training", done: "Finished", stopped: "Stopped early (incomplete)", interrupted: "Interrupted (incomplete)", error: "Failed" }[run.state]
 }
 
 // ----------------------------------------------------------------------------- the lesson
@@ -334,6 +366,7 @@ function Lesson({ run, cp, setCheckpoint, split, setSplit, index, setIndex, tota
   return (
     <div className="flex flex-col gap-6" data-testid="mlp-lesson">
       <StageNav stage={stage} onSelect={go} />
+      <StageOverview stage={stage} onSelect={go} />
       <div className="flex flex-wrap items-end gap-x-6 gap-y-3" data-testid="mlp-pickers">
         <Segmented label="Which weights" helpId="mlp.checkpoint" value={cp} onChange={setCheckpoint}
           options={[{ value: "initial", label: "Initial (random)" }, ...(run.fingerprints.trained ? [{ value: "trained" as const, label: `Trained (${fmt.n(run.step)} updates)` }] : [])]} />
@@ -396,6 +429,25 @@ function StageNav({ stage, onSelect }: { stage: number; onSelect: (i: number) =>
         </select>
       </div>
     </nav>
+  )
+}
+
+function StageOverview({ stage, onSelect }: { stage: number; onSelect: (i: number) => void }) {
+  return (
+    <details className="text-sm" data-testid="mlp-overview">
+      <summary className="w-fit cursor-pointer py-1 font-medium text-muted-foreground hover:text-foreground">What the eight steps cover</summary>
+      <ol className="mt-2 grid grid-cols-1 gap-x-6 gap-y-1 md:grid-cols-2">
+        {MLP_STAGES.map((st, i) => (
+          <li key={st.id}>
+            <button type="button" onClick={() => onSelect(i)} aria-current={i === stage ? "step" : undefined}
+              className={cn("flex min-h-10 w-full items-baseline gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-raised", i === stage && "bg-raised")}>
+              <span className="num w-4 flex-none text-muted-foreground">{i + 1}</span>
+              <span><span className="font-medium">{st.label}.</span> <span className="text-muted-foreground">{st.purpose}</span></span>
+            </button>
+          </li>
+        ))}
+      </ol>
+    </details>
   )
 }
 
@@ -649,14 +701,27 @@ function GenerationCanvas({ run, cp }: { run: MlpRun; cp: Checkpoint }) {
           <div className="flex flex-col gap-2" data-testid="mlp-compare">
             <table className="w-full max-w-2xl text-sm">
               <caption className="mb-2 text-left text-label text-muted-foreground">Mean loss in nats (lower is better), {cmp.rule}</caption>
-              <thead><tr className="text-left text-label text-muted-foreground"><th scope="col" className="font-normal">Part</th><th scope="col" className="text-right font-normal">MLP, initial</th><th scope="col" className="text-right font-normal">MLP, trained</th><th scope="col" className="text-right font-normal">Bigram</th><th scope="col" className="text-right font-normal">Bigram, add-1</th></tr></thead>
+              <thead><tr className="text-left text-label text-muted-foreground"><th scope="col" className="font-normal">Part</th><th scope="col" className="text-right font-normal">MLP, initial</th><th scope="col" className="text-right font-normal">MLP, last</th>{cmp.best && <th scope="col" className="text-right font-normal">MLP, selected<span className="block">(update {fmt.n(cmp.best.step)})</span></th>}<th scope="col" className="text-right font-normal">Bigram</th><th scope="col" className="text-right font-normal">Bigram, add-1</th></tr></thead>
               <tbody>{cmp.rows.map((r) => (
-                <tr key={r.part} className="border-t border-rule"><th scope="row" className="py-1.5 text-left font-normal">{r.part === "val" ? "Validation" : "Test"} <span className="num text-muted-foreground">({r.targets})</span></th>
-                  <td className="num py-1.5 text-right">{r.mlp_initial?.toFixed(3) ?? "–"}</td><td className="num py-1.5 text-right font-medium">{r.mlp_trained?.toFixed(3) ?? "–"}</td>
+                <tr key={r.part} className="border-t border-rule"><th scope="row" className="py-1.5 text-left font-normal">{r.part === "val" ? "Validation" : "Test"} <span className="num text-muted-foreground">({fmt.n(r.targets)}{r.unknownTargets ? `, ${fmt.n(r.unknownTargets)} unseen` : ""})</span></th>
+                  <td className="num py-1.5 text-right">{r.mlp_initial?.toFixed(3) ?? "–"}</td><td className="num py-1.5 text-right">{r.mlp_trained?.toFixed(3) ?? "–"}</td>{cmp.best && <td className="num py-1.5 text-right font-medium">{r.mlp_best?.toFixed(3) ?? "–"}</td>}
                   <td className="num py-1.5 text-right">{r.bigram == null ? "∞" : r.bigram.toFixed(3)}</td><td className="num py-1.5 text-right">{r.bigram_add1?.toFixed(3) ?? "–"}</td></tr>
               ))}</tbody>
             </table>
             <p className="text-label text-muted-foreground">Equal guessing: {cmp.uniform.toFixed(3)}. {cmp.note}</p>
+            {cmp.policy && (
+              <details className="text-label text-muted-foreground" data-testid="mlp-compare-policy">
+                <summary className="w-fit cursor-pointer py-1 font-medium hover:text-foreground">How the comparison is kept fair</summary>
+                <ul className="mt-1 flex list-disc flex-col gap-1 pl-5">
+                  <li>Vocabulary: {cmp.policy.vocabulary}.</li>
+                  <li>Unseen characters: {cmp.policy.unknown}.</li>
+                  <li>Smoothing: {cmp.policy.smoothing}.</li>
+                  <li>Choosing the checkpoint: {cmp.policy.selection}.</li>
+                  <li>Targets: {cmp.policy.targets}.</li>
+                  <li>The MLP doesn’t have to win: on a small text the bigram can match or beat it.</li>
+                </ul>
+              </details>
+            )}
           </div>
         )}
       </div>
@@ -666,7 +731,7 @@ function GenerationCanvas({ run, cp }: { run: MlpRun; cp: Checkpoint }) {
 
 // ----------------------------------------------------------------------------- the explanation column
 
-interface Copy { happening: ReactNode; why: ReactNode; tryIt: ReactNode; terms: string[] }
+interface Copy { happening: ReactNode; why: ReactNode; tryIt: ReactNode; expect: ReactNode; terms: string[] }
 
 function stageCopy(id: StageId, run: MlpRun, ins: Inspection | null, cp: Checkpoint): Copy {
   const c = run.config
@@ -676,48 +741,56 @@ function stageCopy(id: StageId, run: MlpRun, ins: Inspection | null, cp: Checkpo
       happening: <p>The text is cut into three parts before anything else: {fmt.n(run.split.train)} characters to learn from, {fmt.n(run.split.val)} to check on while training, and {fmt.n(run.split.test)} kept for one final comparison.</p>,
       why: <p>A model can look good on text it memorised. Checking on text it never learned from is the only fair way to see whether it learned something general.</p>,
       tryIt: <p>Look at the vocabulary: these are the only characters the MLP can ever write.</p>,
+      expect: <p>{run.vocabSize} tokens: {run.vocabSize - 2} characters from the training part plus ⟨start⟩ and ⟨?⟩. A character found only in validation or test text isn’t there.</p>,
       terms: ["split", "vocabulary"],
     }
     case "examples": return {
       happening: <p>A window of {c.context} previous {c.context === 1 ? "character" : "characters"} is the input; the character after it is the answer the MLP should learn to give. {ins && <>Here: {ins.window.map(q).join(" ")} → {q(ins.target)}.</>}</p>,
       why: <p>The bigram looked at one character; this MLP looks at {c.context}. It still has no idea of meaning: only these characters, as numbers.</p>,
       tryIt: <p>Select a neighbouring example and see the window slide by one character.</p>,
+      expect: <p>The next example’s window drops its oldest character and gains this example’s answer{ins ? <> ({q(ins.target)})</> : null}.</p>,
       terms: ["training-pair", "context-window"],
     }
     case "embeddings": return {
       happening: <p>Each character in the window is replaced by its own list of {c.embed} numbers, its embedding. The lists are joined into one list of {c.context * c.embed} numbers.</p>,
       why: <p>A network can only do arithmetic. Embeddings start random{cp === "trained" ? " and have been adjusted by training" : ""}; characters that behave alike tend to end up with similar numbers.</p>,
       tryIt: <p>Switch between the initial and trained weights and compare the same character's numbers.</p>,
+      expect: <p>The numbers differ: training changed this character’s embedding. The joined list always has {c.context * c.embed} numbers.</p>,
       terms: ["embedding", "token-id"],
     }
     case "hidden": return {
       happening: <p>The hidden layer mixes all {c.context * c.embed} input numbers into {c.hidden} new ones: each is a weighted sum plus a bias, then tanh squeezes it between −1 and 1.</p>,
       why: <p>tanh is the nonlinear step. Without it, the whole network would be one straight-line formula and could learn far less.</p>,
       tryIt: <p>Find a value beyond ±0.97 on the curve: there, changing the input barely changes the output.</p>,
+      expect: <p>Every value after tanh is between −1 and 1. {ins ? <>For this example, {ins.hiddenStats.saturated} of {ins.hiddenStats.size} are beyond ±0.97.</> : null}</p>,
       terms: ["hidden-layer", "activation"],
     }
     case "predictions": return {
       happening: <p>The output layer gives one score per token; softmax turns the scores into probabilities. {p != null && <>The correct {q(ins!.target)} gets {p.toFixed(4)}.</>}</p>,
       why: <p>Unlike the bigram's counts, softmax never gives exactly 0, so the MLP always leaves a little probability for every character.</p>,
       tryIt: <p>Compare initial and trained weights: the initial ones spread probability almost evenly.</p>,
+      expect: <p>With initial weights the bars are all close to {ins ? ins.probs.uniform.toFixed(4) : "1 ÷ vocabulary size"}; with trained weights a few characters take most of the probability.</p>,
       terms: ["logits", "softmax"],
     }
     case "loss": return {
       happening: <p>The loss is −ln of the probability given to the correct character{p != null ? <>: −ln({p.toFixed(4)}) = {ins!.loss.toFixed(4)}</> : null}. 0 would mean certainty about the right answer.</p>,
       why: <p>Training lowers the average loss on the training examples. If validation loss rises while training loss falls, the MLP is memorising instead of generalising.</p>,
       tryIt: <p>Pick a validation example and compare its loss with a training example's.</p>,
+      expect: <p>With trained weights, validation examples usually have a higher loss than training examples: the curve above shows {run.curve.at(-1) ? <>training {run.curve.at(-1)!.train.toFixed(3)} and validation {run.curve.at(-1)!.val?.toFixed(3) ?? "–"}</> : "both averages"}. Single examples vary.</p>,
       terms: ["cross-entropy", "loss", "overfitting"],
     }
     case "update": return {
       happening: <p>Backpropagation computes how the loss would change if each weight changed slightly: its gradient. Every weight then moves by −{c.lr} × its gradient.</p>,
       why: <p>One update raises the correct character's probability a little on this example. Training repeats this {fmt.n(c.steps)} times, on batches of {c.batch} examples.</p>,
       tryIt: <p>Check one row: before − {c.lr} × gradient should equal after.</p>,
+      expect: <p>The loss for this example goes down after the update{ins ? <> ({ins.loss.toFixed(4)} → {ins.update.lossAfter.toFixed(4)})</> : null}. A negative gradient makes a weight larger.</p>,
       terms: ["gradient", "backpropagation", "learning-rate"],
     }
     case "generation": return {
       happening: <p>To write, the MLP predicts a distribution, a seeded random draw picks a character, and the window slides to include it. Then it repeats.</p>,
       why: <p>The comparison scores the MLP and the bigram on the same validation and test targets, so their losses can be compared directly.</p>,
       tryIt: <p>Generate with the initial weights, then with the trained ones, using the same seed.</p>,
+      expect: <p>Initial weights write random characters; trained weights write word-like pieces of the training text. The same seed and weights always give the same text.</p>,
       terms: ["autoregressive", "sampling", "baseline"],
     }
   }
@@ -732,6 +805,7 @@ function Explanation({ id, label, run, ins, cp, target }: { id: StageId; label: 
         <div className="flex flex-col gap-1.5"><h3 className="font-semibold">What is happening</h3>{copy.happening}</div>
         <div className="flex flex-col gap-1.5 border-t border-companion-edge pt-4"><h3 className="font-semibold">Why it matters</h3>{copy.why}</div>
         <TryThis>{copy.tryIt}</TryThis>
+        <div className="flex flex-col gap-1.5" data-testid="mlp-expect"><h3 className="font-semibold">What you should see</h3>{copy.expect}</div>
       </div>
       <details className="border-t border-companion-edge pt-4 text-prose">
         <summary className="cursor-pointer py-1 text-label font-medium text-muted-foreground hover:text-foreground">Words used here ({copy.terms.length})</summary>

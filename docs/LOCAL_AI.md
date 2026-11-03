@@ -146,7 +146,22 @@ Outside these folders, Colibri writes only a small pidfile, `%TEMP%\coli-serve-8
 
 ### Start everything
 
-Two PowerShell windows:
+**One command (recommended):** double-click `start-nextword.cmd` in the repository, or run it from a terminal.
+
+- It checks the Python environment, builds the interface once if needed, and says whether PyTorch is installed.
+- It **reuses** a Colibri that already serves a model on 127.0.0.1:8000, for example one SignalDesk started.
+- It **leaves alone** anything that is listening on that port but isn't serving yet (Colibri still loading, or
+  another program). The launcher stops any running server first, so the script starts it only when nothing
+  listens there.
+- Only then does it ask (default No after 20 s) whether to start `..\local-ai\start-colibri.cmd 4b` in its own
+  window. `start-nextword.cmd --ai` starts it without asking; `--no-ai` never starts it.
+- It never switches the model.
+- Everything except "Ask your tutor" works without the tutor. The tutor tab says when the model is offline or
+  still loading, and offers "Try again".
+
+Measured 2026-11-04: from launching the tutor to the 4B serving, under 20 s. The Lab is ready in about 3 s.
+
+The same by hand, in two PowerShell windows:
 
 ```
 # 1. one explanation model (the 4B is ready in about 5 s, the 9B in about 11 s)
@@ -218,6 +233,16 @@ is until the answer ended. The streamed replies carry no token counts, so tokens
 reported.
 
 ## Evaluation
+
+**MLP tutor (2026-11-04):** [`evals/local_ai/MLP_TUTOR.md`](../evals/local_ai/MLP_TUTOR.md).
+- Sets: 13 development cases and 15 fresh cases, frozen before any answer.
+- Expected numbers are read from the trained run, never written by hand.
+- Fresh set: 12 of 15 pass every automatic check. AI review: 9 correct, 6 minor issues, 0 wrong.
+- Human review: not done.
+- Every answer is checked deterministically after it arrives. Numbers that aren't in the engine facts are listed
+  under the answer.
+
+**Bigram tutor:**
 
 `evals/local_ai/` holds the first 19 cases (`dev_cases.json`, formerly `cases.json`), a fresh set of 16
 (`fresh_cases.json`, frozen in `FROZEN.md`), a runner (`run_eval.py`) and the results

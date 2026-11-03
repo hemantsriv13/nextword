@@ -90,12 +90,60 @@ model quality, factual reliability, or production readiness.
 **My progress check:** Can I predict what a change will do, make the
 change, and explain the result—including when my prediction was wrong?
 
+## Two models, kept apart
+
+- **Your trainable MLP** is a small character-level neural network (4,520 weights at the default settings). You
+  train it here, on this computer's CPU with PyTorch, from random weights. Every number the Lab shows about it is
+  computed from its real weights.
+- **The local AI tutor** is Qwen3-4B-Instruct-2507, a pretrained model downloaded once and served on this computer
+  by Colibri. NextWord never trains or changes it. It only puts the MLP's numbers into words, and it can be wrong.
+
+## Architecture
+
+| Part | What it does | Where |
+|---|---|---|
+| Bigram engine | Counts which character follows which; generates by seeded sampling | `nextword/bigram.py` |
+| Character MLP | Embeddings → tanh hidden layer → softmax; trained by plain gradient descent | `nextword/mlp.py` |
+| MLP service | Trains in a background thread with progress saves; runs, checkpoints (initial, trained, validation-selected), resume, inspection of one example, generation, fair bigram comparison | `nextword/lab/mlp_service.py` |
+| Lab server | Local HTTP API on 127.0.0.1 and the built web interface | `nextword/lab/server.py` |
+| Tutor bridge | Rebuilds the facts from the selected run, sends them to Colibri, streams the answer, checks its numbers | `nextword/lab/assist.py`, `assist_mlp.py` |
+| Web interface | React + TypeScript: Home, learning paths, lessons, Bigram and MLP journeys, Playground, tools | `web/` |
+| Local AI | Colibri v2.1.0 serving Qwen3-4B on 127.0.0.1:8000 (outside this repository) | `..\local-ai\` |
+| Evaluations | Engine tests; tutor evaluations with frozen fresh sets | `tests/`, `evals/` |
+
+## Start on Windows (one command)
+
+After the one-time setup below, double-click **`start-nextword.cmd`** (or run it in a terminal). It:
+
+1. checks the Python environment and builds the interface if it isn't built;
+2. says whether PyTorch is installed (without it, the MLP pages say how to install it);
+3. reuses the local AI tutor if it is already running, leaves alone anything still loading on its port, and
+   otherwise asks whether to start it (`--ai` starts it without asking, `--no-ai` never does);
+4. starts the Lab and opens **http://127.0.0.1:8765**.
+
+Everything except "Ask your tutor" works without the tutor. Details: [docs/LOCAL_AI.md](docs/LOCAL_AI.md).
+
+## A five-minute demonstration
+
+1. **Home → Neural MLP journey** (also in the sidebar, the learning paths and the Playground).
+2. **Train** with the defaults on the Sample passage: about 1 s on this laptop. Watch training and validation loss.
+3. Step through the eight stages: **Text, Training examples, Embeddings, Hidden layer, Predictions, Loss, Weight
+   update, Generation**. Each shows this run's real numbers and "What you should see". Switch between *Initial
+   (random)* and *Trained* weights to see what training changed.
+4. At **Generation**, generate 60 characters, then **Compare with the bigram**: the same targets, with stated
+   vocabulary, unseen-character and smoothing rules, plus the validation-selected checkpoint.
+5. Open **Ask your tutor → Explain this step**. The answer appears under "Numbers from your engine", marked
+   experimental.
+6. Set Updates to 20,000 and **Train**. Then **Stop**: the run is labelled *incomplete*; **Resume** continues
+   exactly. The earlier tutor answer is marked as belonging to an earlier experiment.
+7. Close the Lab and run `start-nextword.cmd` again. **Saved runs** reopen with their weights checked by
+   fingerprint.
+
 ## Setup (Windows, Git Bash or PowerShell)
 
 Requires Python 3.12 (`py -3.12`). The bigram engine and the Lab backend need no Python packages. The
 Neural MLP journey needs PyTorch (CPU build, about 670 MB installed):
-`.venv\Scripts\python -m pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch`
-(see `requirements-mlp.txt`).
+`.venv\Scripts\python -m pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu -r requirements-mlp.txt`.
 
 ```
 py -3.12 -m venv .venv
@@ -167,7 +215,10 @@ quizzes. Setup, request flow, measurements and evaluation: [docs/LOCAL_AI.md](do
   books outside it), with chapter-level splits and overlap removed; measured timings in `docs/DATASETS.md`.
 - Recorded training: saved weight snapshots and batches, replayed and recomputation-checked.
 - Ask local AI (optional): a local pretrained model explains journey steps and tutors lessons from facts the
-  backend recomputes; evaluated in `evals/local_ai/`.
+  backend recomputes. Numbers in an answer that aren't in those facts are flagged under it. Evaluated in
+  `evals/local_ai/`; the MLP tutor in [MLP_TUTOR.md](evals/local_ai/MLP_TUTOR.md).
+- MLP runs survive a Lab restart: progress is saved every few seconds, interrupted runs are labelled incomplete,
+  and resume is exact (tested against uninterrupted runs).
 - Tests: `.venv\Scripts\python -m unittest` and `npm --prefix web test`.
 
 ## Limitations
@@ -176,11 +227,13 @@ quizzes. Setup, request flow, measurements and evaluation: [docs/LOCAL_AI.md](do
   suggestions.** It exists only as a smoke test.
 - A bigram model sees one character of context, so output is word-shaped noise, not language.
 - Bigram counts are rebuilt (and cached in the Lab server's memory), not saved. MLP runs are saved under
-  `data/lab/` (ignored by Git); a run still training when the server stops is lost.
+  `data/lab/` (ignored by Git). A run training when the server stops keeps its last progress save (up to about
+  3 s of training is lost).
 - A transformer engine is not built yet; the Lab simulates attention in the browser and says so. The MLP is
   small and trains on small texts, so it overfits easily (the page shows when).
 - Ask local AI's explanations come from a pretrained model this project did not train, and can be
-  wrong (about 1 tutor answer in 6 on the evaluation sets; the human clarity review is not done). It needs
+  wrong. On the MLP tutor's 15 fresh questions the AI review found no wrong answers but 6 with minor issues; on
+  the development set one answer was wrong. The human review is not done. It needs
   Colibri running separately; the 4B used up to 4.6 GB of GPU memory on a 6 GB laptop GPU.
 - The model's 2,048-token context fits only a few answers per conversation (one detailed answer on the MLP
   journey); the panel says when a conversation is full.

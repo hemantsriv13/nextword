@@ -43,6 +43,8 @@ interface Turn {
   state: TurnState
   error?: string
   timings?: AssistTimings
+  /** Numbers in the answer found nowhere in the engine facts (a deterministic check run after the answer). */
+  unverified?: string[]
   finish?: string | null
 }
 interface Conversation {
@@ -146,7 +148,7 @@ export function AssistProvider({ children }: { children: ReactNode }) {
           patchTurn(n, { text })
         } else if (e.type === "done") {
           if (e.empty) patchTurn(n, { state: "failed", error: "The model returned no text. Try again, or ask in other words." })
-          else patchTurn(n, { state: "done", timings: e.timingsMs, finish: e.finish })
+          else patchTurn(n, { state: "done", timings: e.timingsMs, finish: e.finish, unverified: e.unverified ?? [] })
           setConv((c) => c && { ...c, answered: e.turns, maxTurns: e.maxTurns, room: e.room })
         } else if (e.type === "error") {
           patchTurn(n, { state: "failed", error: assistErrorText(e.code, e.message) })
@@ -368,6 +370,11 @@ function TurnView({ turn: t, slowAfter, onRetry }: { turn: Turn; slowAfter: numb
           <p className="text-muted-foreground" data-testid="ai-timing" data-help-id="ai.timing">
             First words after <span className="num">{secs(t.timings?.firstText)}</span>, finished after <span className="num">{secs(t.timings?.total)}</span>{t.finish === "length" ? "; cut off at the length limit. Ask “Explain in more detail” for a longer answer" : ""}.{" "}
             <InfoTip id="ai.timing" className="inline-flex align-middle" />
+          </p>
+        )}
+        {t.state === "done" && (t.unverified?.length ?? 0) > 0 && (
+          <p className="mt-1 rounded-lg bg-src-sim px-3 py-2 text-sm text-src-sim-ink" data-testid="ai-unverified">
+            Check this answer: it mentions {t.unverified!.join(", ")}, {t.unverified!.length === 1 ? "a number" : "numbers"} not found in the numbers from your engine. Trust the engine’s numbers.
           </p>
         )}
       </div>

@@ -1,2 +1,5 @@
 # Keep training text byte-for-byte: CRLF conversion would add "" tokens and change results.
 data/** -text
+
+# Windows batch files need CRLF line endings (labels and goto misbehave with LF).
+*.cmd text eol=crlf

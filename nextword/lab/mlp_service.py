@@ -1,15 +1,23 @@
 """The MLP journey's backend: train the character MLP (nextword/mlp.py) on a Lab text, in a background
 thread, and answer questions about the run with numbers computed from its real weights.
 
-A run has two checkpoints the journey studies:
+A run has three checkpoints:
     initial   the random weights before any update (step 0)
-    trained   the weights when training finished or was stopped
+    trained   the weights when training finished or was stopped (the latest weights)
+    best      the weights at the curve point with the lowest validation loss: model selection uses the
+              validation part only, and the test part then scores this checkpoint once (compare())
 Each is identified by a fingerprint of its weights, so an explanation can name exactly which weights
 it describes. Runs are saved under data/lab/mlp/<id>/ (ignored by Git) and can be reloaded.
 
 Recorded history: while it trains, a run also keeps the weights at a few chosen steps (step:N) and, for
 the updates that produce them, the exact batch of examples used. Training is far too fast to watch, so
 the page replays these recordings: each replayed state is a real saved state, never an interpolation.
+
+Interruption and resume: while training, a run writes its latest weights and everything needed to
+continue (step, the batch-order generator's state, curve, recordings, best checkpoint) every few seconds,
+atomically. If the server stops mid-training, the run reloads as "interrupted" at its latest saved step.
+Plain gradient descent has no optimizer state besides the learning rate, so a stopped or interrupted run
+can be resumed exactly: resuming gives the same weights as training without the interruption (tested).
 
 Data separation: a dataset (nextword/datasets.py) has fixed train / validation / test parts; any other
 text is split into contiguous 80/10/10 parts *before* any example is made (the same split as the
@@ -21,6 +29,7 @@ by looking at it.
 import copy
 import json
 import math
+import os
 import secrets
 import shutil
 import threading
@@ -55,6 +64,8 @@ SHOW = 16  # values shown per vector in an inspection; the rest are summarised
 # Steps whose weights are recorded for replay (plus the step before each, so that update can be replayed).
 RECORD_STEPS = (1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000)
 RECORD_BATCH_SHOWN = 8
+PROGRESS_SECONDS = 3.0  # how often a training run writes its latest state to disk
+INCOMPLETE = ("stopped", "interrupted")
 
 
 def _require_torch():
@@ -72,6 +83,13 @@ def _r(x: float, places: int = 4) -> float:
     return round(float(x), places)
 
 
+def _atomic(path: Path, write) -> None:
+    """Write a file so that a crash leaves either the old file or the new one, never half of one."""
+    tmp = path.with_name(path.name + ".tmp")
+    write(tmp)
+    os.replace(tmp, path)
+
+
 def _sample(xs, ys, cap: int):
     if len(xs) <= cap:
         return xs, ys
@@ -87,7 +105,7 @@ class Run:
         self.created = created
         self.lock = threading.Lock()
         self.stop_flag = threading.Event()
-        self.state = "new"          # new → training → done | stopped | error
+        self.state = "new"          # new → training → done | stopped | error; "interrupted" after a reload
         self.error = None
         self.step = 0
         self.curve: list[dict] = []
@@ -110,6 +128,11 @@ class Run:
         self.model = mlp.build(self.vocab, cfg)
         self.initial = copy.deepcopy(self.model.state_dict())
         self.trained = None
+        self.best = None                     # lowest validation loss so far: state, step and loss
+        self.best_step = None
+        self.best_val = None
+        self.gen = None                      # the batch-order generator, kept so training can resume
+        self.resumable = False
         self.history: dict[int, dict] = {}   # step → recorded weights
         self.updates: dict[int, dict] = {}   # step → the recorded update that produced those weights
         self.samples: dict[str, str] = {}
@@ -123,6 +146,10 @@ class Run:
             if self.trained is None:
                 raise LabError("this run has no trained checkpoint yet: train it, or stop the training", 409, "not_trained")
             return self.trained
+        if name == "best":
+            if self.best is None or self.state == "training":
+                raise LabError("this run has no validation-selected checkpoint yet", 409, "not_trained")
+            return self.best
         if isinstance(name, str) and name.startswith("step:") and name[5:].isdigit():
             step = int(name[5:])
             if step == 0:
@@ -130,7 +157,7 @@ class Run:
             if step in self.history:
                 return self.history[step]
             raise LabError(f"step {step} was not recorded; recorded steps: {', '.join(map(str, self.recorded_steps()))}", 404, "not_recorded")
-        raise LabError("checkpoint must be 'initial', 'trained' or a recorded 'step:N'", 422, "bad_checkpoint")
+        raise LabError("checkpoint must be 'initial', 'trained', 'best' or a recorded 'step:N'", 422, "bad_checkpoint")
 
     def recorded_steps(self) -> list[int]:
         return sorted({0, *self.history})
@@ -146,24 +173,37 @@ class Run:
         out = {"initial": mlp.fingerprint(self.checkpoint_model("initial"))}
         if self.trained is not None:
             out["trained"] = mlp.fingerprint(self.checkpoint_model("trained"))
+        if self.best is not None and self.state != "training":
+            out["best"] = mlp.fingerprint(self.checkpoint_model("best"))
         return out
 
     def history_fingerprints(self) -> dict:
         return {str(k): mlp.fingerprint(self.checkpoint_model(f"step:{k}")) for k in sorted(self.history)}
 
     # ------------------------------------------------------------------ training
-    def train(self, on_done=None) -> None:
+    def train(self, on_done=None, on_progress=None, until: int | None = None) -> None:
+        """Train from the current step to cfg.steps (or to `until`, which behaves like pressing Stop there).
+        A run that was stopped or interrupted continues exactly where it left off."""
         cfg = self.cfg
         xs, ys = self.data["train"]
-        gen = torch.Generator().manual_seed(cfg.seed)
+        if self.gen is None:
+            self.gen = torch.Generator().manual_seed(cfg.seed)
+        gen = self.gen
         every = max(1, cfg.steps // CURVE_POINTS)
         record = {s for s in RECORD_STEPS if s <= cfg.steps} | {cfg.steps}
-        self.state = "training"
+        first = self.step + 1
+        with self.lock:
+            self.trained = None  # weights that are still changing are never shown as "trained"
+            self.state = "training"
+        self.resumable = False
         t0 = time.perf_counter()
+        before = self.train_seconds or 0.0
+        last_save = t0
         try:
-            self._point(0)
-            for step in range(1, cfg.steps + 1):
-                if self.stop_flag.is_set():
+            if first == 1:
+                self._point(0)
+            for step in range(first, cfg.steps + 1):
+                if self.stop_flag.is_set() or (until is not None and step > until):
                     break
                 idx = torch.randint(0, len(xs), (min(cfg.batch, len(xs)),), generator=gen)
                 with self.lock:
@@ -179,13 +219,18 @@ class Run:
                     self.step = step
                 if step % every == 0 or step == cfg.steps:
                     self._point(step)
+                if on_progress and time.perf_counter() - last_save >= PROGRESS_SECONDS:
+                    self.train_seconds = before + time.perf_counter() - t0
+                    on_progress(self)
+                    last_save = time.perf_counter()
             if self.curve[-1]["step"] != self.step:
                 self._point(self.step)
-            self.train_seconds = time.perf_counter() - t0
+            self.train_seconds = before + time.perf_counter() - t0
             self.ms_per_step = self.train_seconds * 1000 / self.step if self.step else None
             with self.lock:
                 self.trained = copy.deepcopy(self.model.state_dict())
-            final = "stopped" if self.stop_flag.is_set() and self.step < cfg.steps else "done"
+            final = "done" if self.step >= cfg.steps else "stopped"
+            self.resumable = final == "stopped"
             # Samples and files are written before the run says it is finished, so anything that
             # reacts to "done" (the page, a reload) finds them in place.
             self._finish()
@@ -201,6 +246,9 @@ class Run:
                      "val": None}
             val = mlp.mean_loss(self.model, *self.curve_data["val"])
             point["val"] = None if val is None else _r(val, 5)
+            # Model selection on validation only: keep the weights with the lowest validation loss so far.
+            if val is not None and (self.best_val is None or val < self.best_val):
+                self.best, self.best_step, self.best_val = copy.deepcopy(self.model.state_dict()), step, val
         self.curve.append(point)
 
     def _finish(self) -> None:
@@ -232,6 +280,9 @@ class Run:
             "split": {"train": len(self.parts["train"]), "val": len(self.parts["val"]), "test": len(self.parts["test"]), "bounds": self.bounds,
                       "how": "fixed dataset parts" if self.fixed_parts else "contiguous 80% / 10% / 10% of the text"},
             "curveSample": curve_n, "recorded": self.recorded_steps(),
+            "best": None if self.best_step is None else {"step": self.best_step, "val": _r(self.best_val, 5),
+                                                         "how": "the curve point with the lowest validation loss"},
+            "complete": self.state == "done", "resumable": self.resumable and self.state in INCOMPLETE,
             "examples": {"train": n["train"], "val": n["val_eval"], "test": n["test_eval"]},
             "vocab": [_label(c) for c in self.vocab.itos], "vocabSize": len(self.vocab),
             "params": mlp.count_params(self.model), "curve": self.curve,
@@ -263,12 +314,19 @@ class MLPService:
     def saved(self) -> list[dict]:
         out = []
         if self.root.exists():
-            for meta in sorted(self.root.glob("*/run.json"), reverse=True):
+            for meta in self.root.glob("*/run.json"):
                 try:
                     d = json.loads(meta.read_text(encoding="utf-8"))
-                    out.append({k: d.get(k) for k in ("id", "state", "step", "config", "corpus", "created")})
+                    row = {k: d.get(k) for k in ("id", "state", "step", "config", "corpus", "created")}
+                    live = self.runs.get(row["id"])
+                    if live is not None:
+                        row["state"], row["step"] = live.state, live.step
+                    elif row["state"] == "training":  # written while training, and the server stopped since
+                        row["state"] = "interrupted"
+                    out.append(row)
                 except (OSError, ValueError):
                     continue
+        out.sort(key=lambda r: r.get("created") or 0, reverse=True)  # newest first
         return out[:30]
 
     def start(self, data: dict) -> dict:
@@ -292,7 +350,26 @@ class MLPService:
                 raise LabError("this text is too short to split into training and validation parts", 422, "too_short")
             self.runs[run.id] = run
             self.training = run
-        threading.Thread(target=run.train, args=(self._save,), daemon=True).start()
+        self._begin(run)
+        return run.summary()
+
+    def _begin(self, run: Run) -> None:
+        threading.Thread(target=run.train, args=(self._save, self._progress), daemon=True).start()
+
+    def resume(self, run_id) -> dict:
+        """Continue a stopped or interrupted run from its latest saved step, with its saved batch order."""
+        _require_torch()
+        run = self.get(run_id)
+        with self._lock:
+            if self.training and self.training.state == "training":
+                raise LabError("another run is training; stop it first", 409, "busy")
+            if run.state not in INCOMPLETE or not run.resumable:
+                raise LabError("only a stopped or interrupted run with its saved training state can be resumed; "
+                               "train a new run instead", 409, "not_resumable")
+            run.stop_flag.clear()
+            run.state = "training"  # set before the thread starts, so a second request is refused
+            self.training = run
+        self._begin(run)
         return run.summary()
 
     def get(self, run_id) -> Run:
@@ -317,16 +394,66 @@ class MLPService:
         return {"removed": run.id}
 
     # ------------------------------------------------------------------ saving and loading
-    def _save(self, run: Run, final: str) -> None:
-        d = self.root / run.id
-        d.mkdir(parents=True, exist_ok=True)
-        meta = {**run.summary(), "state": final}
-        mlp.save(d / "trained.pt", run.checkpoint_model("trained"), run.vocab, run.cfg, {"run": run.id})
-        mlp.save(d / "initial.pt", run.checkpoint_model("initial"), run.vocab, run.cfg, {"run": run.id})
-        torch.save({"format": "nextword-mlp-history-1", "states": run.history}, d / "history.pt")
+    def _meta(self, run: Run, state: str, latest) -> dict:
+        meta = {**run.summary(), "state": state}
+        meta["fingerprints"] = {"initial": meta["fingerprints"]["initial"], "trained": mlp.fingerprint(latest)}
+        if run.best is not None:
+            meta["fingerprints"]["best"] = mlp.fingerprint(self._model(run, run.best))
         meta["updates"] = list(run.updates.values())
         meta["historyFingerprints"] = run.history_fingerprints()
-        (d / "run.json").write_text(json.dumps(meta, ensure_ascii=False), encoding="utf-8")
+        return meta
+
+    @staticmethod
+    def _model(run: Run, state: dict):
+        m = run.checkpoint_model("initial")
+        m.load_state_dict(state)
+        return m
+
+    def _initial(self, run: Run, d: Path) -> None:
+        if not (d / "initial.pt").exists():
+            _atomic(d / "initial.pt", lambda p: mlp.save(p, run.checkpoint_model("initial"), run.vocab, run.cfg, {"run": run.id}))
+
+    @staticmethod
+    def _drop_progress(d: Path, keep: str | None = None) -> None:
+        for f in d.glob("progress-*.pt"):
+            if f.name != keep:
+                f.unlink(missing_ok=True)
+
+    def _progress(self, run: Run) -> None:
+        """Called by the training thread every few seconds. Everything needed to continue goes into ONE file named
+        by its step (weights, best checkpoint, recordings, the batch-order generator's state); run.json is
+        rewritten only after it, so a crash at any moment leaves run.json describing a complete file."""
+        d = self.root / run.id
+        d.mkdir(parents=True, exist_ok=True)
+        self._initial(run, d)
+        weights = copy.deepcopy(run.model.state_dict())
+        name = f"progress-{run.step:06d}.pt"
+        _atomic(d / name, lambda p: torch.save({"format": "nextword-mlp-progress-1", "step": run.step, "weights": weights,
+                                                "best": run.best, "bestStep": run.best_step, "bestVal": run.best_val,
+                                                "generator": run.gen.get_state(), "history": dict(run.history)}, p))
+        meta = {**self._meta(run, "training", self._model(run, weights)), "progress": name}
+        _atomic(d / "run.json", lambda p: p.write_text(json.dumps(meta, ensure_ascii=False), encoding="utf-8"))
+        self._drop_progress(d, keep=name)
+
+    def _save(self, run: Run, final: str) -> None:
+        """A finished or stopped run: its checkpoints, recordings and (for a stopped run) what resuming needs."""
+        d = self.root / run.id
+        d.mkdir(parents=True, exist_ok=True)
+        self._initial(run, d)
+        latest = run.checkpoint_model("trained")
+        meta = self._meta(run, final, latest)
+        if run.best is not None:
+            best = self._model(run, run.best)
+            _atomic(d / "best.pt", lambda p: mlp.save(p, best, run.vocab, run.cfg, {"run": run.id, "step": run.best_step}))
+        _atomic(d / "trained.pt", lambda p: mlp.save(p, latest, run.vocab, run.cfg, {"run": run.id, "step": run.step}))
+        _atomic(d / "history.pt", lambda p: torch.save({"format": "nextword-mlp-history-1", "states": dict(run.history)}, p))
+        # Plain gradient descent keeps no optimizer state besides the learning rate; the batch order comes from a
+        # seeded generator, whose state is all that continuing needs beyond the weights and the step.
+        _atomic(d / "resume.pt", lambda p: torch.save({"format": "nextword-mlp-resume-1", "step": run.step,
+                                                       "generator": run.gen.get_state(), "bestVal": run.best_val,
+                                                       "bestStep": run.best_step}, p))
+        _atomic(d / "run.json", lambda p: p.write_text(json.dumps(meta, ensure_ascii=False), encoding="utf-8"))
+        self._drop_progress(d)
 
     def _load(self, run_id) -> Run:
         _require_torch()
@@ -339,20 +466,43 @@ class MLPService:
         text = self.store.text(meta["corpus"]["id"])
         if service._fingerprint(text) != meta["corpus"]["fingerprint"]:
             raise LabError("the training text has changed since this run was saved; train a new run", 409, "snapshot_changed")
-        trained, _, cfg, _ = mlp.load(d / "trained.pt")
-        initial, _, _, _ = mlp.load(d / "initial.pt")
+        initial, _, cfg, _ = mlp.load(d / "initial.pt")
         run = Run(run_id, meta["corpus"], text, cfg, meta["created"], self.store.parts(meta["corpus"]["id"]))
         run.initial = copy.deepcopy(initial.state_dict())
-        if (d / "history.pt").exists():  # runs saved before recording existed have no history
-            blob = torch.load(d / "history.pt", map_location="cpu", weights_only=True)
-            run.history = {int(k): v for k, v in blob["states"].items()}
-            run.updates = {u["step"]: u for u in meta.get("updates", [])}
-        run.trained = copy.deepcopy(trained.state_dict())
+        run.updates = {u["step"]: u for u in meta.get("updates", [])}
+        resume = None
+        if meta["state"] == "training" and meta.get("progress"):
+            # Written while training and the server stopped since: reload the latest progress file, as interrupted.
+            blob = torch.load(d / meta["progress"], map_location="cpu", weights_only=True)
+            if blob.get("format") != "nextword-mlp-progress-1" or blob["step"] != meta["step"]:
+                raise LabError("this run's saved progress is incomplete; train a new run", 409, "corrupt_run")
+            run.trained, run.best = blob["weights"], blob["best"]
+            run.history = {int(k): v for k, v in blob["history"].items()}
+            resume, run.state = blob, "interrupted"
+        else:
+            run.trained = copy.deepcopy(mlp.load(d / "trained.pt")[0].state_dict())
+            if (d / "best.pt").exists():
+                run.best = copy.deepcopy(mlp.load(d / "best.pt")[0].state_dict())
+            if (d / "history.pt").exists():  # runs saved before recording existed have no history
+                blob = torch.load(d / "history.pt", map_location="cpu", weights_only=True)
+                run.history = {int(k): v for k, v in blob["states"].items()}
+            if (d / "resume.pt").exists():
+                resume = torch.load(d / "resume.pt", map_location="cpu", weights_only=True)
+            run.state = "interrupted" if meta["state"] == "training" else meta["state"]
         run.model.load_state_dict(run.trained)
-        run.state, run.step, run.curve = meta["state"], meta["step"], meta["curve"]
+        run.step = meta["step"]
+        run.curve = [p for p in meta["curve"] if p["step"] <= run.step]
         run.ms_per_step, run.train_seconds = meta.get("msPerStep"), meta.get("trainSeconds")
         run.samples, run.predictions = meta.get("samples", {}), meta.get("predictions", [])
-        if run.fingerprints() != meta["fingerprints"] or run.history_fingerprints() != meta.get("historyFingerprints", {}):
+        if resume is not None and resume.get("step") == run.step and resume.get("generator") is not None:
+            run.gen = torch.Generator()
+            run.gen.set_state(resume["generator"])
+            run.best_step, run.best_val = resume.get("bestStep"), resume.get("bestVal")
+            run.resumable = run.state in INCOMPLETE and run.step < cfg.steps
+        if run.best is not None and run.best_step is None:
+            run.best = None  # a best checkpoint without its record isn't used
+        if run.fingerprints() != {k: v for k, v in meta["fingerprints"].items() if k != "best" or run.best is not None} \
+                or run.history_fingerprints() != meta.get("historyFingerprints", {}):
             raise LabError("the saved weights don't match their record; train a new run", 409, "corrupt_run")
         self.runs[run_id] = run
         return run
@@ -475,9 +625,12 @@ class MLPService:
         out = {"run": run.id, "split": how,
                "rule": "mean −ln p over every character from the second of each part on; same targets for both models",
                "uniform": _r(math.log(len(run.vocab)), 5), "rows": []}
+        names = ["initial"] + (["trained"] if run.trained is not None else []) + (["best"] if "best" in run.fingerprints() else [])
+        known = set(run.vocab.itos)
         for on in ("val", "test"):
-            row = {"part": on, "targets": len(run.data[on + "_eval"][1])}
-            for name in ("initial", "trained") if run.trained is not None else ("initial",):
+            row = {"part": on, "targets": len(run.data[on + "_eval"][1]),
+                   "unknownTargets": sum(1 for c in run.parts[on][1:] if c not in known)}
+            for name in names:
                 loss = mlp.mean_loss(run.checkpoint_model(name), *run.data[on + "_eval"])
                 row["mlp_" + name] = None if loss is None else _r(loss, 5)
             for k, label in ((0, "bigram"), (1, "bigram_add1")):
@@ -487,6 +640,16 @@ class MLPService:
                     row["bigram_unseen"] = ev["unseenContext"] + ev["unseenPair"]
                     row["bigram_targets"] = ev["targets"]
             out["rows"].append(row)
+        out["best"] = None if "best" not in names else {"step": run.best_step, "val": _r(run.best_val, 5)}
+        out["policy"] = {
+            "vocabulary": f"both models use the characters of the training part only ({len(run.vocab) - 2} characters)",
+            "unknown": ("a character never seen in training counts as one 'unknown' outcome for both models. "
+                        "The MLP predicts ⟨?⟩ and the add-1 bigram keeps one extra slot for it. The unsmoothed bigram gives it 0"),
+            "smoothing": "MLP: none needed (softmax is never 0). Bigram: unsmoothed (the engine as built) and add-1",
+            "selection": ("the 'selected' MLP checkpoint is chosen by validation loss only; its test loss is the final, "
+                          "one-time evaluation"),
+            "targets": "every character from the second of each part on, the same targets for every column",
+        }
         out["note"] = ("The MLP never gives probability 0 (softmax), so its loss is always finite. The unsmoothed bigram "
                        "gives 0 to any pair it never counted, so its loss can be infinite; the add-1 row smooths it the "
                        "way the Evaluation bench does. Test numbers are shown for comparison only and were not used to "

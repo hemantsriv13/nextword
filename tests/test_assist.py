@@ -411,5 +411,19 @@ class RouteTests(AssistTestCase):
         self.assertTrue(all(c["turns"] == 0 for c in self.assistant.conversations._items.values()))
 
 
+class NumberCheckTests(unittest.TestCase):
+    """The deterministic check the server runs on every finished answer."""
+
+    FACTS = {"calculations": ["loss = −ln(0.123456) = 2.0919", "The training part has 933 characters."], "pCorrect": 0.123456}
+
+    def test_numbers_from_the_facts_pass_in_common_roundings(self):
+        answer = "p is 0.1235 (about 12%, or 0.12), so the loss is 2.0919, about 2.09. There are 933 characters, 1,167 in all."
+        self.assertEqual(assist.numbers_not_in_facts(answer, self.FACTS), ["1167"])
+
+    def test_invented_numbers_are_listed_and_small_whole_numbers_and_the_question_are_allowed(self):
+        found = assist.numbers_not_in_facts("Step 3 of 8 gives 0.73 and 45 examples, like your 77.", self.FACTS, "why 77?")
+        self.assertEqual(found, ["0.73", "45"])
+
+
 if __name__ == "__main__":
     unittest.main()

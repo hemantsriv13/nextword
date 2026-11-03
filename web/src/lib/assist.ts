@@ -58,7 +58,7 @@ export interface AssistTimings {
 export type AssistEvent =
   | { type: "start"; conversation: string; key: string; action: AssistAction; turn: number; maxTurns: number; model: string; url: string; maxTokens: number; facts: unknown; calculations: string[] }
   | { type: "delta"; text: string }
-  | { type: "done"; finish: string | null; timingsMs: AssistTimings; turns: number; maxTurns: number; empty: boolean; room?: Partial<Record<AssistAction, boolean>> }
+  | { type: "done"; finish: string | null; timingsMs: AssistTimings; turns: number; maxTurns: number; empty: boolean; room?: Partial<Record<AssistAction, boolean>>; unverified?: string[] }
   | { type: "error"; code: string; message: string }
 
 /** The key that binds an MLP answer to one run, one set of weights, one stage and one example. */

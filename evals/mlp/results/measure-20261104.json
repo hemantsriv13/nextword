@@ -1,0 +1,230 @@
+{
+ "steps": 2000,
+ "torchThreads": 2,
+ "rows": [
+  {
+   "corpus": "ds-tiny-cat",
+   "context": 3,
+   "embed": 8,
+   "hidden": 64,
+   "batch": 32,
+   "steps": 2000,
+   "state": "done",
+   "examples": {
+    "train": 133,
+    "val": 40,
+    "test": 41
+   },
+   "vocab": 18,
+   "params": 2914,
+   "setupSeconds": 0.05,
+   "trainSeconds": 0.99,
+   "msPerStep": 0.497,
+   "compareSeconds": 0.01,
+   "valLoss": {
+    "mlpInitial": 2.90738,
+    "mlpTrained": 1.238,
+    "bigramAdd1": 1.8147
+   },
+   "curveEnd": {
+    "step": 2000,
+    "train": 0.28875,
+    "val": 1.238
+   },
+   "peakMB": 193.3,
+   "peakMBBeforeRun": 186.6
+  },
+  {
+   "corpus": "ds-medium-alice",
+   "context": 3,
+   "embed": 8,
+   "hidden": 64,
+   "batch": 32,
+   "steps": 2000,
+   "state": "done",
+   "examples": {
+    "train": 31193,
+    "val": 13833,
+    "test": 11672
+   },
+   "vocab": 64,
+   "params": 6272,
+   "setupSeconds": 0.04,
+   "trainSeconds": 1.59,
+   "msPerStep": 0.797,
+   "compareSeconds": 0.14,
+   "valLoss": {
+    "mlpInitial": 4.16169,
+    "mlpTrained": 2.27646,
+    "bigramAdd1": 2.40875
+   },
+   "curveEnd": {
+    "step": 2000,
+    "train": 2.23598,
+    "val": 2.27646
+   },
+   "peakMB": 223.0,
+   "peakMBBeforeRun": 186.7
+  },
+  {
+   "corpus": "ds-medium-alice",
+   "context": 5,
+   "embed": 12,
+   "hidden": 128,
+   "batch": 64,
+   "steps": 2000,
+   "state": "done",
+   "examples": {
+    "train": 31193,
+    "val": 13833,
+    "test": 11672
+   },
+   "vocab": 64,
+   "params": 16832,
+   "setupSeconds": 0.02,
+   "trainSeconds": 2.46,
+   "msPerStep": 1.23,
+   "compareSeconds": 0.18,
+   "valLoss": {
+    "mlpInitial": 4.20801,
+    "mlpTrained": 2.11325,
+    "bigramAdd1": 2.40875
+   },
+   "curveEnd": {
+    "step": 2000,
+    "train": 2.04242,
+    "val": 2.11325
+   },
+   "peakMB": 228.9,
+   "peakMBBeforeRun": 186.6
+  },
+  {
+   "corpus": "ds-large-austen-doyle",
+   "context": 3,
+   "embed": 8,
+   "hidden": 64,
+   "batch": 32,
+   "steps": 2000,
+   "state": "done",
+   "examples": {
+    "train": 991720,
+    "val": 128553,
+    "test": 120171
+   },
+   "vocab": 78,
+   "params": 7294,
+   "setupSeconds": 0.29,
+   "trainSeconds": 1.91,
+   "msPerStep": 0.955,
+   "compareSeconds": 1.79,
+   "valLoss": {
+    "mlpInitial": 4.4278,
+    "mlpTrained": 2.30721,
+    "bigramAdd1": 2.36834
+   },
+   "curveEnd": {
+    "step": 2000,
+    "train": 2.3221,
+    "val": 2.30915
+   },
+   "peakMB": 303.3,
+   "peakMBBeforeRun": 186.4
+  },
+  {
+   "corpus": "ds-large-austen-doyle",
+   "context": 5,
+   "embed": 12,
+   "hidden": 128,
+   "batch": 64,
+   "steps": 2000,
+   "state": "done",
+   "examples": {
+    "train": 991720,
+    "val": 128553,
+    "test": 120171
+   },
+   "vocab": 78,
+   "params": 18806,
+   "setupSeconds": 0.31,
+   "trainSeconds": 2.96,
+   "msPerStep": 1.482,
+   "compareSeconds": 1.97,
+   "valLoss": {
+    "mlpInitial": 4.37081,
+    "mlpTrained": 2.17699,
+    "bigramAdd1": 2.36834
+   },
+   "curveEnd": {
+    "step": 2000,
+    "train": 2.1893,
+    "val": 2.17945
+   },
+   "peakMB": 322.1,
+   "peakMBBeforeRun": 186.9
+  },
+  {
+   "corpus": "ds-large-austen-doyle",
+   "context": 8,
+   "embed": 16,
+   "hidden": 256,
+   "batch": 128,
+   "steps": 2000,
+   "state": "done",
+   "examples": {
+    "train": 991720,
+    "val": 128553,
+    "test": 120171
+   },
+   "vocab": 78,
+   "params": 54318,
+   "setupSeconds": 0.3,
+   "trainSeconds": 6.06,
+   "msPerStep": 3.028,
+   "compareSeconds": 2.86,
+   "valLoss": {
+    "mlpInitial": 4.39138,
+    "mlpTrained": 2.0874,
+    "bigramAdd1": 2.36834
+   },
+   "curveEnd": {
+    "step": 2000,
+    "train": 2.09773,
+    "val": 2.08545
+   },
+   "peakMB": 374.4,
+   "peakMBBeforeRun": 185.9
+  },
+  {
+   "corpus": "ds-large-austen-doyle",
+   "context": 8,
+   "embed": 16,
+   "hidden": 256,
+   "batch": 128,
+   "steps": 20000,
+   "state": "done",
+   "examples": {
+    "train": 991720,
+    "val": 128553,
+    "test": 120171
+   },
+   "vocab": 78,
+   "params": 54318,
+   "setupSeconds": 0.31,
+   "trainSeconds": 26.65,
+   "msPerStep": 1.332,
+   "compareSeconds": 2.66,
+   "valLoss": {
+    "mlpInitial": 4.39138,
+    "mlpTrained": 1.54846,
+    "bigramAdd1": 2.36834
+   },
+   "curveEnd": {
+    "step": 20000,
+    "train": 1.54118,
+    "val": 1.5533
+   },
+   "peakMB": 377.5,
+   "peakMBBeforeRun": 187.2
+  }
+ ]
+}

@@ -29,7 +29,7 @@ const STATUS: MlpStatus = { available: true, error: null, torch: "2.15.0+cpu", t
 
 const api = {
   status: vi.fn(), run: vi.fn(), start: vi.fn(), stop: vi.fn(), reset: vi.fn(), inspect: vi.fn(),
-  examples: vi.fn(), generate: vi.fn(), compare: vi.fn(),
+  examples: vi.fn(), generate: vi.fn(), compare: vi.fn(), resume: vi.fn(),
 }
 vi.mock("@/lib/mlp", async (orig) => ({ ...(await orig<typeof import("@/lib/mlp")>()), mlpApi: api }))
 vi.mock("@/lib/corpora", () => ({ useCorpora: () => ({ corpora: [{ id: "sample", name: "Sample passage", chars: 600 }], error: undefined, loading: false, refresh: () => {} }) }))
@@ -128,6 +128,73 @@ describe("MLP journey", () => {
     await act(async () => { await new Promise((r) => setTimeout(r, 50)) })
     expect(screen.getByTestId("ai-conversation").dataset.current).toBe("false")
     expect(screen.getByTestId("ai-stale").textContent).toMatch(/earlier experiment.*run m1/)
+  })
+
+  it("labels an interrupted run as incomplete and resumes it through the backend", async () => {
+    api.run.mockResolvedValue({ ...RUN("m1", "trained11111"), state: "interrupted", step: 120, resumable: true, complete: false })
+    api.resume.mockResolvedValue({ ...RUN("m1", "trained11111"), state: "training", step: 120 })
+    await open()
+    const box = screen.getByTestId("mlp-incomplete")
+    expect(box.textContent).toMatch(/Incomplete run: 120 of 300 updates.*Lab closed during training.*continues exactly/)
+    expect(screen.getByTestId("mlp-progress").textContent).toMatch(/Interrupted \(incomplete\)/)
+    await press(/resume to 300 updates/i, box)
+    expect(api.resume).toHaveBeenCalledWith("m1")
+  })
+
+  it("offers only a restart when a stopped run can't be resumed exactly", async () => {
+    api.run.mockResolvedValue({ ...RUN("m1", "trained11111"), state: "stopped", step: 50, resumable: false })
+    api.start.mockResolvedValue(RUN("m4", "trained44444"))
+    await open()
+    expect(screen.queryByTestId("mlp-resume")).toBeNull()
+    await press(/train again from the start/i, screen.getByTestId("mlp-incomplete"))
+    expect(api.start).toHaveBeenCalledWith(expect.objectContaining({ corpus: "sample", context: 2, steps: 300, seed: 3 }))
+  })
+
+  it("never shows an inspection computed from other weights than the selected checkpoint's", async () => {
+    api.inspect.mockImplementation((b: { index: number }) => Promise.resolve(INS("someOtherWts", b.index)))
+    await open()
+    expect(screen.getByTestId("mlp-stage-canvas").textContent).not.toContain("Sample passage: 600")
+    expect(screen.getByLabelText("Asking your MLP")).toBeTruthy()
+  })
+
+  it("shows the validation-selected checkpoint and the stated fairness rules in the bigram comparison", async () => {
+    api.compare.mockResolvedValue({
+      run: "m1", split: "fixed", rule: "same targets", uniform: 1.609, note: "Test numbers are shown once.", best: { step: 150, val: 0.01 },
+      policy: { vocabulary: "training characters only", unknown: "one unknown outcome", smoothing: "add-1 for the bigram", selection: "validation only", targets: "same targets" },
+      rows: [{ part: "test", targets: 59, unknownTargets: 2, mlp_initial: 1.6, mlp_trained: 0.03, mlp_best: 0.02, bigram: null, bigram_add1: 0.4, bigram_unseen: 2, bigram_targets: 59 }],
+    })
+    await open()
+    await press(/Generation/i, screen.getByRole("navigation", { name: "Lesson stages" }))
+    await press(/compare with the bigram/i)
+    const table = screen.getByTestId("mlp-compare")
+    expect(table.textContent).toMatch(/MLP, selected\(update 150\)/)
+    expect(table.textContent).toMatch(/59, 2 unseen/)
+    expect(table.textContent).toContain("0.020")
+    expect(screen.getByTestId("mlp-compare-policy").textContent).toMatch(/doesn’t have to win/)
+  })
+
+  it("lists the eight stages with what each covers, and every stage says what you should see", async () => {
+    await open()
+    expect(screen.getByTestId("mlp-overview").querySelectorAll("li")).toHaveLength(8)
+    for (const name of ["Text", "Training examples", "Embeddings", "Hidden layer", "Predictions", "Loss", "Weight update", "Generation"]) {
+      await press(new RegExp(`^\\d?\\s*${name}$`), screen.getByRole("navigation", { name: "Lesson stages" }))
+      expect(screen.getByTestId("mlp-expect").textContent!.length).toBeGreaterThan(30)
+    }
+  })
+
+  it("warns when a tutor answer contains numbers that aren't in the engine's facts", async () => {
+    await open()
+    const panel = screen.getByTestId("mlp-explanation")
+    await press(/^ask your tutor$/i)
+    await screen.findByTestId("ai-model")
+    await press(/^explain this step$/i, panel)
+    await act(async () => {
+      calls[0].emit({ type: "start", conversation: "a1", key: "k", action: "explain", turn: 1, maxTurns: 4, model: "m", url: "", maxTokens: 300, facts: {}, calculations: [] })
+      calls[0].emit({ type: "delta", text: "The loss is 0.73." })
+      calls[0].emit({ type: "done", finish: "stop", timingsMs: { queue: 0, firstText: 1, total: 2 }, turns: 1, maxTurns: 4, empty: false, unverified: ["0.73"] })
+      calls[0].finish()
+    })
+    expect(screen.getByTestId("ai-unverified").textContent).toMatch(/mentions 0\.73, a number not found/)
   })
 
   it("says when the lesson is complete", async () => {
