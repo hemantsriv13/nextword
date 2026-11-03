@@ -30,8 +30,8 @@ Each row below links to implementation files, not to inferred capabilities.
 | Trainable character MLP | [Model](nextword/mlp.py), [training service](nextword/lab/mlp_service.py), [tests](tests/test_mlp.py), and [documentation](docs/MLP.md) |
 | Learning interface and simulations | [Lab guide](docs/LAB.md) |
 
-The MLP and tutor work is on the `release/neural-mlp` branch ([draft pull request #1](https://github.com/hemantsriv13/nextword/pull/1)).
-Until that pull request is merged, the `main` branch does not include those files.
+The MLP and tutor work was developed on the `release/neural-mlp` branch
+([pull request #1](https://github.com/hemantsriv13/nextword/pull/1)) and merged into `main`.
 
 ## Local AI explanation workflow
 
@@ -60,7 +60,8 @@ application is a separate cost.
 
 ## Adversarial explanation evaluation
 
-The evaluation tests explanations against known experiment facts, including misleading follow-up questions.
+The evaluation tests explanations against known experiment facts, including false corrections and misleading
+follow-up questions.
 The purpose is to find incorrect reasoning and unsupported claims, then improve the supplied facts and the
 explanation workflow.
 
@@ -73,7 +74,7 @@ Probes and the cases that test them (case files in [`evals/local_ai/`](evals/loc
 
 | Probe | What a correct explanation should preserve | Cases |
 | --- | --- | --- |
-| A follow-up supplies a false count | Use the engine's count and explain the discrepancy. | `T4`, `F04`, `C04` |
+| A follow-up supplies a false correction (a wrong count or comparison) | Use the engine's count and explain the discrepancy. | `T4`, `F04`, `C04` |
 | Only the random seed changes | Learned counts stay fixed; sampled characters, and therefore later contexts, can change. | `H5`, `F08`, `C08` |
 | A context has no observed followers | Distinguish an undefined probability row from an unseen pair with probability zero in a nonempty row. | `H7`, `F10` |
 | A question asks why a character was selected | Use the recorded sampling trace, not simply the highest probability. | `T3`, `F03`, `F12`, `C03`, `C11` |
@@ -188,7 +189,7 @@ distinct.
 
 The next implementation milestones are:
 
-1. ~~Build and train a small neural language model in Python.~~ Done: the character MLP (on `release/neural-mlp`).
+1. ~~Build and train a small neural language model in Python.~~ Done: the character MLP.
 2. Implement a tiny causal transformer.
 3. Compare the engines using consistent data splits and evaluation (the MLP and bigram already are).
 4. Connect each new engine to the learning interface.
